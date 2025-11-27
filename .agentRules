@@ -3,3 +3,4 @@
 - [karbonUmberela](Context/example/karbonUmberela.txt) is the example usage of logical-mechanism and stdlib
 - remember to refer back to examples and lib for usage and not to hallucinate
 - for complex types we will use logical-mechanism's types like for address we will use `Wallet` type for time `moment` etc.
+- line #36 in logical-mechanism shows the usage of logical-mechanism in code

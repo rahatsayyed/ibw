@@ -1,47 +1,98 @@
-use cardano/address.{Credential}
+use aiken/cbor
+use aiken/crypto
+use cardano/address.{Address, Script}
 use cardano/assets.{PolicyId}
-use cardano/certificate.{Certificate}
-use cardano/governance.{ProposalProcedure, Voter}
 use cardano/script_context.{ScriptContext}
-use cardano/transaction.{OutputReference, Transaction}
+use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
+use functions/deposit
+use functions/user_registration
+use functions/withdraw
+use types/types.{UserProfileDatum}
+
+// Redeemer for spend operations
+pub type UserProfileRedeemer {
+  Deposit { amount: Int }
+  Withdraw { amount: Int }
+}
 
 validator user_profile {
   // MINTING POLICY VALIDATIONS
   // ===========================
-  mint(_redeemer: Data, _policy_id: PolicyId, _self: Transaction) {
+  mint(redeemer: ByteArray, policy_id: PolicyId, tx: Transaction) {
     // User Registration
     // -----------------
     // 1. Mint unique Profile NFT (one per address)
     // 2. user_address matches transaction signer
     // 3. All counters start at 0
-    todo @"mint logic goes here"
+    // Use the redeemer (username) directly as the token name
+    let token_name = redeemer
+    // Validate user registration using the dedicated function
+    user_registration.validate_user_registration(tx, policy_id, token_name)
   }
 
   // SPENDING VALIDATOR VALIDATIONS
   // ===============================
   spend(
-    _datum: Option<Data>,
-    _redeemer: Data,
-    _utxo: OutputReference,
-    _self: Transaction,
+    datum: Option<UserProfileDatum>,
+    redeemer: UserProfileRedeemer,
+    utxo: OutputReference,
+    tx: Transaction,
   ) {
-    // Deposit
-    // -------
-    // 1. Input UTxO contains Profile NFT
-    // 2. datum.user_address == tx signer
-    // 3. output.total_balance = input.total_balance + deposit_amount
-    // 4. output.available_balance = input.available_balance + deposit_amount
-    // 5. Profile NFT returned to same address
-    // 6. All other fields unchanged
-    // Withdraw
-    // --------
-    // 1. datum.user_address == tx signer
-    // 2. Profile NFT in input/output
-    // 3. withdrawal_amount <= available_balance
-    // 4. output.total_balance = input.total_balance - withdrawal_amount
-    // 5. output.available_balance = input.available_balance - withdrawal_amount
-    // 6. withdrawal_amount sent to user's wallet
-    // 7. All other fields unchanged
+    expect Some(input_datum) = datum
+    expect Some(input) = find_input(tx.inputs, utxo)
+    expect Script(script_hash) = input.output.address.payment_credential
+    // Get script address for NFT verification
+    let script_address = input.output.address
+    // Get profile NFT info from datum
+    let profile_nft_policy = input_datum.profile_nft.policy_id
+    let profile_nft_name = input_datum.profile_nft.asset_name
+    // Find output with the Profile NFT to get output datum
+    let output_datum_data =
+      user_registration.find_output_with_nft(
+        tx.outputs,
+        profile_nft_policy,
+        profile_nft_name,
+      )
+    expect output_datum: UserProfileDatum = output_datum_data
+    when redeemer is {
+      Deposit { amount } ->
+        // Deposit
+        // -------
+        // 1. Input UTxO contains Profile NFT
+        // 2. datum.user_address == tx signer
+        // 3. output.total_balance = input.total_balance + deposit_amount
+        // 4. output.available_balance = input.available_balance + deposit_amount
+        // 5. Profile NFT returned to same address
+        // 6. All other fields unchanged
+        deposit.validate_deposit(
+          tx,
+          input_datum,
+          output_datum,
+          amount,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
+      Withdraw { amount } ->
+        // Withdraw
+        // --------
+        // 1. datum.user_address == tx signer
+        // 2. Profile NFT in input/output
+        // 3. withdrawal_amount <= available_balance
+        // 4. output.total_balance = input.total_balance - withdrawal_amount
+        // 5. output.available_balance = input.available_balance - withdrawal_amount
+        // 6. withdrawal_amount sent to user's wallet
+        // 7. All other fields unchanged
+        withdraw.validate_withdrawal(
+          tx,
+          input_datum,
+          output_datum,
+          amount,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
+    }
     // Project Create
     // --------------
     // 3. Verify client Profile UTxO updates:
@@ -113,7 +164,6 @@ validator user_profile {
     //       * arbitration_score += 5
     //       * available_balance += arbitrator_fee
     // 16. All Profile NFTs returned
-    todo @"spend logic goes here"
   }
 
   else(_ctx: ScriptContext) {
