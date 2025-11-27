@@ -1,0 +1,5 @@
+- [logical-mechanism](Context/lib/logical-mechanism_Assist.txt) is a exteral lib for aiken
+- [stdlib](Context/lib/stdlib.txt) is a Standard Lib for aiken
+- [karbonUmberela](Context/example/karbonUmberela.txt) is the example usage of logical-mechanism and stdlib
+- remember to refer back to examples and lib for usage and not to hallucinate
+- for complex types we will use logical-mechanism's types like for address we will use `Wallet` type for time `moment` etc.

@@ -1,0 +1,5035 @@
+================================================
+FILE: README.md
+================================================
+# Aiken Assist Library
+
+The **Aiken Assist Library** is a collection of specialized functions for [Aiken](https://github.com/aiken-lang/aiken). This library extends the default functionality of [stdlib](https://github.com/aiken-lang/stdlib) and provides routines that facilitate quick development of smart contracts on Cardano.
+
+## Compatibility
+
+aiken's version | assist's version
+---             | ---
+`v1.1.5+`       | `>= v0.5.1`
+`v1.0.29-alpha` | `== v0.4.11`
+
+Assist library `v0.5.x+` will be Plutus V3+. For Plutus V2 contracts use the `v0.4.11` branch.
+
+## Getting Started
+
+To start using the library, follow these steps:
+
+1. Import the library with the command:
+
+```bash
+aiken packages add logical-mechanism/assist --version v0.5.1
+```
+
+- Stay up to date by updating the version to the newest tag when applicable, i.e. `v0.5.1` -> `v0.5.x`.
+
+2. Compile your project by running the command `aiken check` in your project directory. If a complete recheck is required then run the command:
+
+```bash
+rm -fr build || true
+aiken check
+```
+
+## Usage
+
+To use the **Aiken Assist Library** in your project, import the desired submodules into your `.ak` file. For example:
+
+```rust
+use tx/signing
+use types/wallet.{Wallet}
+use cardano/prefixes.{database}
+```
+
+Please refer to the documentaiton for available Assist modules.
+
+## Documentation
+
+You can generate the library's documentation locally by running the command `aiken docs` in your project directory. Alternatively, you can view the [online documentation](https://www.logicalmechanism.io/docs/index.html) for detailed information on the library's functions and usage.
+
+## Contributing
+
+Want to contribute? See [CONTRIBUTING.md](./CONTRIBUTING.md) to know how.
+
+## Contact
+
+For any questions or feedback, please contact the project maintainer at `support@logicalmechanism.io`.
+
+## License
+
+The **Aiken Assist Library** is released under the Apache2 License. See the `LICENSE` file for more details.
+
+
+
+================================================
+FILE: aiken.toml
+================================================
+name = "logical-mechanism/Assist"
+version = "v0.5.1"
+compiler = "v1.1.19"
+plutus = "v3"
+license = "Apache-2.0"
+description = "Aiken Assist Library"
+
+[repository]
+user = "logical-mechanism"
+project = "Assist"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "v2.2.0"
+source = "github"
+
+[config]
+
+
+
+================================================
+FILE: CHANGELOG.md
+================================================
+# v0.x.y
+
+- Cleaning up registry documentation
+- Fiat Shamir transform is now public
+- The blake2b_224 hash is now used for the fiat shamir transform
+- Bump to 1.1.16 and 2.2.0
+
+# v0.5.1
+
+*This version is contains breaking changes.*
+
+- Added minting.quantity_of to prove that some form of minting is occurring then the quantity is returned
+- Changing sha3_256 to blake2b_256, it is cheaper to compute
+- value.unique_token_name has been changed to the v3 version, no more hashing and has a personal tag feature
+- Updated aiken to v1.1.2 and stdlib to v2.1.0
+- Added the registry type and related function
+- stdlib 2.1.0 forces blake2b_224 upon us, this may change in the future
+
+# v0.5.0
+
+- Updated toml to Aiken 1.1.0, stdlib main (v2.0.0 should be the tagged release)
+- addresses.from_wallet check if wallet is valid else it fails
+- All math related modules will be in the maths folder
+- All cardano related modules will be in the cardano folder
+- All validation related modules will be in the validation folder
+- Removed assist top level folder to align with stdlib
+- stdlib is tagged at v2.0.0
+- Updated readme, Plutus v2 is staying on v0.4.11, v3+ is v0.5.x
+- Updating cont integration file
+
+# v0.4.11
+
+*Plutus V2 support will stay on v0.4.x*
+*Plutus V3+ support will continue on v0.5.x*
+
+- Added a length check for the stake credential inside `addresses.create_address` and `addresses.create_script_address`
+- Added compatibility matrix to readme in anticipation of Plutus V3
+- Updated README with better usage suggestions
+- Updated toml with new organization name
+- Added compiler and plutus version to toml file.
+
+# v0.4.10
+
+- Added additional tests for the Moment type
+
+# v0.4.9
+
+*This version is contains breaking changes.*
+
+- Updating Aiken to 1.0.28 and stdlib to 1.9.0
+- Dicts are now Pairs where applicable, dict.get -> pairs.get_first
+- Updated README with the `aiken packages add` function
+- Fixed formatting in the CONTRIBUTING file
+
+# v0.4.8
+
+*This version is contains breaking changes.*
+
+- Updating documentation
+- Functions should be curryable, f |> g |> h. An updated list of functions are below.
+    - values.contains
+    - values.prove_nft
+    - values.prove_exact_nft
+    - token.exists
+    - token.contains
+- values.unique_token_name will remove the hash function in step one for versions of assist v0.5.0+
+    - v0.4.x will keep the hash function to prevent breaking old code
+- Addresses now have notes about key length validity checks. Please use Wallet types with `wallet.is_valid`.
+- data.metadata has been removed. Use `CIP68.get` instead.
+- maths.to_int and maths.from_int will use bytearray conversions in assist v0.5.0+
+- Added additional tests for finding inputs and outputs using `values.contains`
+
+# v0.4.7
+
+- Updated to Aiken 1.0.26
+- Updated to stdlib 1.8.0
+- Update CIP68 Data Structure
+- Changed cip68.get, it loops a list instead of doing a dict.get
+
+# v0.4.6
+
+- Added `input_by_nft` to the find submodule.
+- Added additional power mod tests.
+- A large prime number has been added to maths.
+- Prefixes are now placed where they belong, the cip68 labels are now in cip68 sub type and prefixes are now custom prefixes.
+- Added `seed` prefix.
+
+# v0.4.5
+
+- Added the `Wallets` type and `to_vks`  to the wallet submodule.
+- Added `get` and `version` to the cip68 submodule.
+- Added `shift` to the moment submodule.
+- `tests/fake_tx` are now apart of `assist`.
+- Added `contains` to the token submodule.
+
+# v0.4.4
+
+- Documentation is now hosted at logicalmechanism.io
+- Added `from_value` to the token submodule.
+- Updated `values.multiply`, it should be must faster now.
+- Tested against Aiken 1.0.23
+
+# v0.4.3
+
+- Added `is_valid` to the wallet submodule.
+- Changed `add_tokens_to_value` from private to public in the token type submodule.
+- Added `multiply` and `subtraction_only` to the token type submodule.
+- Added a `Moments` type to the moment submodule.
+- Added `inputs_by_vkh` and `outputs_by_vkh` in count sub module.
+- Updated `single_input_with_bypass` to check for vkh equality in the count sub module.
+- Added additional functions to the token type submodule
+- Added `from_tokens` to the value sub module.
+
+# v0.4.2
+
+- Updated moment `is_contained` to check if a validity range is inside a moment.
+- Wrote additional tests for moment and payout
+- Updated README
+- Added `addition_only` to the token submodule.
+- Added `CONTRIBUTING.md`
+
+# v0.4.1
+
+*This version is contains breaking changes.*
+
+- Refactored types to prevent future name collisions
+- Added `output_datum_by_nft` to the find submodule.
+- All tests should be type annotated.
+- Use stdlib 1.7.0 and not `main` branch.
+- Readme suggests using tag versions instead of `main` branch.
+
+# v0.4.0
+
+*This version is contains breaking changes.*
+
+- General data types from assist are now used in function definitions. See `types.ak`.
+- Refactored how assist types are used in functions.
+- `from_wallet` and `from_token` are now in addresses and values respectively.
+- Added `is_spending_input` to check if an output reference is being spent.
+- `total_token_amount` is moved to `tx.ak` and refactored.
+- Fail messages are more specific to the function.
+- All `&&` and `||` are now `and` and `or`.
+- Added `metadata` to find data from a cip68 metadatum type.
+
+# v0.3.4
+
+- Improved the counting functions to account for datum hashes.
+- Improved documentation.
+
+# v0.3.3
+
+- Added arithmetic circuit and boolean logic
+- Added input / output datum by hash functions
+- Added more functionality to the fake tx for testing.
+- Upgraded aiken to 1.21
+
+# v0.3.2
+
+- Functions that fail now have tests that check for fails.
+- Using `and` instead of `&&` inside `if-else` control flows.
+- Improved the README.
+- Upgrade to aiken 1.20.
+
+# v0.3.1
+
+- Upgrade to aiken 1.19 and stdlib 1.6.
+- `prefixes.prefix_555` is removed.
+- @nikhils9 added in `output_by_addr_value` and `output_by_value`
+- `payout.atleast` is refactored using `value.contains`
+- pub fn that are wrappers now use the do_fn syntax to align with stdlib.
+
+# v0.3.0
+
+- Upgrade to Aiken 1.14 and stdlib 1.5, list.and and list.or have been removed.
+
+# v0.2.3
+
+- Added in a function to calculate the total amount of some specific token inside all the transaction inputs. 
+- Two new prefixes are now added, callable and database. 
+- The 555 prefix is being depreciated and will be removed in v0.2.4.
+- Added in a function to check if a mint is occurring inside a transaction.
+
+# v0.2.2
+
+- Added minting functions for exact mints and by_prefix mints. 
+- A experimental cip68 prefix has been added to prefixes.
+
+# v0.2.1
+
+- CIP68 prefixes have been fixed. The unique token name function still produces correct names but any length checks needs to be adjusted. New prefix length is now 4.
+
+# v0.1.6
+
+- Does not work with Aiken versions below v1.0.7-alpha Aiken and v1.1.0 Stdlib.
+
+## Changes
+
+- Fake Tx is updated with new `MintedValue` type.
+- Value add is now value merge. All Values functions have been updated.
+
+# v0.1.5 and below
+
+- Works with v1.0.6-alpha Aiken and v1.0.0 Stdlib
+
+
+================================================
+FILE: CONTRIBUTING.md
+================================================
+# Contributing
+
+## What & How Can You Contribute?
+
+### **Feedback**
+
+Contributions in the form of feedback and issues are very much welcome. Whether it may be a suggestion, a bug report, or maybe some questions that you have. It helps in improving Assist over time and these are the best kind of contributions to start with.
+
+Do not hesitate to add to the discussion on open issues you support to show your interest.
+
+### **Documentation**
+
+Any updates, typo fixes, or expansion of the documentation is more than welcome. Please refer to the [online documentation](https://www.logicalmechanism.io/docs/index.html). That can be considered to be the library documentation.
+
+### **Code**
+
+**Getting started**
+
+```bash
+git clone https://github.com/logicalmechanism/assist.git
+cd assist
+aiken check
+```
+
+If everything runs fine without any errors you're good to go. If you do run into any errors please contact the project maintainer at `support@logicalmechanism.io`.
+
+Pull requests are welcome, but we do recommend you open an issue to bring any idea to discussion first! Especially if the pull request will end up very large, any significant changes should be discussed up front with the maintainer. This avoids awkward situations where someone puts in a bunch of work to ultimately have the pull request closed due to a potential variety of unforeseen reasons.
+
+**Changelog**
+
+Please add an entry into [CHANGELOG.md](./CHANGELOG.md) when submitting changes. New entries should go into the top `# v0.x.y` section. This let's us keep track of unreleased changes for use in release notes.
+
+Example Contributions: 
+
+```md
+# v0.x.y
+
+- added some new thing
+- fixed that one thing
+- updated this thing
+- removed something
+```
+
+Once a release is ready `# v0.x.y` gets replaced with a version number, i.e. `# v0.4.0`. Usually the maintainers will handle the section renaming along with creating a new empty `# v0.x.y` section at the top of the changelog. When releasing a new version the version number needs to be updated inside `README.md`, `aiken.toml`, and the `CHANGELOG.md`. Run the command below to do a fresh test and rebuild the docs for the final push.
+
+```bash
+rm -fr build docs
+aiken check
+aiken docs
+```
+
+### **Donation**
+
+Want to support with crypto?
+
+- Our Ada address is `addr1q8rdcfvj5a27gmp04q5c4nuly385mseam09y777xa8mjn40ax0z9yaxg2mjj3ctg4uj6ggwsc6nja0kj446w2gv5zcvqjk47zh`
+
+
+
+================================================
+FILE: LICENSE
+================================================
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright 2022 Lucas Rosa
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+
+================================================
+FILE: .editorconfig
+================================================
+root = true
+
+[*.ak]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+
+
+================================================
+FILE: lib/cardano/addresses.ak
+================================================
+//// This module incorporates code for generating valid wallet and script 
+//// addresses, ensuring their correctness. Empty keys are treated as 
+//// intentional, and address subtypes are not combined nor mixed. The key
+//// lengths must be valid as these functions will ignore invalid key
+//// keys when generating Address types.
+////
+
+use aiken/crypto.{ScriptHash, VerificationKeyHash}
+use aiken/primitive/bytearray
+use cardano/address.{Address}
+use types/wallet.{Wallet, is_valid}
+
+/// Creates an address from the Wallet type. This should be used primairly for
+/// creating an address as the Wallet type has a `is_valid` function that should
+/// be used in the same validaiton.
+///
+/// ```aiken
+/// let addr: Address = addresses.from_wallet(this_wallet)
+/// ```
+pub fn from_wallet(wallet: Wallet) -> Address {
+  if is_valid(wallet) {
+    create_address(wallet.pkh, wallet.sc)
+  } else {
+    fail @"Invalid Wallet"
+  }
+}
+
+test is_valid_wallet_address() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    }
+  let addr: Address =
+    address.from_verification_key(
+      #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    )
+      |> address.with_delegation_key(
+          #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+        )
+  from_wallet(w) == addr
+}
+
+test is_invalid_wallet_address() fail {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"abcdef0123456789abcdef012bcdef0123456789abcdef01",
+    }
+  let addr: Address =
+    address.from_verification_key(
+      #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    )
+      |> address.with_delegation_key(
+          #"abcdef0123456789abcdef012bcdef0123456789abcdef01",
+        )
+  from_wallet(w) == addr
+}
+
+/// Creates a enterprise or base address from the public key hash and stake
+/// address. An empty sc means enterpise address by default. This function
+/// assumes proper key lengths for `pkh`.Address types should be generated from
+/// the Wallet type so proper length checks are done with the `wallet.is_valid`
+/// function located in `types/wallet.ak`.
+///
+///
+/// ```aiken
+/// addresses.create_address(datum.wallet.pkh, datum.wallet.sc)
+/// ```
+pub fn create_address(
+  pkh: VerificationKeyHash,
+  sc: VerificationKeyHash,
+) -> Address {
+  // stake credentials that are empty bytearrays or incorrect length bytearrays
+  // should not add to the pkh. This will prevent paitial and invalid addresses
+  if or {
+    bytearray.is_empty(sc),
+    bytearray.length(sc) != 28,
+  } {
+    address.from_verification_key(pkh)
+  } else {
+    address.from_verification_key(pkh)
+      |> address.with_delegation_key(sc)
+  }
+}
+
+test enterprise_wallet() {
+  let addr: Address = address.from_verification_key(#"acab")
+  create_address(#"acab", #"") == addr
+}
+
+test bad_staking_key_wallet() {
+  let addr: Address = address.from_verification_key(#"acab")
+  create_address(#"acab", #"face") == addr
+}
+
+test incorrect_stake_key() {
+  let addr: Address =
+    address.from_verification_key(#"acab")
+      |> address.with_delegation_key(
+          #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+        )
+  create_address(#"acab", #"") != addr
+}
+
+test correct_wallet_address() {
+  let addr: Address =
+    address.from_verification_key(
+      #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    )
+      |> address.with_delegation_key(
+          #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+        )
+  create_address(
+    #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+  ) == addr
+}
+
+test script_address_is_not_wallet_address() {
+  let addr: Address =
+    address.from_verification_key(
+      #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    )
+      |> address.with_delegation_key(
+          #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+        )
+  create_script_address(
+    #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+  ) != addr
+}
+
+/// Creates a script address for a smart contract. The type does not mix
+/// address types. Staking credentials are assumed to be smart contracts. An 
+/// empty stake credential or bad length stake credential is invalid and will
+/// be assumed to be not staked. This function assumes proper key lengths for `vkh`.
+///
+/// ```aiken
+/// addresses.create_script_address(datum.script.vkh, datum.script.sc)
+/// ```
+pub fn create_script_address(vkh: ScriptHash, sc: ScriptHash) -> Address {
+  // empty bytearrays means dont add the sc to the pkh
+  if or {
+    bytearray.is_empty(sc),
+    bytearray.length(sc) != 28,
+  } {
+    address.from_script(vkh)
+  } else {
+    address.from_script(vkh)
+      |> address.with_delegation_script(sc)
+  }
+}
+
+test enterprise_script() {
+  let script_addr: Address = address.from_script(#"acab")
+  create_script_address(#"acab", #"") == script_addr
+}
+
+test bad_base_script() {
+  let script_addr: Address = address.from_script(#"acab")
+  create_script_address(#"acab", #"face") == script_addr
+}
+
+test incorrect_script_stake_crendential() {
+  let script_addr: Address =
+    address.from_script(#"")
+      |> address.with_delegation_script(#"")
+  create_script_address(#"acab", #"") != script_addr
+}
+
+test correct_script_address() {
+  let addr: Address =
+    address.from_script(
+      #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    )
+      |> address.with_delegation_script(
+          #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+        )
+  create_script_address(
+    #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+  ) == addr
+}
+
+test wallet_address_is_not_script_address() {
+  let addr: Address =
+    address.from_script(
+      #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    )
+      |> address.with_delegation_script(
+          #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+        )
+  create_address(
+    #"de0c6347552dc5e84f5ba1e945c57c1ce3c49b2c2b8ce7c96bcc8de7",
+    #"6f124ce78e70688a2c333ada555df1ef0d8bda44143ee4cc13ac2dc1",
+  ) != addr
+}
+
+
+
+================================================
+FILE: lib/cardano/certificates.ak
+================================================
+//// This module incorporates code for generating valid certificates,
+//// ensuring their correctness. 
+////
+
+use aiken/crypto.{ScriptHash}
+use cardano/address.{Script}
+use cardano/certificate.{
+  Certificate, DelegateBlockProduction, DelegateCredential, StakePoolId,
+}
+
+/// Creates a credential delegation for changing the location of the stake.
+/// This certificate can be used to check if stake is being delegated to
+/// a specific pool.
+///
+/// ```aiken
+/// certificates.create_credential_delegation(datum.contract_hash, datum.pool_id)
+/// ```
+pub fn delegate_credential(sc: ScriptHash, pool_id: StakePoolId) -> Certificate {
+  DelegateCredential {
+    credential: Script(sc),
+    delegate: DelegateBlockProduction { stake_pool: pool_id },
+  }
+}
+
+test simple_delegate_credential() {
+  let cred: Certificate =
+    DelegateCredential {
+      credential: Script(#""),
+      delegate: DelegateBlockProduction { stake_pool: #"" },
+    }
+  delegate_credential(#"", #"") == cred
+}
+
+
+
+================================================
+FILE: lib/cardano/datum.ak
+================================================
+//// This module contains code for extracting data from a potential inline 
+//// datum found in either an input or output.
+////
+
+use aiken/builtin
+use aiken/collection/dict.{Dict}
+use aiken/crypto.{Blake2b_256, Hash}
+use cardano/transaction.{DatumHash, InlineDatum, Input, Output}
+// for testing only
+use tests/fake_tx
+
+/// Find the datum data on an input or error. The data is assumed
+/// to be an inline datum.
+///
+/// ```aiken
+/// expect datum: Datum = datum.input_datum(this_input)
+/// ```
+pub fn input_datum(possible_input: Input) -> Data {
+  when possible_input.output.datum is {
+    InlineDatum(inbound_datum) -> inbound_datum
+    _ -> fail @"No Input Datum"
+  }
+}
+
+test find_input_datum() {
+  let input: Input = fake_tx.test_input()
+  expect datum: ByteArray = input_datum(input)
+  datum == fake_tx.test_datum
+}
+
+test cant_find_input_datum() fail {
+  let input: Input = fake_tx.test_bad_input()
+  expect datum: ByteArray = input_datum(input)
+  // this will fail
+  datum == fake_tx.test_datum
+}
+
+/// Find the datum data on a input by the datum hash or error. The
+/// data is assumed to be embedded data and must be referenced by
+/// its hash.
+///
+/// ```aiken
+/// expect datum: Datum = datum.input_datum_by_hash(this_input, these_datums)
+/// ```
+pub fn input_datum_by_hash(
+  possible_input: Input,
+  datums: Dict<Hash<Blake2b_256, Data>, Data>,
+) -> Data {
+  when possible_input.output.datum is {
+    DatumHash(inbound_datum_hash) ->
+      when dict.get(datums, inbound_datum_hash) is {
+        Some(inbound_datum) -> inbound_datum
+        _ -> fail @"No Input Datum Attached"
+      }
+    _ -> fail @"No Input Datum"
+  }
+}
+
+test find_input_datum_hash() {
+  let input: Input = fake_tx.test_input_with_datum_hash()
+  let datums: Dict<ByteArray, Data> =
+    dict.empty
+      |> dict.insert(key: fake_tx.test_datum, value: builtin.i_data(1))
+  expect datum: Int = input_datum_by_hash(input, datums)
+  datum == 1
+}
+
+test cant_find_input_datum_hash() fail {
+  let input: Input = fake_tx.test_input_with_datum_hash()
+  let datums: Dict<ByteArray, Data> =
+    dict.empty
+      |> dict.insert(key: #"acab", value: builtin.i_data(1))
+  expect datum: Int = input_datum_by_hash(input, datums)
+  // this will fail
+  datum == 1
+}
+
+/// Find the datum data on an output or error. The data is assumed
+/// to be an inline datum.
+///
+/// ```aiken
+/// expect datum: Datum = datum.output_datum(that_output)
+/// ```
+pub fn output_datum(possible_output: Output) -> Data {
+  when possible_output.datum is {
+    InlineDatum(outbound_datum) -> outbound_datum
+    _ -> fail @"No Output Datum"
+  }
+}
+
+test find_output_datum() {
+  let output: Output = fake_tx.test_output()
+  expect datum: ByteArray = output_datum(output)
+  datum == fake_tx.test_datum
+}
+
+test cant_find_output_datum() fail {
+  let output: Output = fake_tx.test_bad_output()
+  expect datum: ByteArray = output_datum(output)
+  // this will fail
+  datum == fake_tx.test_datum
+}
+
+/// Find the datum data on an output or error. The data is assumed
+/// to be embedded.
+///
+/// ```aiken
+/// expect datum: Datum = datum.output_datum_by_hash(that_output, these_datums)
+/// ```
+pub fn output_datum_by_hash(
+  possible_output: Output,
+  datums: Dict<Hash<Blake2b_256, Data>, Data>,
+) -> Data {
+  when possible_output.datum is {
+    DatumHash(outbound_datum_hash) ->
+      when dict.get(datums, outbound_datum_hash) is {
+        Some(outbound_datum) -> outbound_datum
+        _ -> fail @"No Output Datum Attached"
+      }
+    _ -> fail @"No Output Datum"
+  }
+}
+
+test find_output_datum_hash() {
+  let output: Output = fake_tx.test_output_with_datum_hash()
+  let datums: Dict<ByteArray, Data> =
+    dict.empty
+      |> dict.insert(key: fake_tx.test_datum, value: builtin.i_data(1))
+  expect datum: Int = output_datum_by_hash(output, datums)
+  datum == 1
+}
+
+test cant_find_output_datum_hash() fail {
+  let output: Output = fake_tx.test_output_with_datum_hash()
+  let datums: Dict<ByteArray, Data> =
+    dict.empty
+      |> dict.insert(key: #"acab", value: builtin.i_data(1))
+  expect datum: Int = output_datum_by_hash(output, datums)
+  // this will fail
+  datum == 1
+}
+
+
+
+================================================
+FILE: lib/cardano/minting.ak
+================================================
+//// This module incorporates code for various minting and burning validations.
+////
+
+use aiken/primitive/bytearray
+use cardano/assets.{AssetName, PolicyId}
+use types/cip68
+
+/// This checks if a specific policy id, token name, and amount exist inside
+/// the flattened exact assets. It is searching for an exact match. If found
+/// then it returns True else False.
+///
+/// ```aiken
+/// minting.exact(flatten_mint_value, pid, tkn, 1)
+/// ```
+pub fn exact(
+  flat: List<(PolicyId, AssetName, Int)>,
+  pid: PolicyId,
+  tkn: AssetName,
+  amt: Int,
+) -> Bool {
+  when flat is {
+    // loop the minted value
+    [(policy, token_name, quantity), ..rest] ->
+      if and {
+        policy == pid,
+        token_name == tkn,
+        quantity == amt,
+      } {
+        True
+      } else {
+        exact(rest, pid, tkn, amt)
+      }
+    // something wasn't found
+    [] -> False
+  }
+}
+
+test good_exact_mint() {
+  let flat =
+    assets.from_asset(#"acab", #"beef", 1)
+      |> assets.merge(assets.from_asset(#"fade", #"cafe", -1))
+      |> assets.flatten()
+  exact(flat, #"acab", #"beef", 1) == True
+}
+
+test bad_exact_mint() {
+  let flat = assets.from_asset(#"acab", #"beef", 1) |> assets.flatten()
+  exact(flat, #"acab", #"face", 1) == False
+}
+
+test good_exact_burn() {
+  let flat =
+    assets.from_asset(#"acab", #"beef", 1)
+      |> assets.merge(assets.from_asset(#"fade", #"cafe", -1))
+      |> assets.flatten()
+  exact(flat, #"fade", #"cafe", -1) == True
+}
+
+test bad_exact_burn() {
+  let flat =
+    assets.from_asset(#"acab", #"beef", 1)
+      |> assets.merge(assets.from_asset(#"fade", #"cafe", -1))
+      |> assets.flatten()
+  exact(flat, #"acab", #"beef", -1) == False
+}
+
+test empty_exact_mint() {
+  let flat = assets.zero |> assets.flatten()
+  exact(flat, #"", #"", 0) == False
+}
+
+/// This checks if a specific policy id, prefix, and amount exist inside
+/// the flattened exact assets. Instead of searching for exact match, it
+/// checks if the token name has the correct prefix. This works if
+/// every token name on the policy id is unique. If found then it returns
+/// True else False.
+///
+/// ```aiken
+/// minting.by_prefix(flatten_mint_value, pid, tkn, 1)
+/// ```
+pub fn by_prefix(
+  flat: List<(PolicyId, AssetName, Int)>,
+  pid: PolicyId,
+  prefix: AssetName,
+  amt: Int,
+) -> Bool {
+  when flat is {
+    // loop all the value for the flat value
+    [(policy, token_name, quantity), ..rest] -> {
+      // all cip68 prefixes have the same length
+      let p: ByteArray = bytearray.take(token_name, 4)
+      if and {
+        policy == pid,
+        prefix == p,
+        quantity == amt,
+      } {
+        True
+      } else {
+        by_prefix(rest, pid, prefix, amt)
+      }
+    }
+    // something wasn't found
+    [] -> False
+  }
+}
+
+test good_by_prefix_mint() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_222, 1) |> assets.flatten()
+  by_prefix(flat, #"acab", cip68.prefix_222, 1) == True
+}
+
+test good_by_prefix_burn() {
+  let flat =
+    assets.from_asset(#"acab", cip68.prefix_222, -1) |> assets.flatten()
+  by_prefix(flat, #"acab", cip68.prefix_222, -1) == True
+}
+
+test bad_by_prefix_mint() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_333, 1) |> assets.flatten()
+  by_prefix(flat, #"acab", cip68.prefix_222, 1) == False
+}
+
+test bad_by_prefix_burn() {
+  let flat =
+    assets.from_asset(#"acab", cip68.prefix_333, -1) |> assets.flatten()
+  by_prefix(flat, #"acab", cip68.prefix_222, -1) == False
+}
+
+test empty_by_prefix_mint() {
+  let flat = assets.zero |> assets.flatten()
+  by_prefix(flat, #"", #"", 0) == False
+}
+
+/// Prove that a transaction is minting something from a specific policy id 
+/// and token name but the amount does not matter. This is great for lock-n-mint
+/// style contracts where some logic just needs to check if a mint is occuring
+/// but not the specifics of the amount being minted or burned. If a mint is
+/// occurring then it will return True else False.
+///
+/// ```aiken
+/// minting.is_occurring(flatten_mint_value, pid, tkn)
+/// ```
+pub fn is_occurring(
+  flat: List<(PolicyId, AssetName, Int)>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> Bool {
+  when flat is {
+    // loop the minted value
+    [(policy, token_name, _), ..rest] ->
+      if and {
+        policy == pid,
+        token_name == tkn,
+      } {
+        True
+      } else {
+        is_occurring(rest, pid, tkn)
+      }
+    // something wasn't found
+    [] -> False
+  }
+}
+
+test tx_is_empty_minting() {
+  let flat = []
+  is_occurring(flat, #"acab", cip68.prefix_222) == False
+}
+
+test tx_is_minting() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_222, 1) |> assets.flatten()
+  is_occurring(flat, #"acab", cip68.prefix_222) == True
+}
+
+test tx_is_not_minting() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_222, 1) |> assets.flatten()
+  is_occurring(flat, #"acab", cip68.prefix_333) == False
+}
+
+/// Prove that a transaction is minting something from a specific policy id 
+/// and token name. If it is minting then return the amount else return zero.
+///
+/// ```aiken
+/// minting.quantity_of(flatten_mint_value, pid, tkn)
+/// ```
+pub fn quantity_of(
+  flat: List<(PolicyId, AssetName, Int)>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> Int {
+  when flat is {
+    // loop the minted value
+    [(policy, token_name, quantity), ..rest] ->
+      if and {
+        policy == pid,
+        token_name == tkn,
+      } {
+        // we found what we are looking for so return the quantity
+        quantity
+      } else {
+        quantity_of(rest, pid, tkn)
+      }
+    // something wasn't found
+    [] -> 0
+  }
+}
+
+test tx_is_empty_minting_quantity() {
+  let flat = []
+  quantity_of(flat, #"acab", cip68.prefix_222) == 0
+}
+
+test tx_is_minting_quantity() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_222, 1) |> assets.flatten()
+  quantity_of(flat, #"acab", cip68.prefix_222) == 1
+}
+
+test tx_is_not_minting_quantity() {
+  let flat = assets.from_asset(#"acab", cip68.prefix_222, 1) |> assets.flatten()
+  quantity_of(flat, #"acab", cip68.prefix_333) == 0
+}
+
+
+
+================================================
+FILE: lib/cardano/tx.ak
+================================================
+//// This module incorporates additional code that expands the
+//// functionality of the standard library.
+////
+
+use aiken/collection/list
+use aiken/crypto.{ScriptHash, VerificationKeyHash}
+use cardano/address
+use cardano/assets.{AssetName, PolicyId}
+use cardano/transaction.{Input, OutputReference}
+// used for testing
+use tests/fake_tx
+
+/// Create an `OutputReference` from the `TxId#Idx` information. This is useful
+/// for building correct output references of specific UTxOs. It can be combined
+/// with the `find` module for some very convenient requests.
+///
+/// ```aiken
+/// tx.output_reference(that_tx_id, that_tx_idx)
+/// ```
+pub fn output_reference(tx_id_hash: ByteArray, idx: Int) -> OutputReference {
+  OutputReference { transaction_id: tx_id_hash, output_index: idx }
+}
+
+test correct_out_ref() {
+  let correct_out_ref: OutputReference = fake_tx.test_out_ref()
+  output_reference(#"acab", 0) == correct_out_ref
+}
+
+test bad_out_ref() {
+  let correct_out_ref: OutputReference = fake_tx.test_out_ref()
+  output_reference(#"", 0) != correct_out_ref
+}
+
+/// Check if the list of signatures inside a transaction contains the
+/// verification key.
+///
+/// ```aiken
+/// tx.verify_signature(context.transaction, wallet_pkh)
+/// ```
+pub fn verify_signature(
+  vks: List<VerificationKeyHash>,
+  vk: VerificationKeyHash,
+) -> Bool {
+  list.has(vks, vk)
+}
+
+test no_signature() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_signature(sigs, #"") == False
+}
+
+test bad_signature() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_signature(sigs, #"cafe") == False
+}
+
+test has_signature() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_signature(sigs, #"acab") == True
+}
+
+test lots_of_signatures() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  list.all(
+    list.map(sigs, fn(n) { verify_signature(sigs, n) }),
+    fn(n) { n == True },
+  ) == True
+}
+
+/// This counts the number of signatures inside a transaction that are from 
+/// the list of signers then checks if its at least the minimum amount.
+///
+/// ```aiken
+/// tx.verify_multisig(context.transaction, lst_of_sigs, sig_threshold)
+/// ```
+pub fn verify_multisig(
+  sigs: List<VerificationKeyHash>,
+  vks: List<VerificationKeyHash>,
+  minimum: Int,
+) -> Bool {
+  // assume greater than or equal
+  do_multisig(sigs, vks, 0) >= minimum
+}
+
+// Internal only
+fn do_multisig(
+  sigs: List<VerificationKeyHash>,
+  vks: List<VerificationKeyHash>,
+  counter: Int,
+) -> Int {
+  // loop who has to sign tx, count how many signatures have signed.
+  when vks is {
+    [vk, ..rest] ->
+      if verify_signature(sigs, vk) {
+        // signature found
+        do_multisig(sigs, rest, counter + 1)
+      } else {
+        // signature not found
+        do_multisig(sigs, rest, counter)
+      }
+    // At the end of the list return how many signed
+    [] -> counter
+  }
+}
+
+test no_multisig() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_multisig(sigs, [], 1) == False
+}
+
+test bad_multisig() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_multisig(sigs, [#"acab"], 2) == False
+}
+
+test has_multisig() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_multisig(sigs, [#"acab", #"beef"], 2) == True
+}
+
+test big_multisig() {
+  let sigs: List<VerificationKeyHash> = fake_tx.test_signatories()
+  verify_multisig(sigs, sigs, 25) == True
+}
+
+/// Check if a specific input by output reference is being spent. This is useful
+/// when a minting script requires a utxo to be spent but doesn't need any specific
+/// information about that input.
+///
+/// ```aiken
+/// tx.is_spending_input(tx.inputs, output_reference)
+/// ```
+pub fn is_spending_input(inputs: List<Input>, out_ref: OutputReference) -> Bool {
+  // loop the inputs and find the output reference
+  when inputs is {
+    [input, ..rest] ->
+      if input.output_reference == out_ref {
+        // it is being spent
+        True
+      } else {
+        is_spending_input(rest, out_ref)
+      }
+    // nothing is found so fail
+    [] -> fail @"Input Not Spent"
+  }
+}
+
+test found_spending_input() {
+  let input: Input = fake_tx.test_input()
+  let out_ref: OutputReference = output_reference(#"acab", 0)
+  is_spending_input([input], out_ref) == True
+}
+
+test cant_found_spending_input() fail {
+  let input: Input = fake_tx.test_input()
+  let out_ref: OutputReference = output_reference(#"", 0)
+  is_spending_input([input], out_ref) == False
+}
+
+/// Given a set of validator hashes prove that none of them are being spent. Assume
+/// every address is not staked and that the is list is complete.
+///
+/// ```aiken
+/// tx.not_being_spent_from(not_these_vkhs, tx.inputs)
+/// ```
+pub fn not_being_spent_from(
+  validator_hashes: List<ScriptHash>,
+  inputs: List<Input>,
+) -> Bool {
+  when validator_hashes is {
+    [vh, ..vhs] -> {
+      // check if validator hash exist as an address inside the set of inputs
+      let outcome: Bool =
+        list.any(
+          inputs,
+          // may be cheaper to do ValidatorHash equality then Address equality?
+          // either build up the address or break down the address
+          fn(input) { input.output.address == address.from_script(vh) },
+        )
+      // if true then not true else continue to the next validator hash
+      if outcome {
+        !outcome
+      } else {
+        not_being_spent_from(vhs, inputs)
+      }
+    }
+    // if nothing ever hit then nothing is being spent
+    [] -> True
+  }
+}
+
+test nothing_being_spent_from() {
+  let inputs: List<Input> = [fake_tx.test_script_input()]
+  let vks: List<ScriptHash> = [#""]
+  not_being_spent_from(vks, inputs) == True
+}
+
+test something_being_spent_from() {
+  let inputs: List<Input> = [fake_tx.test_script_input()]
+  let vks: List<ScriptHash> = [#"acab"]
+  not_being_spent_from(vks, inputs) == False
+}
+
+/// Calculate the total amount of a token within the set of inputs for the 
+/// transaction and check if it is at least equal to the provided threshold.
+///
+/// ```aiken
+/// tx.total_token_amount(tx.inputs, datum.pid, datum.tkn, datum.threshold)
+/// ```
+pub fn total_token_amount(
+  inputs: List<Input>,
+  pid: PolicyId,
+  tkn: AssetName,
+  threshold: Int,
+) -> Bool {
+  do_total_token_amount(inputs, pid, tkn, 0) >= threshold
+}
+
+fn do_total_token_amount(
+  inputs: List<Input>,
+  pid: PolicyId,
+  tkn: AssetName,
+  counter: Int,
+) -> Int {
+  when inputs is {
+    [input, ..rest] -> {
+      let amt: Int = assets.quantity_of(input.output.value, pid, tkn)
+      do_total_token_amount(rest, pid, tkn, counter + amt)
+    }
+    [] -> counter
+  }
+}
+
+test count_pid1() {
+  let amt: Int = 1
+  let inputs: List<Input> = fake_tx.test_inputs(amt)
+  total_token_amount(inputs, #"acab", #"beef", amt * 100)
+}
+
+test count_pid2() {
+  let amt: Int = 2
+  let inputs: List<Input> = fake_tx.test_inputs(amt)
+  total_token_amount(inputs, #"acab", #"beef", amt * 100)
+}
+
+test count_pid3() {
+  let amt: Int = 4
+  let inputs: List<Input> = fake_tx.test_inputs(amt)
+  total_token_amount(inputs, #"acab", #"beef", amt * 100)
+}
+
+test count_pid4() {
+  let amt: Int = 8
+  let inputs: List<Input> = fake_tx.test_inputs(amt)
+  total_token_amount(inputs, #"acab", #"beef", amt * 100)
+}
+
+test count_pid5() {
+  let amt: Int = 16
+  let inputs: List<Input> = fake_tx.test_inputs(amt)
+  total_token_amount(inputs, #"acab", #"beef", amt * 100)
+}
+
+
+
+================================================
+FILE: lib/cardano/value.ak
+================================================
+//// This module contains code that aids in various value 
+//// manipulations and comparisons.
+////
+
+use aiken/collection/dict
+use aiken/collection/list
+use aiken/crypto
+use aiken/primitive/bytearray
+use aiken/primitive/string
+use cardano/assets.{AssetName, PolicyId, Value}
+use cardano/transaction.{TransactionId}
+use types/cip68
+use types/token.{Token, Tokens}
+
+/// Creates a Value type from a token.
+///
+/// ```aiken
+/// value.from_token(this_token)
+/// ```
+pub fn from_token(token: Token) -> Value {
+  assets.from_asset(token.pid, token.tkn, token.amt)
+}
+
+test token_to_value() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Value = assets.from_lovelace(10)
+  from_token(token) == expected
+}
+
+/// Creates a Value type from a list of tokens.
+///
+/// ```aiken
+/// value.from_tokens(redeemer.tokens)
+/// ```
+pub fn from_tokens(tokens: Tokens) -> Value {
+  do_from_tokens(assets.zero, tokens)
+}
+
+test tokens_to_value() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Value = assets.from_lovelace(20)
+  from_tokens([token, token]) == expected
+}
+
+// Internal only
+fn do_from_tokens(val: Value, tokens: Tokens) -> Value {
+  when tokens is {
+    // take a token and add it to the value
+    [tkn, ..tkns] ->
+      val |> assets.add(tkn.pid, tkn.tkn, tkn.amt) |> do_from_tokens(tkns)
+    // all the things are added so return the value
+    [] -> val
+  }
+}
+
+/// Multiply some value by `n`. This is just a linear scaling to the quantity
+/// of each token.
+///
+/// ```aiken
+/// value.multiply(bundle_value, bundle_size)
+/// ```
+pub fn multiply(val: Value, n: Int) -> Value {
+  // convert the Value to Tokens
+  let ts: Tokens = token.from_value(val)
+  // do the math on the Tokens then map it back to a Value
+  do_multiply([], ts, n) |> from_tokens()
+}
+
+// Internal only
+fn do_multiply(ans: Tokens, ts: Tokens, n: Int) -> Tokens {
+  when ts is {
+    // take a token and add it to the value
+    [tkn, ..tkns] ->
+      ans
+        |> list.push(Token { pid: tkn.pid, tkn: tkn.tkn, amt: n * tkn.amt })
+        |> do_multiply(tkns, n)
+    // each token has been multiplied
+    [] -> ans
+  }
+}
+
+test values_multiply_by_0() {
+  let val: Value = assets.from_lovelace(100)
+  let ans: Value = assets.zero
+  multiply(val, 0) == ans
+}
+
+test values_multiply_by_4() {
+  let val: Value = assets.from_lovelace(100)
+  let ans: Value = assets.from_lovelace(400)
+  multiply(val, 4) == ans
+}
+
+test values_multiply_by_52314523() {
+  let val: Value = assets.from_lovelace(2)
+  let ans: Value = assets.from_lovelace(104629046)
+  multiply(val, 52314523) == ans
+}
+
+/// Prove that the target value is contained inside another assets. Each token
+/// inside the target must exist inside the total assets. The quantity of each
+/// token must be at least the target amount or greater.
+///
+/// ```aiken
+/// value.contains(total_value, target_value)
+/// ```
+pub fn contains(total: Value, target: Value) -> Bool {
+  let flat: List<(PolicyId, AssetName, Int)> = assets.flatten(target)
+  do_contains(total, flat)
+}
+
+// Internal only
+fn do_contains(total: Value, flat: List<(PolicyId, AssetName, Int)>) -> Bool {
+  when flat is {
+    [(pid, tkn, amt), ..rest] ->
+      if assets.quantity_of(total, pid, tkn) >= amt {
+        do_contains(total, rest)
+      } else {
+        // something is missing
+        False
+      }
+    // found all of them
+    [] -> True
+  }
+}
+
+test value_contains_lovelace() {
+  let target: Value = assets.from_lovelace(10)
+  let total: Value = assets.from_lovelace(100)
+  contains(total, target) == True
+}
+
+test value_contains_tokens() {
+  let target: Value = assets.from_asset(#"acab", #"beef", 10)
+  let total: Value = assets.from_asset(#"acab", #"beef", 40)
+  contains(total, target) == True
+}
+
+test value_contains_both() {
+  let target: Value =
+    assets.from_lovelace(10)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 2))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 10))
+  let total: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 10))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 40))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  contains(total, target) == True
+}
+
+test value_contains_nothing() {
+  let target: Value = assets.from_lovelace(10)
+  let total: Value = assets.from_asset(#"acab", #"beef", 40)
+  contains(total, target) == False
+}
+
+/// Compute the sha3_256 hash of a value by merklizing the policy id, asset
+/// name, and quantity. Empty values return the empty by string.
+///
+/// ```aiken
+/// value.compute_hash(validating_value)
+/// ```
+pub fn compute_hash(target: Value) -> ByteArray {
+  let flat: List<(PolicyId, AssetName, Int)> = assets.flatten(target)
+  do_compute_hash(flat, #"")
+}
+
+// Internal only
+fn do_compute_hash(
+  flat: List<(PolicyId, AssetName, Int)>,
+  total: ByteArray,
+) -> ByteArray {
+  when flat is {
+    [(pid, tkn, amt), ..rest] -> {
+      let hashed_amt: ByteArray = int_to_hash(amt)
+      // concat the things then hash
+      let concatted: ByteArray =
+        pid
+          |> bytearray.concat(tkn)
+          |> bytearray.concat(hashed_amt)
+          |> bytearray.concat(total)
+      let next: ByteArray = crypto.blake2b_256(concatted)
+      do_compute_hash(rest, next)
+    }
+    [] -> total
+  }
+}
+
+// Private function to sha3 256 an integer into a bytearray.
+// Internal only
+fn int_to_hash(num: Int) -> ByteArray {
+  string.from_int(num) |> bytearray.from_string() |> crypto.blake2b_256()
+}
+
+test hash_empty_value() {
+  let val: Value = assets.zero
+  compute_hash(val) == #""
+}
+
+test hash_lovelace_value() {
+  let val: Value = assets.from_lovelace(100)
+  compute_hash(val) == #"a0f9d2a93b035c0480612cd839d88c355e134f847d0417256708b0fa8403c652"
+}
+
+test hash_large_value() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 10))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 40))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  compute_hash(val) == #"249b0e98af109a92da4f70c2258b7a01beaeea3a0433f8459c8eaadbd7e7a383"
+}
+
+/// Calculate a unique token name from a `TxId#Idx` and prefix. Can be combined
+/// with the `find` module to create unique token names from the first input
+/// utxo inside the transaction.
+///
+/// ```aiken
+/// value.unique_token_name(tx_id, tx_idx, cip68.prefix_333, personal_tag)
+/// ```
+pub fn unique_token_name(
+  txid: TransactionId,
+  idx: Int,
+  prefix: ByteArray,
+  personal: ByteArray,
+) -> AssetName {
+  // prefix the txid with the index
+  let prepend_index: ByteArray = bytearray.push(txid, idx)
+  // the personal part max length is 15
+  let trimmed_personal: ByteArray = bytearray.slice(personal, 0, 14)
+  // concat the name
+  let prepend_prefix: ByteArray =
+    prefix
+      |> bytearray.concat(trimmed_personal)
+      |> bytearray.concat(prepend_index)
+  // slice off the first 32
+  bytearray.slice(prepend_prefix, 0, 31)
+}
+
+test no_prefix_token_name() {
+  // the zero becomes the prefix
+  unique_token_name(#"", 0, #"", #"") == #"00"
+}
+
+test prefix_222_token_name() {
+  let tkn: AssetName = unique_token_name(#"", 0, cip68.prefix_222, #"")
+  // the prefixes all have length 4
+  bytearray.take(tkn, 4) == cip68.prefix_222
+}
+
+test real_token_name() {
+  let tkn: AssetName =
+    unique_token_name(
+      #"82fca2f3221cf2d3ef017e8aa76f5c70317df0af32d327c84af4b9b9bddad91f",
+      0,
+      cip68.prefix_100,
+      #"",
+    )
+  bytearray.length(tkn) == 32
+}
+
+/// Proves that inside some value there is a policy id with a single token
+/// name that has a quantity of 1. This will show that a value contains an
+/// NFT or something that is nft-like. Should be useful to prove that
+/// something is holding a token inside a transaction when the token name
+/// is assumed to be unique.
+///
+/// ```aiken
+/// value.prove_nft(this_value, pid)
+/// ```
+pub fn prove_nft(total: Value, pid: PolicyId) {
+  let amts: List<Int> = assets.tokens(total, pid) |> dict.values()
+  let sum: Int = list.foldl(amts, 0, fn(n, total) { n + total })
+  and {
+    // must have only one asset name
+    list.length(amts) == 1,
+    sum == 1,
+  }
+}
+
+test prove_nft_from_policy_id() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 1))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 40))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  prove_nft(val, #"acab") == True
+}
+
+test too_many_nfts() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 1))
+      |> assets.merge(assets.from_asset(#"acab", #"face", 1))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  prove_nft(val, #"acab") == False
+}
+
+test missing_nft() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 10))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 10))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  prove_nft(val, #"acab") == False
+}
+
+/// Proves that inside some value there is a policy id with token
+/// name that has a quantity of 1. This will show that a value contains an
+/// NFT or something that is nft-like. Should be useful to prove that
+/// something is holding a token inside a transaction when the policy id and
+/// token name is known.
+///
+/// ```aiken
+/// value.prove_exact_nft(that_value, pid, tkn)
+/// ```
+pub fn prove_exact_nft(
+  total_value: Value,
+  nft_pid: PolicyId,
+  nft_tkn: AssetName,
+) -> Bool {
+  // exactly 1 token inside a value
+  assets.quantity_of(total_value, nft_pid, nft_tkn) == 1
+}
+
+test prove_exact_nft_from_policy_id() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 1))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 40))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  prove_exact_nft(val, #"acab", #"beef") == True
+}
+
+test missing_exact_nft() {
+  let val: Value =
+    assets.from_lovelace(100)
+      |> assets.merge(assets.from_asset(#"acab", #"beef", 10))
+      |> assets.merge(assets.from_asset(#"cafe", #"face", 10))
+      |> assets.merge(assets.from_asset(#"beef", #"face", 40))
+      |> assets.merge(assets.from_asset(#"face", #"beef", 40))
+  prove_exact_nft(val, #"acab", #"beef") == False
+}
+
+
+
+================================================
+FILE: lib/maths/boolean.ak
+================================================
+//// This module contains code to do boolean logic on integers.
+//// Boolean logic here is the special case of arithmetic circuit logic with p = 2.
+////
+
+use maths/circuits
+
+/// Performs a logical `AND` operation on two integer values.
+/// Expects both inputs as binary (0 or 1) and returns 1 if both are 1, otherwise returns 0.
+///
+/// ```aiken
+/// boolean.and_(1, 1)
+/// ```
+pub fn and_(x: Int, y: Int) -> Int {
+  circuits.and_(x, y, 2)
+}
+
+test zero_zero_and() {
+  and_(0, 0) == 0
+}
+
+test zero_one_and() {
+  and_(0, 1) == 0
+}
+
+test one_zero_and() {
+  and_(1, 0) == 0
+}
+
+test one_one_and() {
+  and_(1, 1) == 1
+}
+
+/// Performs a logical `OR` operation on two integer values.
+/// Expects both inputs as binary (0 or 1) and returns 1 if at least one input is 1, otherwise returns 0.
+/// 
+/// ```aiken
+/// boolean.or_(0, 1)
+/// ```
+pub fn or_(x: Int, y: Int) -> Int {
+  circuits.or_(x, y, 2)
+}
+
+test zero_zero_or() {
+  or_(0, 0) == 0
+}
+
+test zero_one_or() {
+  or_(0, 1) == 1
+}
+
+test one_zero_or() {
+  or_(1, 0) == 1
+}
+
+test one_one_or() {
+  or_(1, 1) == 1
+}
+
+/// Performs a logical `NOT` operation on an integer value.
+/// Expects the input as binary (0 or 1) and returns the inverse (1 becomes 0, 0 becomes 1).
+///
+/// ```aiken
+/// boolean.not_(1)
+/// ```
+pub fn not_(x: Int) -> Int {
+  circuits.not_(x, 2)
+}
+
+test zero_not() {
+  not_(0) == 1
+}
+
+test one_not() {
+  not_(1) == 0
+}
+
+/// Performs a logical `XOR` operation on two integer values.
+/// Expects both inputs as binary (0 or 1) and returns 1 if the inputs are different, otherwise returns 0.
+///
+/// ```aiken
+/// boolean.xor_(0, 1)
+/// ```
+pub fn xor_(x: Int, y: Int) {
+  circuits.xor_(x, y, 2)
+}
+
+test zero_zero_xor() {
+  xor_(0, 0) == 0
+}
+
+test zero_one_xor() {
+  xor_(0, 1) == 1
+}
+
+test one_zero_xor() {
+  xor_(1, 0) == 1
+}
+
+test one_one_xor() {
+  xor_(1, 1) == 0
+}
+
+/// Performs a logical `NAND` operation on two integer values.
+/// Returns 1 if at least one input is 0, otherwise returns 0.
+/// 
+/// ```aiken
+/// boolean.nand_(1, 1)
+/// ```
+pub fn nand_(x: Int, y: Int) -> Int {
+  and_(x, y) |> not_()
+}
+
+test zero_zero_nand() {
+  nand_(0, 0) == 1
+}
+
+test zero_one_nand() {
+  nand_(0, 1) == 1
+}
+
+test one_zero_nand() {
+  nand_(1, 0) == 1
+}
+
+test one_one_nand() {
+  nand_(1, 1) == 0
+}
+
+/// Performs a logical `NOR` operation on two integer values.
+/// Returns 1 if both inputs are 0, otherwise returns 0.
+/// 
+/// ```aiken
+/// boolean.nor_(0, 0)
+/// ```
+pub fn nor_(x: Int, y: Int) -> Int {
+  or_(x, y) |> not_()
+}
+
+test zero_zero_nor() {
+  nor_(0, 0) == 1
+}
+
+test zero_one_nor() {
+  nor_(0, 1) == 0
+}
+
+test one_zero_nor() {
+  nor_(1, 0) == 0
+}
+
+test one_one_nor() {
+  nor_(1, 1) == 0
+}
+
+/// Performs a logical `XNOR` operation on two integer values.
+/// Returns 1 if the inputs are the same, otherwise returns 0.
+/// 
+/// ```aiken
+/// boolean.xnor_(1, 1)
+/// ```
+pub fn xnor_(x: Int, y: Int) -> Int {
+  xor_(x, y) |> not_()
+}
+
+test zero_zero_xnor() {
+  xnor_(0, 0) == 1
+}
+
+test zero_one_xnor() {
+  xnor_(0, 1) == 0
+}
+
+test one_zero_xnor() {
+  xnor_(1, 0) == 0
+}
+
+test one_one_xnor() {
+  xnor_(1, 1) == 1
+}
+
+/// Performs a logical implication operation on two integer values.
+/// Returns 1 if the first input is false or both inputs are true, otherwise returns 0.
+/// 
+/// ```aiken
+/// boolean.imply_(1, 0)
+/// ```
+pub fn imply_(x: Int, y: Int) -> Int {
+  not_(x) |> or_(y)
+}
+
+test zero_zero_imply() {
+  imply_(0, 0) == 1
+}
+
+test zero_one_imply() {
+  imply_(0, 1) == 1
+}
+
+test one_zero_imply() {
+  imply_(1, 0) == 0
+}
+
+test one_one_imply() {
+  imply_(1, 1) == 1
+}
+
+
+
+================================================
+FILE: lib/maths/circuits.ak
+================================================
+//// This module contains code to do arithmetic circuit logic on integers.
+//// All values are assumed to be positive and p is a prime.
+////
+
+// The value must be between [0, p-1]. Sometimes the value is a large negative.
+// It takes the value r and keeps adding p until its greater than zero then
+// finishes by doing value mod p.
+// Internal only
+// 
+fn do_pos_shift(r: Int, p: Int) -> Int {
+  if r < 0 {
+    do_pos_shift(r + p, p)
+  } else {
+    r % p
+  }
+}
+
+// this can get expensive
+test do_pos_shift_test1() {
+  let r = -1975180248
+  let p: Int = 44203
+  do_pos_shift(r, p) == r + 44685 * p
+}
+
+test do_pos_shift_test2() {
+  let r = -15
+  let p: Int = 44203
+  do_pos_shift(r, p) == r + 1 * p
+}
+
+/// Performs a logical `AND` operation on two integer values within an arithmetic circuit.
+///
+/// ```aiken
+/// circuits.and_(1, 1, p)
+/// ```
+pub fn and_(x: Int, y: Int, p: Int) -> Int {
+  x * y % p
+}
+
+// Identity and tests
+test identity_and() {
+  let p: Int = 44203
+  let x: Int = 123
+  and_(x, 1, p) == x
+}
+
+// Same tests
+test same_operands_and() {
+  let p: Int = 44203
+  let x: Int = 123
+  and_(x, x, p) == x * x
+}
+
+// Nullification tests
+test nullification_and() {
+  let p: Int = 44203
+  let x: Int = 123
+  and_(x, 0, p) == 0
+}
+
+// Commutative property test
+test commutative_and() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  and_(x, y, p) == and_(y, x, p)
+}
+
+// Boundary tests
+test boundary_and() {
+  let p: Int = 44203
+  and {
+    and_(0, p - 1, p) == 0,
+    and_(p - 1, p - 1, p) == 1,
+  }
+}
+
+/// Performs a logical `OR` operation on two integer values within an arithmetic circuit..
+/// 
+/// ```aiken
+/// circuits.or_(0, 1, p)
+/// ```
+pub fn or_(x: Int, y: Int, p: Int) -> Int {
+  let r: Int = x + y - x * y
+  do_pos_shift(r, p)
+}
+
+// Identity and Dominance tests
+test identity_or() {
+  let p: Int = 44203
+  let x: Int = 123
+  or_(x, 0, p) == x
+}
+
+test dominance_or() {
+  let p: Int = 44203
+  let x: Int = 123
+  or_(x, 1, p) == 1
+}
+
+// Commutative property test
+test commutative_or() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  or_(x, y, p) == or_(y, x, p)
+}
+
+// Boundary tests
+test boundary_or() {
+  let p: Int = 44203
+  or {
+    or_(0, p - 1, p) == p - 1,
+    or_(p - 1, p - 1, p) == p - 1,
+  }
+}
+
+// Tests with both operands being the same
+test same_operands_or() {
+  let p: Int = 44203
+  let x: Int = 123
+  or_(x, x, p) == x + x - x * x + p
+}
+
+/// Performs a logical `NOT` operation on an integer value within an arithmetic circuit.
+///
+/// ```aiken
+/// circuits.not_(1, p)
+/// ```
+pub fn not_(x: Int, p: Int) -> Int {
+  ( p + 1 - x ) % p
+}
+
+// Boundary test for maximum value
+test not_max() {
+  let p: Int = 44203
+  not_(p - 1, p) == ( p + 1 - ( p - 1 ) ) % p
+}
+
+// Test for inverting the NOT operation
+test not_inversion() {
+  let p: Int = 44203
+  let x: Int = 123
+  not_(not_(x, p), p) == x
+}
+
+/// Performs a logical `XOR` operation on two integer values within an arithmetic circuit.
+///
+/// ```aiken
+/// circuits.xor_(0, 1, p)
+/// ```
+pub fn xor_(x: Int, y: Int, p: Int) -> Int {
+  let r: Int = x + y - 2 * x * y
+  do_pos_shift(r, p)
+}
+
+// Commutative property test
+test commutative_xor() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  xor_(x, y, p) == xor_(y, x, p)
+}
+
+// Test for inverting the XOR operation with the same number
+test xor_inversion() {
+  let p: Int = 44203
+  let x: Int = 123
+  xor_(x, x, p) == x + x - 2 * x * x + p
+}
+
+/// Performs a logical `NAND` operation on two integer values within an arithmetic circuit.
+/// 
+/// ```aiken
+/// circuits.nand_(1, 1, p)
+/// ```
+pub fn nand_(x: Int, y: Int, p: Int) -> Int {
+  and_(x, y, p) |> not_(p)
+}
+
+// Identity and tests
+test identity_nand() {
+  let p: Int = 44203
+  let x: Int = 123
+  nand_(x, 1, p) == not_(x, p)
+}
+
+// Nullification tests
+test nullification_nand() {
+  let p: Int = 44203
+  let x: Int = 123
+  nand_(x, 0, p) == not_(0, p)
+}
+
+// Commutative property test
+test commutative_nand() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  nand_(x, y, p) == nand_(y, x, p)
+}
+
+// Boundary tests
+test boundary_nand() {
+  let p: Int = 44203
+  and {
+    nand_(0, p - 1, p) == 1,
+    nand_(p - 1, p - 1, p) == 0,
+  }
+}
+
+/// Performs a logical `NOR` operation on two integer values within an arithmetic circuit.
+/// 
+/// ```aiken
+/// circuits.nor_(0, 0, p)
+/// ```
+pub fn nor_(x: Int, y: Int, p: Int) -> Int {
+  or_(x, y, p) |> not_(p)
+}
+
+// Identity and Dominance tests
+test identity_nor() {
+  let p: Int = 44203
+  let x: Int = 123
+  nor_(x, 0, p) == not_(x, p)
+}
+
+test dominance_nor() {
+  let p: Int = 44203
+  let x: Int = 123
+  nor_(x, 1, p) == not_(1, p)
+}
+
+// Commutative property test
+test commutative_nor() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  nor_(x, y, p) == nor_(y, x, p)
+}
+
+// Boundary tests
+test boundary_nor() {
+  let p: Int = 44203
+  or {
+    nor_(0, p - 1, p) == not_(p - 1, p),
+    nor_(p - 1, p - 1, p) == not_(p - 1, p),
+  }
+}
+
+// Tests with both operands being the same
+test same_operands_nor() {
+  let p: Int = 44203
+  let x: Int = 123
+  nor_(x, x, p) == not_(x + x - x * x + p, p)
+}
+
+/// Performs a logical `XNOR` operation on two integer values within an arithmetic circuit.
+/// 
+/// ```aiken
+/// circuits.xnor_(1, 1, p)
+/// ```
+pub fn xnor_(x: Int, y: Int, p: Int) -> Int {
+  xor_(x, y, p) |> not_(p)
+}
+
+// Commutative property test
+test commutative_xnor() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  xnor_(x, y, p) == xnor_(y, x, p)
+}
+
+// Test for inverting the XOR operation with the same number
+test xnor_inversion() {
+  let p: Int = 44203
+  let x: Int = 123
+  xnor_(x, x, p) == not_(x + x - 2 * x * x + p, p)
+}
+
+/// Performs a logical implication operation on two integer values within an arithmetic circuit.
+/// 
+/// ```aiken
+/// circuits.imply_(1, 0, p)
+/// ```
+pub fn imply_(x: Int, y: Int, p: Int) -> Int {
+  not_(x, p) |> or_(y, p)
+}
+
+// Commutative property test
+test no_commutative_imply() {
+  let p: Int = 44203
+  let x: Int = 123
+  let y: Int = 321
+  imply_(x, y, p) != imply_(y, x, p)
+}
+
+// Boundary tests
+test boundary_imply() {
+  let p: Int = 44203
+  imply_(0, p - 1, p) == 1
+}
+
+// An equation can now be built out of the functions
+test a_simple_circuit() {
+  let p: Int = 44203
+  let x: Int = 172
+  let y: Int = 256
+  // the first statement reduces to 1 = and_(x, y+1, p)
+  and {
+    ( or_(x, y, p) + not_(x, p) ) % p == ( xor_(x, y, p) + 2 * and_(x, y, p) ) % p,
+    1 == and_(x, y + 1, p),
+  }
+}
+
+test a_moderate_circuit() {
+  let p: Int = 44203
+  let x: Int = 8860
+  let y: Int = 9047
+  not_(x, p) == not_(x, y) * not_(x, y)
+}
+
+
+
+================================================
+FILE: lib/maths/constants.ak
+================================================
+//// This module contains mathematical constants.
+////
+
+/// A large prime number. The value is near 4 x 10^114.
+pub const large_prime: Int =
+  0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
+
+
+
+================================================
+FILE: lib/maths/routines.ak
+================================================
+//// This module contains mathematical routines.
+////
+
+use aiken/builtin
+use aiken/collection/list
+use maths/constants.{large_prime}
+
+/// Calculate `n` to the power of `e` modulo `q` using the exponentiation by 
+/// squaring method. At each multiplication a modulo is calculated, allowing
+/// very large `n` and `e` values.
+///
+/// ```aiken
+/// routines.powmod(3, 2, 5)
+/// ```
+pub fn powmod(n: Int, e: Int, q: Int) -> Int {
+  if or {
+    e < 0,
+    q == 0,
+  } {
+    // negative exponents and zero mod here
+    // we can't handle this case so call it all zero
+    0
+  } else if e == 0 {
+    // defined to be one, x^0 = 1 if x not zero but
+    // when x is zero then you 0^0 = Nan, and one 
+    // more validation check to run so to make it
+    // cheaper just call it one
+    1
+  } else if e % 2 == 0 {
+    // even case
+    powmod(n * n % q, e / 2, q)
+  } else {
+    // odd case
+    n * powmod(n * n % q, ( e - 1 ) / 2, q) % q
+  }
+}
+
+test powmod_3_5_4() {
+  powmod(3, 5, 4) == 3
+}
+
+test powmod_3__4_3() {
+  // negative powers round to zero
+  powmod(3, -4, 3) == 0
+}
+
+test pow_0_0_1() {
+  // sorry math
+  powmod(0, 0, 1) == 1
+}
+
+test powmod_513_3_7() {
+  powmod(513, 3, 7) == 1
+}
+
+test powmod_54_123_0() {
+  powmod(54, 123, 0) == 0
+}
+
+test powmod_54_123_1() {
+  powmod(54, 123, 1) == 0
+}
+
+test powmod_very_large1() {
+  powmod(2, 6298875231651707927, large_prime) == 619257508790463606920652988927719175328304037643924550063346200106231201391121814124765664556886167107742014416823
+}
+
+test powmod_very_large2() {
+  powmod(11024141354654159834, 6298875231651707927, large_prime) == 1281252237043588814874358657648283885922247063951636571913626407612926025965286114877878077927294143587983649997167
+}
+
+test powmod_very_large3() {
+  powmod(
+    1281252237043588814874358657648283885922247063951636571913626407612926025965286114877878077927294143587983649997167,
+    6298875231651707927,
+    large_prime,
+  ) == 1375787197462284242586537174662214468532791477308429144007255343030157255268351835798245451858532190874833597636080
+}
+
+/// Convert a integer `n` into some base `q`. This method
+/// should scale with any integer and any logical base.
+///
+/// ```aiken
+/// routines.base_q(123, 7)
+/// ```
+pub fn base_q(n: Int, q: Int) -> List<Int> {
+  do_base_q(n, q, [])
+}
+
+// Internal only
+fn do_base_q(number: Int, base: Int, holder: List<Int>) -> List<Int> {
+  // if the number or base is zero return the holder list
+  if or {
+    number == 0,
+    base == 0,
+  } {
+    holder
+  } else {
+    do_base_q(number / base, base, list.push(holder, number % base))
+  }
+}
+
+test zero_in_base_zero() {
+  base_q(0, 0) == []
+}
+
+test one_in_base_zero() {
+  base_q(1, 0) == []
+}
+
+test simple_base_q() {
+  base_q(17232, 4) == [1, 0, 0, 3, 1, 1, 0, 0]
+}
+
+test to_base_256() {
+  base_q(78237623, 256) == [4, 169, 207, 183]
+}
+
+test to_base_large() {
+  base_q(powmod(2, 15383577435643450949, large_prime), 15) == [
+    12, 9, 14, 13, 5, 2, 11, 13, 5, 13, 10, 8, 5, 11, 10, 4, 7, 5, 11, 0, 10, 8,
+    8, 8, 11, 6, 13, 3, 4, 14, 11, 10, 0, 12, 10, 11, 10, 0, 11, 8, 2, 3, 8, 13,
+    0, 1, 5, 13, 0, 8, 13, 3, 10, 6, 4, 12, 14, 3, 7, 1, 11, 3, 7, 3, 14, 6, 8,
+    4, 14, 3, 2, 7, 10, 14, 13, 10, 6, 8, 1, 7, 6, 13, 11, 10, 9, 12, 2, 13, 4,
+    5, 14, 8, 5, 13, 3, 12, 12,
+  ]
+}
+
+/// Convert a hexadecimal bytearray into its base 10 representation. This
+/// only works with even length bytearrays so arbitrary numbers in hexadecimal
+/// form will not in general work.
+///
+/// ```aiken
+/// routines.to_int(#"acab")
+/// ```
+pub fn to_int(self: ByteArray) -> Int {
+  builtin.bytearray_to_integer(True, self)
+}
+
+test empty_string_to_int() {
+  to_int(#"") == 0
+}
+
+test string_to_int() {
+  to_int(#"acab") == 44203
+}
+
+/// Convert a integer into a hexadecimal bytearray. This works for all integers
+/// but odd length bytearrays will be prefixed with a zero. This function 
+/// combined with the `to_int` function allows a string to represent a number
+/// and still be used for calculations, pushing the `2^64 - 1` integer boundary.
+///
+/// ```aiken
+/// routines.from_int(44203)
+/// ```
+pub fn from_int(self: Int) -> ByteArray {
+  builtin.integer_to_bytearray(True, 0, self)
+}
+
+test odd_from_int() {
+  let n: Int = 46118402439
+  // odd length get prepended with a zero
+  from_int(n) == #"0abcdef987"
+}
+
+test empty_from_int() {
+  let str: ByteArray = #""
+  let n: Int = to_int(str)
+  from_int(n) == str
+}
+
+test simple_from_int() {
+  let str: ByteArray = #"acab"
+  let n: Int = to_int(str)
+  from_int(n) == str
+}
+
+test complex_from_int() {
+  let str: ByteArray = #"acabbeeffacecafe"
+  let n: Int = to_int(str)
+  from_int(n) == str
+}
+
+test from_big_int() {
+  let str: ByteArray =
+    #"0f69bd90956d98ace782567be7bb23ce2aecf6a525ba451795d21feb13220703b48b295a42cc7a86776cc9ad543f610f"
+  let n: Int =
+    2372285326153189929528332103442483377705667947278803297593729812983050665252776619156384486056106192189240939340047
+  from_int(n) == str
+}
+
+test to_big_int() {
+  let str: ByteArray =
+    #"0f69bd90956d98ace782567be7bb23ce2aecf6a525ba451795d21feb13220703b48b295a42cc7a86776cc9ad543f610f"
+  let n: Int =
+    2372285326153189929528332103442483377705667947278803297593729812983050665252776619156384486056106192189240939340047
+  to_int(str) == n
+}
+
+
+
+================================================
+FILE: lib/tests/fake_tx.ak
+================================================
+//// This is for testing only.
+////
+
+use aiken/collection/dict
+use aiken/collection/list
+use aiken/interval.{Interval, IntervalBound, NegativeInfinity, PositiveInfinity}
+use cardano/address.{Script}
+use cardano/addresses
+use cardano/assets
+use cardano/transaction.{
+  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Spend,
+  Transaction,
+}
+
+/// A test datum.
+pub const test_datum: ByteArray = #"acabbeeffacecafe"
+
+/// A `Data`data type
+pub type DataType =
+  Data
+
+/// Creates an `OutputReference`
+pub fn test_out_ref() -> OutputReference {
+  let out_ref: OutputReference =
+    OutputReference { transaction_id: #"acab", output_index: 0 }
+  out_ref
+}
+
+/// Creates an `OutputReference`
+pub fn test_bad_out_ref() -> OutputReference {
+  let out_ref: OutputReference =
+    OutputReference { transaction_id: #"fade", output_index: 1 }
+  out_ref
+}
+
+/// A fake input used for testing.
+pub fn test_inputs(amt: Int) -> List<Input> {
+  let input: Input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"acab",
+        output_index: 0,
+      },
+      output: Output {
+        address: addresses.create_address(#"acab", #""),
+        value: assets.from_asset(#"acab", #"beef", 100),
+        datum: InlineDatum(#""),
+        reference_script: None,
+      },
+    }
+  list.repeat(input, amt)
+}
+
+/// A fake input used for testing.
+pub fn test_input() -> Input {
+  let input: Input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"acab",
+        output_index: 0,
+      },
+      output: Output {
+        address: addresses.create_address(#"acab", #""),
+        value: assets.from_lovelace(100),
+        datum: InlineDatum(test_datum),
+        reference_script: None,
+      },
+    }
+  input
+}
+
+/// A fake input used for testing.
+pub fn test_script_input() -> Input {
+  let input: Input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"acab",
+        output_index: 0,
+      },
+      output: Output {
+        address: addresses.create_script_address(#"acab", #""),
+        value: assets.from_lovelace(100),
+        datum: InlineDatum(test_datum),
+        reference_script: None,
+      },
+    }
+  input
+}
+
+/// A fake input with a datum hash.
+pub fn test_input_with_datum_hash() {
+  let input: Input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"acab",
+        output_index: 0,
+      },
+      output: Output {
+        address: addresses.create_address(#"acab", #""),
+        value: assets.from_lovelace(100),
+        datum: DatumHash(test_datum),
+        reference_script: None,
+      },
+    }
+  input
+}
+
+/// A fake input without datum used for testing.
+pub fn test_bad_input() -> Input {
+  let input: Input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"acab",
+        output_index: 0,
+      },
+      output: Output {
+        address: addresses.create_address(#"acab", #""),
+        value: assets.from_lovelace(100),
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+  input
+}
+
+pub fn test_one_lovelace_input() -> Input {
+  Input {
+    output_reference: OutputReference { transaction_id: #"", output_index: 1 },
+    output: Output {
+      address: addresses.create_address(#"face", #""),
+      value: assets.from_lovelace(1),
+      datum: NoDatum,
+      reference_script: None,
+    },
+  }
+}
+
+pub fn test_bad_inputs() -> List<Input> {
+  [
+    Input {
+      output_reference: OutputReference { transaction_id: #"", output_index: 1 },
+      output: Output {
+        address: addresses.create_script_address(#"acab", #""),
+        value: assets.from_lovelace(100),
+        datum: InlineDatum(test_datum),
+        reference_script: None,
+      },
+    },
+    Input {
+      output_reference: OutputReference { transaction_id: #"", output_index: 1 },
+      output: Output {
+        address: addresses.create_address(#"face", #""),
+        value: assets.from_lovelace(5),
+        datum: NoDatum,
+        reference_script: None,
+      },
+    },
+    Input {
+      output_reference: OutputReference { transaction_id: #"", output_index: 1 },
+      output: Output {
+        address: addresses.create_address(#"face", #""),
+        value: assets.from_lovelace(1),
+        datum: NoDatum,
+        reference_script: None,
+      },
+    },
+    Input {
+      output_reference: OutputReference { transaction_id: #"", output_index: 1 },
+      output: Output {
+        address: addresses.create_script_address(#"cafe", #"acab"),
+        value: assets.from_lovelace(100),
+        datum: InlineDatum(test_datum),
+        reference_script: None,
+      },
+    },
+  ]
+}
+
+/// A fake output used for testing.
+pub fn test_output() -> Output {
+  let output: Output =
+    Output {
+      address: addresses.create_address(#"acab", #""),
+      value: assets.from_asset(#"acab", #"beef", 40),
+      datum: InlineDatum(test_datum),
+      reference_script: None,
+    }
+  output
+}
+
+// A fake output with a datum hash used for testing.
+pub fn test_output_with_datum_hash() -> Output {
+  let output: Output =
+    Output {
+      address: addresses.create_address(#"acab", #""),
+      value: assets.from_asset(#"acab", #"beef", 40),
+      datum: DatumHash(test_datum),
+      reference_script: None,
+    }
+  output
+}
+
+/// A fake output without datum used for testing.
+pub fn test_bad_output() -> Output {
+  let output: Output =
+    Output {
+      address: addresses.create_address(#"acab", #""),
+      value: assets.from_asset(#"acab", #"beef", 40),
+      datum: NoDatum,
+      reference_script: None,
+    }
+  output
+}
+
+pub fn test_bad_outputs() -> List<Output> {
+  [
+    Output {
+      address: addresses.create_address(#"acab", #""),
+      value: assets.from_asset(#"acab", #"beef", 40),
+      datum: InlineDatum(test_datum),
+      reference_script: None,
+    },
+    Output {
+      address: addresses.create_address(#"face", #""),
+      value: assets.from_lovelace(40),
+      datum: NoDatum,
+      reference_script: None,
+    },
+    Output {
+      address: addresses.create_address(#"face", #""),
+      value: assets.from_lovelace(60),
+      datum: NoDatum,
+      reference_script: None,
+    },
+    Output {
+      address: addresses.create_script_address(#"beef", #"beef"),
+      value: assets.from_asset(#"fade", #"cafe", 1),
+      datum: InlineDatum(test_datum),
+      reference_script: None,
+    },
+    Output {
+      address: addresses.create_address(#"cafe", #"beef"),
+      value: assets.from_asset(#"fade", #"fade", 1),
+      datum: NoDatum,
+      reference_script: None,
+    },
+  ]
+}
+
+/// A fake list of tx signers
+pub fn test_signatories() -> List<ByteArray> {
+  [
+    #"acab", #"beef", #"face", #"acba", #"befe", #"faec", #"caab", #"ebef",
+    #"afce", #"acab00", #"beef00", #"face00", #"acba00", #"befe00", #"faec00",
+    #"caab00", #"ebef00", #"afce00", #"acab0011", #"beef0011", #"face0011",
+    #"acba0011", #"befe0011", #"faec0011", #"caab0011", #"ebef0011", #"afce0011",
+    #"acab99", #"beef99", #"face99", #"acba99", #"befe99", #"faec99", #"caab99",
+    #"ebef99", #"afce99", #"acab0099", #"beef0099", #"face0099", #"acba0099",
+    #"befe0099", #"faec0099", #"caab0099", #"ebef0099", #"afce0099",
+    #"acab001199", #"beef001199", #"face001199", #"acba001199", #"befe001199",
+    #"faec001199", #"caab001199", #"ebef001199", #"afce001199",
+  ]
+}
+
+/// A fake transaction used for testing.
+pub fn test_tx() -> Transaction {
+  let out_ref: OutputReference = test_out_ref()
+  let d: DataType = 1
+  let redeem = [Pair(Spend(out_ref), d)]
+  let tx =
+    Transaction {
+      inputs: [
+        Input {
+          output_reference: out_ref,
+          output: Output {
+            address: addresses.create_address(#"acab", #""),
+            value: assets.from_lovelace(100),
+            datum: InlineDatum(test_datum),
+            reference_script: None,
+          },
+        },
+        Input {
+          output_reference: OutputReference {
+            transaction_id: #"",
+            output_index: 1,
+          },
+          output: Output {
+            address: addresses.create_address(#"face", #""),
+            value: assets.from_lovelace(5),
+            datum: NoDatum,
+            reference_script: None,
+          },
+        },
+        Input {
+          output_reference: OutputReference {
+            transaction_id: #"",
+            output_index: 1,
+          },
+          output: Output {
+            address: addresses.create_address(#"face", #""),
+            value: assets.from_lovelace(5),
+            datum: NoDatum,
+            reference_script: None,
+          },
+        },
+      ],
+      reference_inputs: [],
+      outputs: [
+        Output {
+          address: addresses.create_address(#"acab", #""),
+          value: assets.from_asset(#"acab", #"beef", 40),
+          datum: InlineDatum(test_datum),
+          reference_script: None,
+        },
+        Output {
+          address: addresses.create_address(#"face", #""),
+          value: assets.from_lovelace(40),
+          datum: NoDatum,
+          reference_script: None,
+        },
+        Output {
+          address: addresses.create_address(#"face", #""),
+          value: assets.from_lovelace(60),
+          datum: NoDatum,
+          reference_script: None,
+        },
+      ],
+      fee: 0,
+      mint: assets.zero,
+      certificates: [],
+      withdrawals: [Pair(Script(#"acab"), 100)],
+      validity_range: Interval {
+        lower_bound: IntervalBound {
+          bound_type: NegativeInfinity,
+          is_inclusive: True,
+        },
+        upper_bound: IntervalBound {
+          bound_type: PositiveInfinity,
+          is_inclusive: True,
+        },
+      },
+      extra_signatories: test_signatories(),
+      redeemers: redeem,
+      datums: dict.empty,
+      id: #"",
+      votes: [],
+      proposal_procedures: [],
+      current_treasury_amount: None,
+      treasury_donation: None,
+    }
+  tx
+}
+
+
+
+================================================
+FILE: lib/types/cip68.ak
+================================================
+use aiken/builtin
+
+/// (100) Reference Token Prefix
+/// https://developers.cardano.org/docs/governance/cardano-improvement-proposals/cip-0068/#222-nft-standard
+pub const prefix_100: ByteArray = #"000643b0"
+
+/// (222) Non-Fungible Token Prefix
+/// https://developers.cardano.org/docs/governance/cardano-improvement-proposals/cip-0068/#222-nft-standard
+pub const prefix_222: ByteArray = #"000de140"
+
+/// (333) Fungible Token Prefix
+/// https://developers.cardano.org/docs/governance/cardano-improvement-proposals/cip-0068/#333-ft-standard
+pub const prefix_333: ByteArray = #"0014df10"
+
+/// (444) Rich-Fungible Token Prefix
+/// https://developers.cardano.org/docs/governance/cardano-improvement-proposals/cip-0068/#333-ft-standard
+pub const prefix_444: ByteArray = #"001bc280"
+
+/// The generic CIP68 metadatum type as defined in the CIP at
+/// https://cips.cardano.org/cips/cip68/.
+pub type CIP68 {
+  metadata: Pairs<Data, Data>,
+  version: Int,
+}
+
+/// Attempt to find a data structure by a key inside the cip68 metadatum. If
+/// nothing is found then fail.
+///
+/// ```aiken
+/// cip68.get(metadatum, some_key)
+/// ```
+pub fn get(cip68: CIP68, key: Data) -> Data {
+  do_get(cip68.metadata, key)
+}
+
+fn do_get(cip68: Pairs<Data, Data>, key: Data) -> Data {
+  when cip68 is {
+    [] -> fail @"Data Structure Not Found"
+    [d, ..ds] ->
+      if builtin.fst_pair(d) == key {
+        builtin.snd_pair(d)
+      } else {
+        do_get(ds, key)
+      }
+  }
+}
+
+/// Return the version of the metadata.
+///
+/// ```aiken
+/// metadatum |> cip68.version
+/// ```
+pub fn version(metadata: CIP68) -> Int {
+  metadata.version
+}
+
+
+
+================================================
+FILE: lib/types/moment.ak
+================================================
+use aiken/interval.{
+  Finite, Interval, IntervalBound, NegativeInfinity, PositiveInfinity,
+}
+use cardano/transaction.{ValidityRange}
+
+/// A finite moment of time represented as simple start and end integers.
+pub type Moment {
+  start: Int,
+  end: Int,
+}
+
+/// A finite list of moments of time.
+pub type Moments =
+  List<Moment>
+
+/// Shifts a moment by some integer amount. This is great for incrementing
+/// a fixed moment of time, maybe like an epoch boundary by five days.
+///
+/// ```aiken
+/// moment.shift(this_moment, a_day)
+/// ```
+pub fn shift(m: Moment, t: Int) -> Moment {
+  Moment { start: m.start + t, end: m.end + t }
+}
+
+test no_shift() {
+  let m: Moment = Moment { start: 0, end: 0 }
+  shift(m, 0) == m
+}
+
+test positive_shift() {
+  let m1: Moment = Moment { start: 1, end: 5 }
+  let m2: Moment = Moment { start: 11, end: 15 }
+  shift(m1, 10) == m2
+}
+
+test negative_shift() {
+  let m1: Moment = Moment { start: 11, end: 15 }
+  let m2: Moment = Moment { start: 1, end: 5 }
+  shift(m1, -10) == m2
+}
+
+/// Check if a moment data structure is logical. 
+///
+/// ```aiken
+/// moment.is_logical(datum.moment)
+/// ```
+pub fn is_logical(m: Moment) -> Bool {
+  and {
+    m.end >= m.start,
+    m.start >= 0,
+    m.end >= 0,
+  }
+}
+
+test an_empty_moment() {
+  let m: Moment = Moment { start: 0, end: 0 }
+  is_logical(m) == True
+}
+
+test a_singular_moment() {
+  let m: Moment = Moment { start: 10, end: 10 }
+  is_logical(m) == True
+}
+
+test a_nonvalid_moment() {
+  let m: Moment = Moment { start: 10, end: 0 }
+  is_logical(m) == False
+}
+
+test a_valid_moment() {
+  let m: Moment = Moment { start: 1, end: 15 }
+  is_logical(m) == True
+}
+
+/// Check if a validity range is contained within some moment.
+/// This assumes inclusivity.
+///
+/// |start--|lower----upper|--end|
+///
+/// ```aiken
+/// moment.is_contained(datum.moment, this_tx.validity_range)
+/// ```
+pub fn is_contained(m: Moment, vr: ValidityRange) -> Bool {
+  when vr.lower_bound.bound_type is {
+    // must be finite
+    NegativeInfinity -> False
+    // get the lower bound int
+    Finite(lower_bound) ->
+      when vr.upper_bound.bound_type is {
+        // must be finite
+        NegativeInfinity -> False
+        // get the upper bound int
+        Finite(upper_bound) -> and {
+            // the lower bound is greater than or equal the start of the moment
+            m.start <= lower_bound,
+            // the upper bound is less or equal to the end of the moment
+            upper_bound <= m.end,
+          }
+        // must be finite
+        PositiveInfinity -> False
+      }
+    // must be finite
+    PositiveInfinity -> False
+  }
+}
+
+test infinite_bounds_not_allowed() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound {
+        bound_type: NegativeInfinity,
+        is_inclusive: True,
+      },
+      upper_bound: IntervalBound {
+        bound_type: PositiveInfinity,
+        is_inclusive: True,
+      },
+    }
+  let m: Moment = Moment { start: 0, end: 0 }
+  // the bounds can not be infinite
+  is_contained(m, vr) == False
+}
+
+test infinite_bounds_not_allowed2() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound {
+        bound_type: NegativeInfinity,
+        is_inclusive: True,
+      },
+      upper_bound: IntervalBound {
+        bound_type: PositiveInfinity,
+        is_inclusive: True,
+      },
+    }
+  let m: Moment = Moment { start: 1, end: 10 }
+  // the bounds can not be infinite
+  is_contained(m, vr) == False
+}
+
+test an_empty_validity_range_inside_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(1), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(1), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 0, end: 10 }
+  is_contained(m, vr) == True
+}
+
+test a_moment_and_validity_range_are_equal() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(0), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 0, end: 10 }
+  is_contained(m, vr) == True
+}
+
+test a_validity_range_inside_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(3), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(5), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 0, end: 10 }
+  is_contained(m, vr) == True
+}
+
+test a_validity_range_outside_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(13), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(15), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 0, end: 10 }
+  is_contained(m, vr) == False
+}
+
+test a_validity_range_outside_a_moment2() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(3), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(5), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 6, end: 17 }
+  is_contained(m, vr) == False
+}
+
+/// Check if a validity range of a tx is after a moment.
+/// This assumes exclusivity.
+///
+/// |start----end|--|lower----upper|
+///
+/// ```aiken
+/// moment.is_after(datum.moment, this_tx.validity_range)
+/// ```
+pub fn is_after(m: Moment, vr: ValidityRange) -> Bool {
+  when vr.lower_bound.bound_type is {
+    // must be finite
+    NegativeInfinity -> False
+    // get the lower bound int
+    Finite(lower_bound) -> m.end < lower_bound
+    // must be finite
+    PositiveInfinity -> False
+  }
+}
+
+test a_validity_range_is_after_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(5), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 1, end: 4 }
+  is_after(m, vr) == True
+}
+
+test a_validity_range_start_at_the_end_of_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(4), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 1, end: 4 }
+  is_after(m, vr) == False
+}
+
+test a_validity_range_start_at_the_end_of_a_moment2() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(4), is_inclusive: False },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 1, end: 4 }
+  is_after(m, vr) == False
+}
+
+test a_validity_range_is_not_after_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(0), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 1, end: 13 }
+  is_after(m, vr) == False
+}
+
+test a_validity_range_is_not_after_a_moment2() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(0), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(4), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 4, end: 12 }
+  is_after(m, vr) == False
+}
+
+test a_validity_range_is_not_after_a_moment3() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(8), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(14), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 4, end: 12 }
+  is_after(m, vr) == False
+}
+
+/// Check if a validity range of a tx is before a moment.
+/// This assumes exclusivity.
+///
+/// |lower----upper|--|start----end|
+///
+/// ```aiken
+/// moment.is_before(datum.moment, this_tx.validity_range)
+/// ```
+pub fn is_before(m: Moment, vr: ValidityRange) -> Bool {
+  when vr.upper_bound.bound_type is {
+    // must be finite
+    NegativeInfinity -> False
+    // get the upper bound int
+    Finite(upper_bound) -> upper_bound < m.start
+    // must be finite
+    PositiveInfinity -> False
+  }
+}
+
+test a_validity_range_is_before_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(0), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 11, end: 13 }
+  is_before(m, vr) == True
+}
+
+test a_validity_range_is_not_before_a_moment() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(12), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 5, end: 13 }
+  is_before(m, vr) == False
+}
+
+test a_validity_range_is_not_before_a_moment2() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(10), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(16), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 5, end: 13 }
+  is_before(m, vr) == False
+}
+
+test a_validity_range_is_not_before_a_moment3() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(15), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(17), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 5, end: 13 }
+  is_before(m, vr) == False
+}
+
+test a_validity_range_is_not_before_a_moment4() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(1), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(7), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 5, end: 13 }
+  is_before(m, vr) == False
+}
+
+test a_validity_range_is_not_before_a_moment5() {
+  let vr: ValidityRange =
+    Interval {
+      lower_bound: IntervalBound { bound_type: Finite(1), is_inclusive: True },
+      upper_bound: IntervalBound { bound_type: Finite(5), is_inclusive: True },
+    }
+  let m: Moment = Moment { start: 5, end: 13 }
+  is_before(m, vr) == False
+}
+
+
+
+================================================
+FILE: lib/types/prefixes.ak
+================================================
+//// This module provides token prefixes for labeling unique tokens.
+////
+
+/// Callable Token Prefix
+pub const callable: ByteArray = #"ca11ab1e"
+
+/// Database Token Prefix
+pub const database: ByteArray = #"da7aba5e"
+
+/// Seed Token Prefix
+pub const seed: ByteArray = #"5eed0e1f"
+
+
+
+================================================
+FILE: lib/types/registry.ak
+================================================
+use aiken/crypto
+use aiken/crypto/bls12_381/g1
+use aiken/crypto/bls12_381/scalar.{Scalar}
+use aiken/primitive/bytearray
+
+/// Alpha is the generator and beta is the public value. The pair is formed from
+/// the relationship g^x = u, where g is the generator and u is the public value.
+/// The value x is a secret integer used to create the public value from the 
+/// generator.
+pub type Register {
+  // the generator, #<Bls12_381, G1>
+  generator: ByteArray,
+  // the public value, #<Bls12_381, G1>
+  public_value: ByteArray,
+}
+
+/// This simulates randomizing a register. It is used for testing purposes only.
+///
+/// ```aiken
+/// registry.randomize(register, random_scalar)
+/// ```
+fn randomize(datum: Register, s: Scalar) -> Register {
+  // decompress the generator and public value
+  let g: G1Element = g1.decompress(datum.generator)
+  let u: G1Element = g1.decompress(datum.public_value)
+  // now randomize the register elements
+  let g_s: G1Element = g1.scale(g, s)
+  let u_s: G1Element = g1.scale(u, s)
+  // recompress the new randomized elements
+  Register { generator: g_s |> g1.compress, public_value: u_s |> g1.compress }
+}
+
+test cheapest_hash() {
+  let s: ByteArray =
+    #"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+  // PASS [mem:   805, cpu:   2661352] expensive hash
+  // crypto.keccak_256(s) == #"8f0af42555406ff9bab0485545772d9e31b44053cf31ffbfb75ac5a8554d81fe"
+  //
+  // PASS [mem:   805, cpu:   1857339] cheapish hash
+  // crypto.sha3_256(s) == #"9ecad985f1c9ea970cea83b6a1e18bf0e3cb904c025024935ca056edb74f4b2a"
+  //
+  // PASS [mem:   805, cpu:    502754] cheap hash
+  // crypto.sha2_256(s) == #"359397539cc67687fa779c133c4da0cc60097dfef9e63b5ccf08eca0fca05530"
+  //
+  // PASS [mem:   805, cpu:    382606] cheaper hash
+  // crypto.blake2b_224(s) == #"0c97d8d889acb1d65d23e44212b0a4e16a57fc0ebcfea8f5f965f8ba"
+  //
+  //  PASS [mem:  805, cpu:    376479] cheapest hash
+  crypto.blake2b_256(s) == #"667f1e9b75c8eac1cccf77a2f82526a478b01ec0f26dd938b5b5b4ad0d856368"
+}
+
+/// A bytearray of a value for the challenge c. This process should act like a
+/// random oracle providing a large challenge value for the user. The inputs
+/// should be compressed g1 elements but they can also be compressed integers.
+///
+/// ```aiken
+/// registry.fiat_shamir_heuristic(g_b, g_r_b, u_b, b)
+/// ```
+pub fn fiat_shamir_heuristic(
+  // compressed g element
+  g_b: ByteArray,
+  // compressed g^r element
+  g_r_b: ByteArray,
+  // compressed g^x element
+  u_b: ByteArray,
+  // a bound used to create one time transforms
+  b: ByteArray,
+) -> ByteArray {
+  // concat g_b, g_r_b, u_b, and b together then hash the result using the 
+  // blake2b_224 hash function.
+  g_b
+    |> bytearray.concat(g_r_b)
+    |> bytearray.concat(u_b)
+    |> bytearray.concat(b)
+    |> crypto.blake2b_224()
+}
+
+test empty_fiat_shamir_transform() {
+  fiat_shamir_heuristic(#"", #"", #"", #"") == #"836cc68931c2e4e3e838602eca1902591d216837bafddfe6f0c8cb07"
+}
+
+test real_fiat_shamir_transform() {
+  fiat_shamir_heuristic(
+    #"97f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb",
+    #"81b223cea171a87feba9b7749a2df7601c5a75ae01155fadc124a2ac49099a514cf1e7d9cdc769dceab14a95bd6cb0bd",
+    #"a09d99e02f7200526dc55ef722cc171e7aa14fc732614c02ac58d59d7026a7eb18d8798f6928ea2b513f3a4feb0c94d1",
+    #"acab",
+  ) == #"1b556f7bb6a26d00a7c79468794858ba6aa0e41a2c3af0754ec4a11d"
+}
+
+/// A Schnorr proof to prove knowledge of the secret value x without revealing 
+/// the value in the process. The proof uses, in multiplicative form, 
+/// g^z = g^r * u^c, where z = r + c*x and u = g^x. This function uses the 
+/// Fiat-Shamir heuristic for non-interactivity.
+///
+/// ```aiken
+/// registry.prove(datum, z_b, g_r_b, bound)
+/// ```
+pub fn prove(
+  datum: Register,
+  z_b: ByteArray,
+  g_r_b: ByteArray,
+  bound: ByteArray,
+) -> Bool {
+  //
+  // the z computation: g^z = g^(r + c * x) = g^r * g^(c * x) = g^r * (g^x)^c
+  expect Some(z): Option<Scalar> = scalar.from_bytearray_big_endian(z_b)
+  let g_z: G1Element = g1.decompress(datum.generator) |> g1.scale(z)
+  //
+  // use the fiat-shamir heuristic to calculate the challenge then convert it to an integer
+  expect Some(c): Option<Scalar> =
+    fiat_shamir_heuristic(datum.generator, g_r_b, datum.public_value, bound)
+      |> scalar.from_bytearray_big_endian()
+  //
+  // the u^c computation: u^c = (g^x)^c = g^(x * c)
+  let u_c: G1Element = g1.decompress(datum.public_value) |> g1.scale(c)
+  //
+  // check if equation: g^z = g^r * u^c is true
+  //
+  g_z |> g1.equal(g1.add(g1.decompress(g_r_b), u_c))
+}
+
+test valid_schnorr_proof() {
+  // some secret x 
+  expect Some(x): Option<Scalar> =
+    scalar.new(
+      42435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // the datum register using the g1 generator and the public value for x
+  let datum: Register =
+    Register {
+      generator: g1.generator |> g1.compress,
+      public_value: g1.generator |> g1.scale(x) |> g1.compress,
+    }
+  // a random number
+  expect Some(r): Option<Scalar> =
+    scalar.new(
+      32435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // the bound, something unique from the tx
+  let bound: ByteArray = #"acab"
+  // calculate the g^r term
+  let g: G1Element = g1.generator
+  let g_r: G1Element = g1.scale(g, r)
+  let g_r_b: ByteArray = g_r |> g1.compress
+  // the challenge number using a fiat shamir transform
+  let c_b: ByteArray =
+    fiat_shamir_heuristic(datum.generator, g_r_b, datum.public_value, bound)
+  expect Some(c): Option<Scalar> = scalar.from_bytearray_big_endian(c_b)
+  // the z value
+  let z: Scalar = scalar.mul(c, x) |> scalar.add(r)
+  let z_b: ByteArray = scalar.to_bytearray_big_endian(z, 0)
+  prove(datum, z_b, g_r_b, bound)
+}
+
+test randomized_valid_schnorr_proof() {
+  // some secret x 
+  expect Some(x): Option<Scalar> =
+    scalar.new(
+      12435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // the datum register using the g1 generator and the public value for x
+  let datum: Register =
+    Register {
+      generator: g1.generator |> g1.compress,
+      public_value: g1.generator |> g1.scale(x) |> g1.compress,
+    }
+  // a random number
+  expect Some(r): Option<Scalar> =
+    scalar.new(
+      32435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // another random number
+  expect Some(d): Option<Scalar> =
+    scalar.new(
+      12435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // rerandomize the a0 register
+  let datum_rng: Register = randomize(datum, d)
+  // the bound, something unique from the tx
+  let bound: ByteArray = #"acabface"
+  // calculate the g^r term
+  let g: G1Element = datum_rng.generator |> g1.decompress
+  let g_r: G1Element = g1.scale(g, r)
+  let g_r_b: ByteArray = g_r |> g1.compress
+  // the challenge number using a fiat shamir transform
+  let c_b: ByteArray =
+    fiat_shamir_heuristic(
+      datum_rng.generator,
+      g_r_b,
+      datum_rng.public_value,
+      bound,
+    )
+  expect Some(c): Option<Scalar> = scalar.from_bytearray_big_endian(c_b)
+  // the z value
+  let z: Scalar = scalar.mul(c, x) |> scalar.add(r)
+  let z_b: ByteArray = scalar.to_bytearray_big_endian(z, 0)
+  prove(datum_rng, z_b, g_r_b, bound)
+}
+
+test invalid_schnorr_proof() fail {
+  // some secret x 
+  expect Some(x): Option<Scalar> =
+    scalar.new(
+      42435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // the datum register using the g1 generator and the public value for x
+  let datum: Register =
+    Register {
+      generator: g1.generator |> g1.compress,
+      public_value: g1.generator |> g1.scale(x) |> g1.compress,
+    }
+  // a random number
+  expect Some(r): Option<Scalar> =
+    scalar.new(
+      32435875175126190479447740508185965837690552500527637822603658699938581184513,
+    )
+  // the bound, something unique from the tx
+  let bound: ByteArray = #""
+  // calculate the g^r term
+  let g: G1Element = g1.generator
+  let g_r: G1Element = g1.scale(g, r)
+  let g_r_b: ByteArray = g_r |> g1.compress
+  // the challenge number using a fiat shamir transform
+  let c_b: ByteArray =
+    fiat_shamir_heuristic(datum.generator, g_r_b, datum.public_value, bound)
+  expect Some(c): Option<Scalar> = scalar.from_bytearray_big_endian(c_b)
+  // the bad z value, it assumes the secret is the challenge
+  let z: Scalar = scalar.mul(c, c) |> scalar.add(r)
+  let z_b: ByteArray = scalar.to_bytearray_big_endian(z, 0)
+  prove(datum, z_b, g_r_b, bound)
+}
+
+
+
+================================================
+FILE: lib/types/token.ak
+================================================
+//// A Token is a safe type for some asset on Cardano. A Token can be combined
+//// with another Token to form Tokens, a list of Token.  This should be a safe
+//// and clean way to build out the value type inside of datums and redeemers 
+//// instead of building out the value type directly which could be harmful.
+////
+
+use aiken/collection/dict
+use aiken/collection/list
+use cardano/assets.{AssetName, PolicyId, Value}
+
+/// A token type for a safe single policy id and asset name assets.
+pub type Token {
+  pid: PolicyId,
+  tkn: AssetName,
+  amt: Int,
+}
+
+/// A tokens type for a safe value as a list of Tokens.
+pub type Tokens =
+  List<Token>
+
+/// Give the negative of a token.
+///
+/// ```aiken
+/// token.negative(this_token)
+/// ```
+pub fn negative(tkn: Token) -> Token {
+  Token { pid: tkn.pid, tkn: tkn.tkn, amt: -tkn.amt }
+}
+
+test its_negative() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Token = Token { pid: #"", tkn: #"", amt: -10 }
+  negative(token) == expected
+}
+
+/// Negate all the tokens in the list.
+///
+/// ```aiken
+/// token.negate(these_tokens)
+/// ```
+pub fn negate(tokens: Tokens) -> Tokens {
+  do_negate([], tokens)
+}
+
+fn do_negate(negated: Tokens, tokens: Tokens) -> Tokens {
+  when tokens is {
+    // take a token and add it to the value
+    [tkn, ..tkns] ->
+      negated
+        |> list.push(Token { pid: tkn.pid, tkn: tkn.tkn, amt: -tkn.amt })
+        |> do_negate(tkns)
+    // everything is negative
+    [] -> negated
+  }
+}
+
+test all_tokens_negated() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Token = Token { pid: #"", tkn: #"", amt: -10 }
+  negate([token, token]) == [expected, expected]
+}
+
+/// Divide a token by some integer. The divisor must be positive. This is
+/// integer division so the token amount will be rounded towards negative 
+/// infinity.
+///
+/// ```aiken
+/// token.divide(that_token, 2)
+/// ```
+pub fn divide(token: Token, n: Int) -> Token {
+  if n <= 0 {
+    fail @"Invalid Divisor"
+  } else {
+    Token { pid: token.pid, tkn: token.tkn, amt: token.amt / n }
+  }
+}
+
+/// Multiply a token by some integer. This linearly scales the token amount
+/// on the token.
+///
+/// ```aiken
+/// token.multiply(that_token, 4)
+/// ```
+pub fn multiply(token: Token, n: Int) -> Token {
+  Token { pid: token.pid, tkn: token.tkn, amt: n * token.amt }
+}
+
+test multiply_by_zero() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Token = Token { pid: #"", tkn: #"", amt: 0 }
+  multiply(token, 0) == expected
+}
+
+test multiply_by_one() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  multiply(token, 1) == expected
+}
+
+test multiply_by_two() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let expected: Token = Token { pid: #"", tkn: #"", amt: 20 }
+  multiply(token, 2) == expected
+}
+
+/// Check that each token is less than zero in a list tokens.
+///
+/// ```aiken
+/// token.subtraction_only(redeemer.tokens)
+/// ```
+pub fn subtraction_only(tokens: Tokens) -> Bool {
+  when tokens is {
+    // take a token and add it to the value
+    [tkn, ..tkns] ->
+      if tkn.amt < 0 {
+        subtraction_only(tkns)
+      } else {
+        // something is greater than or equal to zero
+        False
+      }
+    // everything is negative
+    [] -> True
+  }
+}
+
+test everything_is_negative() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: -1 }
+  subtraction_only([token, token, token]) == True
+}
+
+test everything_is_negative_but_one() {
+  let token1: Token = Token { pid: #"", tkn: #"", amt: -1 }
+  let token2: Token = Token { pid: #"", tkn: #"", amt: 1 }
+  subtraction_only([token1, token1, token2]) == False
+}
+
+/// Check that each token is greater than zero in a list tokens.
+///
+/// ```aiken
+/// token.addition_only(redeemer.tokens)
+/// ```
+pub fn addition_only(tokens: Tokens) -> Bool {
+  when tokens is {
+    // take a token and add it to the value
+    [tkn, ..tkns] ->
+      if tkn.amt > 0 {
+        addition_only(tkns)
+      } else {
+        // something is less than or equal to zero
+        False
+      }
+    // everything is positive
+    [] -> True
+  }
+}
+
+test empty_tokens_is_positive() {
+  and {
+    addition_only([]) == True,
+    subtraction_only([]) == True,
+  }
+}
+
+test everything_is_positive() {
+  let token: Token = Token { pid: #"", tkn: #"", amt: 1 }
+  addition_only([token, token, token]) == True
+}
+
+test everything_is_positive_but_one() {
+  let token1: Token = Token { pid: #"", tkn: #"", amt: 1 }
+  let token2: Token = Token { pid: #"", tkn: #"", amt: -1 }
+  addition_only([token1, token1, token2]) == False
+}
+
+/// Add a Token type to a Value type. This should be a very safe way to
+/// increment a value on a UTxO. The other option is having the redeemer be 
+/// the general Value type and potentially allow badly formed values to be used.
+///
+/// ```aiken
+/// add_token_to_value(token, this_value)
+/// ```
+pub fn add_token_to_value(the_value: Value, token: Token) -> Value {
+  assets.add(the_value, token.pid, token.tkn, token.amt)
+}
+
+test add_empty_token_to_value() {
+  let zero: Value = assets.zero
+  let token: Token = Token { pid: #"", tkn: #"", amt: 0 }
+  add_token_to_value(zero, token) == zero
+}
+
+test add_ada_token_to_value() {
+  let zero: Value = assets.zero
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  add_token_to_value(zero, token) == assets.from_lovelace(10)
+}
+
+test add_and_subtract_token_to_value() {
+  let zero: Value = assets.zero
+  let token1: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let token2: Token = Token { pid: #"", tkn: #"", amt: -10 }
+  let expected: Value =
+    add_token_to_value(zero, token1) |> add_token_to_value(token2)
+  expected == zero
+}
+
+/// Add a list of Token types to a Value type. This should be a very safe way to
+/// increment a value on a UTxO. The other option is having the redeemer be 
+/// the general Value type and potentially allow badly formed values to be used.
+///
+/// ```aiken
+/// add_tokens_to_value(redeemer.tokens, this_value)
+/// ```
+pub fn add_tokens_to_value(the_value: Value, tokens: Tokens) -> Value {
+  when tokens is {
+    // take a token and add it to the value
+    [tkn, ..rest] ->
+      add_token_to_value(the_value, tkn) |> add_tokens_to_value(rest)
+    // return the value
+    [] -> the_value
+  }
+}
+
+test add_empty_tokens_to_value() {
+  let zero: Value = assets.zero
+  let token: Token = Token { pid: #"", tkn: #"", amt: 0 }
+  add_tokens_to_value(zero, [token, token, token]) == zero
+}
+
+test add_ada_tokens_to_value() {
+  let zero: Value = assets.zero
+  let token: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  add_tokens_to_value(zero, [token, token, token]) == assets.from_lovelace(30)
+}
+
+test add_and_subtract_tokens_to_value() {
+  let zero: Value = assets.zero
+  let token1: Token = Token { pid: #"", tkn: #"", amt: 10 }
+  let token2: Token = Token { pid: #"", tkn: #"", amt: -10 }
+  add_tokens_to_value(zero, [token1, token2]) == zero
+}
+
+/// Convert a value into a list of tokens. This conversation is a fast way
+/// to be able to do multiplication on a assets.
+///
+/// ```aiken
+/// token.from_value(this_value)
+/// ```
+pub fn from_value(v: Value) -> Tokens {
+  assets.to_dict(v)
+    |> dict.foldl(
+        [],
+        fn(pid, assets, tokens) {
+          dict.foldl(
+            assets,
+            tokens,
+            fn(tkn, amt, tokens) { list.push(tokens, Token { pid, tkn, amt }) },
+          )
+        },
+      )
+}
+
+test from_zero_value() {
+  let v: Value = assets.zero
+  let e: Tokens = []
+  from_value(v) == e
+}
+
+test from_lovelace_value() {
+  let v: Value = assets.from_lovelace(123)
+  let e: Tokens =
+    [Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 123 }]
+  from_value(v) == e
+}
+
+test from_general_value() {
+  let v: Value = assets.from_lovelace(123) |> assets.add(#"acab", #"cafe", 41)
+  let e: Tokens =
+    [
+      Token { pid: #"acab", tkn: #"cafe", amt: 41 },
+      Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 123 },
+    ]
+  from_value(v) == e
+}
+
+/// Check if a Token exists in a list of Tokens. The amount has to be greater
+/// than or equal to the target.
+///
+/// ```aiken
+/// token.exists(total_tokens, target_token )
+/// ```
+pub fn exists(total: Tokens, target: Token) -> Bool {
+  when total is {
+    [] -> False
+    [tkn, ..tkns] ->
+      if and {
+        target.pid == tkn.pid,
+        target.tkn == tkn.tkn,
+        tkn.amt >= target.amt,
+      } {
+        True
+      } else {
+        exists(tkns, target)
+      }
+  }
+}
+
+/// Check if a target list of tokens exist inside another list of tokens.
+/// The token amount must be greater than or equal to the target amount. If
+/// nothing is found then it returns False.
+///
+/// ```aiken
+/// token.contains(total, target)
+/// ```
+pub fn contains(total: Tokens, target: Tokens) -> Bool {
+  when target is {
+    [] -> True
+    [t, ..ts] ->
+      if exists(total, t) {
+        contains(total, ts)
+      } else {
+        False
+      }
+  }
+}
+
+test tokens_contains_lovelace() {
+  let target: Tokens =
+    [Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 100 }]
+  let total: Tokens =
+    [Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 100 }]
+  contains(total, target) == True
+}
+
+test tokens_contains_tokens() {
+  let target: Tokens = [Token { pid: #"acab", tkn: #"beef", amt: 10 }]
+  let total: Tokens = [Token { pid: #"acab", tkn: #"beef", amt: 40 }]
+  contains(total, target) == True
+}
+
+test tokens_contains_both() {
+  let target: Tokens =
+    [
+      Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 10 },
+      Token { pid: #"acab", tkn: #"beef", amt: 2 },
+      Token { pid: #"cafe", tkn: #"face", amt: 10 },
+    ]
+  let total: Tokens =
+    [
+      Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 100 },
+      Token { pid: #"acab", tkn: #"beef", amt: 20 },
+      Token { pid: #"cafe", tkn: #"face", amt: 100 },
+    ]
+
+  contains(total, target) == True
+}
+
+test tokens_contains_nothing() {
+  let target: Tokens =
+    [Token { pid: assets.ada_policy_id, tkn: assets.ada_asset_name, amt: 100 }]
+  let total: Tokens = [Token { pid: #"acab", tkn: #"beef", amt: 40 }]
+  contains(total, target) == False
+}
+
+
+
+================================================
+FILE: lib/types/wallet.ak
+================================================
+use aiken/collection/list
+use aiken/crypto.{VerificationKeyHash}
+use aiken/primitive/bytearray
+
+/// A wallet type for a non-smart contract address.
+pub type Wallet {
+  pkh: VerificationKeyHash,
+  sc: VerificationKeyHash,
+}
+
+/// A list of wallets for non-smart contract addresses.
+pub type Wallets =
+  List<Wallet>
+
+/// Convert a list of wallets into a list of public key hashes. This is useful
+/// when doing multisig validation. The output order respects the input order.
+///
+/// ```aiken
+/// wallet.to_vks(datum.wallets)
+/// ```
+pub fn to_vks(wallets: Wallets) -> List<VerificationKeyHash> {
+  list.map(wallets, fn(w) { w.pkh })
+}
+
+test empty_to_vks() {
+  to_vks([]) == []
+}
+
+test single_to_vks() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"",
+    }
+  to_vks([w]) == [#"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01"]
+}
+
+test multiple_to_vks() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"",
+    }
+  let expected: List<VerificationKeyHash> =
+    [
+      #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    ]
+  to_vks([w, w, w]) == expected
+}
+
+/// Check if a wallet has a bad form and needs to be bypassed.
+/// The pkh must be the length 56 hex string and the sc is either empty or
+/// it is also a length 56 hex string.
+///
+/// ```aiken
+/// wallet.is_valid(datum.wallet)
+/// ```
+pub fn is_valid(wallet: Wallet) -> Bool {
+  if and {
+    // if pkh is 28 then true else false
+    bytearray.length(wallet.pkh) == 28,
+    // sc is either empty or 28
+    or {
+      bytearray.is_empty(wallet.sc),
+      bytearray.length(wallet.sc) == 28,
+    },
+  } {
+    // wallet is valid
+    True
+  } else {
+    // wallet is not valid
+    False
+  }
+}
+
+test is_valid_pkh() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"",
+    }
+  is_valid(w)
+}
+
+test is_valid_pkh_sc() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+    }
+  is_valid(w)
+}
+
+test is_invalid_sc() {
+  let w: Wallet =
+    Wallet {
+      pkh: #"abcdef0123456789abcdef0123456789abcdef0123456789abcdef01",
+      sc: #"abcd89abcdef0123456789abcdef0123456789abcdef01",
+    }
+  is_valid(w) == False
+}
+
+test is_invalid_pkh() {
+  let w: Wallet =
+    Wallet { pkh: #"abcdef9abcdef0123456789abcdef0123456789abcdef0", sc: #"" }
+  is_valid(w) == False
+}
+
+
+
+================================================
+FILE: lib/validation/count.ak
+================================================
+//// This module contains code to accurately count the number of inputs and
+//// outputs in a transaction containing an address or a datum.
+////
+
+use aiken/collection/list
+use cardano/address.{Address, Script}
+use cardano/addresses
+use cardano/transaction.{DatumHash, InlineDatum, Input, Output, Transaction}
+// for testing only
+use tests/fake_tx
+
+/// Verify that the number of inputs with an inline datum or datum hash is equal to the
+/// number intended in the contract. The amount must be exactly the counter.
+///
+/// ```aiken
+/// count.inputs_by_datum(tx.inputs, 1)
+/// ```
+pub fn inputs_by_datum(inputs: List<Input>, amount: Int) -> Bool {
+  do_inputs_by_datum(inputs, 0) == amount
+}
+
+// Internal only
+fn do_inputs_by_datum(inputs: List<Input>, counter: Int) -> Int {
+  when inputs is {
+    [input, ..rest] ->
+      when input.output.datum is {
+        // the actual datum value isn't important here
+        InlineDatum(_) -> do_inputs_by_datum(rest, counter + 1)
+        // the actual datum hash isn't important here
+        DatumHash(_) -> do_inputs_by_datum(rest, counter + 1)
+        // anything else just keep going
+        _ -> do_inputs_by_datum(rest, counter)
+      }
+    // loop the list
+    [] -> counter
+  }
+}
+
+test single_input_datum() {
+  let tx: Transaction = fake_tx.test_tx()
+  inputs_by_datum(tx.inputs, 1) == True
+}
+
+test single_input_datum_hash() {
+  let input: Input = fake_tx.test_input_with_datum_hash()
+  inputs_by_datum([input], 1) == True
+}
+
+test single_input_with_mixed_datums() {
+  let input1: Input = fake_tx.test_input_with_datum_hash()
+  let input2: Input = fake_tx.test_input()
+  inputs_by_datum([input1, input2], 2) == True
+}
+
+test not_enough_input_datums() {
+  let tx: Transaction = fake_tx.test_tx()
+  inputs_by_datum(tx.inputs, 2) == False
+}
+
+test not_enough_input_datum_hashes() {
+  let input: Input = fake_tx.test_input_with_datum_hash()
+  inputs_by_datum([input], 2) == False
+}
+
+test empty_input_datums() {
+  inputs_by_datum([], 0) == True
+}
+
+/// Count the number of inputs with a payment credential that is a script.
+/// This does not take in an address but is a general count of validator hashes.
+///
+/// ```aiken
+/// count.inputs_by_vkh(tx.inputs, 1)
+/// ```
+pub fn inputs_by_vkh(inputs: List<Input>, amount: Int) -> Bool {
+  do_inputs_by_vkh(inputs, 0) == amount
+}
+
+fn do_inputs_by_vkh(inputs: List<Input>, counter: Int) -> Int {
+  when inputs is {
+    [input, ..rest] ->
+      // exact address match
+      when input.output.address.payment_credential is {
+        Script(_) -> do_inputs_by_vkh(rest, counter + 1)
+        _ -> do_inputs_by_vkh(rest, counter)
+      }
+    [] -> counter
+  }
+}
+
+test double_vkh_script_input() {
+  let this_inputs: List<Input> = fake_tx.test_bad_inputs()
+  inputs_by_vkh(this_inputs, 2) == True
+}
+
+test no_vkh_script_input() {
+  let tx: Transaction = fake_tx.test_tx()
+  inputs_by_vkh(tx.inputs, 1) == False
+}
+
+/// Count the number of outputs with a payment credential that is a script.
+/// This does not take in an address but is a general count of validator hashes.
+///
+/// ```aiken
+/// count.outputs_by_vkh(tx.outputs, 1)
+/// ```
+pub fn outputs_by_vkh(outputs: List<Output>, amount: Int) -> Bool {
+  do_outputs_by_vkh(outputs, 0) == amount
+}
+
+fn do_outputs_by_vkh(outputs: List<Output>, counter: Int) -> Int {
+  when outputs is {
+    [output, ..rest] ->
+      // exact address match
+      when output.address.payment_credential is {
+        Script(_) -> do_outputs_by_vkh(rest, counter + 1)
+        _ -> do_outputs_by_vkh(rest, counter)
+      }
+    [] -> counter
+  }
+}
+
+test single_vkh_script_output() {
+  let this_outputs: List<Output> = fake_tx.test_bad_outputs()
+  outputs_by_vkh(this_outputs, 1) == True
+}
+
+test no_vkh_script_output() {
+  let tx: Transaction = fake_tx.test_tx()
+  outputs_by_vkh(tx.outputs, 1) == False
+}
+
+/// Verify that the number of inputs from a specific script is equal to the
+/// amount intended in the contract. The amount must be exactly the counter.
+///
+/// ```aiken
+/// count.inputs_by_addr(tx.inputs, this_addr, 1)
+/// ```
+pub fn inputs_by_addr(inputs: List<Input>, addr: Address, amount: Int) -> Bool {
+  do_inputs_by_addr(inputs, addr, 0) == amount
+}
+
+// Internal only
+fn do_inputs_by_addr(inputs: List<Input>, addr: Address, counter: Int) -> Int {
+  when inputs is {
+    [input, ..rest] ->
+      // exact address match
+      if input.output.address == addr {
+        do_inputs_by_addr(rest, addr, counter + 1)
+      } else {
+        do_inputs_by_addr(rest, addr, counter)
+      }
+    [] -> counter
+  }
+}
+
+test single_script_input() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  inputs_by_addr(tx.inputs, addr, 1) == True
+}
+
+test not_enough_inputs_by_addr() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  inputs_by_addr(tx.inputs, addr, 2) == False
+}
+
+test multiple_inputs_by_addr() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"face", #"")
+  inputs_by_addr(tx.inputs, addr, 2) == True
+}
+
+test empty_input_addr() {
+  let addr: Address = addresses.create_address(#"acab", #"")
+  inputs_by_addr([], addr, 0) == True
+}
+
+/// Verify that the number of outputs from a specific script is equal the amount
+/// intended in the contract. The amount must be exact with the counter.
+///
+/// ```aiken
+/// count.outputs_by_addr(tx.outputs, this_addr, 1)
+/// ```
+pub fn outputs_by_addr(
+  outputs: List<Output>,
+  addr: Address,
+  amount: Int,
+) -> Bool {
+  do_outputs_by_addr(outputs, addr, 0) == amount
+}
+
+// Internal only
+fn do_outputs_by_addr(outputs: List<Output>, addr: Address, counter: Int) -> Int {
+  when outputs is {
+    [output, ..rest] ->
+      // exact address match
+      if output.address == addr {
+        do_outputs_by_addr(rest, addr, counter + 1)
+      } else {
+        do_outputs_by_addr(rest, addr, counter)
+      }
+    // loop entire list then return counter
+    [] -> counter
+  }
+}
+
+test single_script_output() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  outputs_by_addr(tx.outputs, addr, 1) == True
+}
+
+test not_enough_outputs_by_addr() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  outputs_by_addr(tx.outputs, addr, 2) == False
+}
+
+test multiple_outputs_by_addr() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"face", #"")
+  outputs_by_addr(tx.outputs, addr, 2) == True
+}
+
+test empty_output_addr() {
+  let addr: Address = addresses.create_address(#"acab", #"")
+  outputs_by_addr([], addr, 0) == True
+}
+
+/// Verify that the number of outputs with an inline datum or datum hash is equal to the
+/// number intended in the contract. The amount must be exactly the counter.
+///
+/// ```aiken
+/// count.outputs_by_datum(tx.outputs, 1)
+/// ```
+pub fn outputs_by_datum(outputs: List<Output>, amount: Int) -> Bool {
+  do_outputs_by_datum(outputs, 0) == amount
+}
+
+// Internal only
+fn do_outputs_by_datum(outputs: List<Output>, counter: Int) -> Int {
+  when outputs is {
+    [output, ..rest] ->
+      when output.datum is {
+        // the actual datum value is not important here
+        InlineDatum(_) -> do_outputs_by_datum(rest, counter + 1)
+        // the actual datum hash is not important here
+        DatumHash(_) -> do_outputs_by_datum(rest, counter + 1)
+        // anything else just keep going
+        _ -> do_outputs_by_datum(rest, counter)
+      }
+    // loop entire list then return counter
+    [] -> counter
+  }
+}
+
+test single_output_datum() {
+  let tx: Transaction = fake_tx.test_tx()
+  outputs_by_datum(tx.outputs, 1) == True
+}
+
+test not_enough_output_datums() {
+  let tx: Transaction = fake_tx.test_tx()
+  outputs_by_datum(tx.outputs, 2) == False
+}
+
+test single_output_datum_hash() {
+  let output: Output = fake_tx.test_output_with_datum_hash()
+  outputs_by_datum([output], 1) == True
+}
+
+test single_output_with_mixed_datums() {
+  let output1 = fake_tx.test_output_with_datum_hash()
+  let output2 = fake_tx.test_output()
+  outputs_by_datum([output1, output2], 2) == True
+}
+
+test not_enough_output_datum_hashes() {
+  let output: Output = fake_tx.test_output_with_datum_hash()
+  outputs_by_datum([output], 2) == False
+}
+
+test empty_output_datums() {
+  outputs_by_datum([], 0) == True
+}
+
+/// The contract can only be spent by itself or along side some list of know 
+/// addresses. Loop all the inputs and count how many datums belong to this 
+/// address. If any of those addresses exists then pass right over them but if 
+/// anything else is found then fail. This should prevent unregulated contracts
+/// from being spent along side this script.
+///
+/// ```aiken
+/// count.single_input_with_bypass(this_tx.inputs, this_addr, [that_addr])
+/// ```
+///
+pub fn single_input_with_bypass(
+  inputs: List<Input>,
+  this_addr: Address,
+  those_addrs: List<Address>,
+) -> Bool {
+  do_single_input_with_bypass(inputs, 0, this_addr, those_addrs)
+}
+
+fn vkh_addr_eq(a: Address, b: Address) -> Bool {
+  when a.payment_credential is {
+    Script(avkh) ->
+      when b.payment_credential is {
+        Script(bvkh) -> avkh == bvkh
+        _ -> False
+      }
+    _ -> False
+  }
+}
+
+test vkh_addr_eq_works1() {
+  let a: Address = addresses.create_script_address(#"acab", #"")
+  let b: Address = addresses.create_script_address(#"acab", #"")
+  vkh_addr_eq(a, b)
+}
+
+test vkh_addr_eq_works2() {
+  let a: Address = addresses.create_address(#"acab", #"")
+  let b: Address = addresses.create_address(#"acab", #"")
+  vkh_addr_eq(a, b) == False
+}
+
+// Internal only
+fn do_single_input_with_bypass(
+  inputs: List<Input>,
+  counter: Int,
+  this_addr: Address,
+  those_addrs: List<Address>,
+) -> Bool {
+  when inputs is {
+    [input, ..rest] ->
+      when input.output.datum is {
+        // the actual datum value isn't important here
+        InlineDatum(_) ->
+          if vkh_addr_eq(input.output.address, this_addr) {
+            // count it
+            do_single_input_with_bypass(
+              rest,
+              counter + 1,
+              this_addr,
+              those_addrs,
+            )
+          } else if list.any(
+            those_addrs,
+            fn(n) { vkh_addr_eq(input.output.address, n) },
+          ) {
+            // all good
+            do_single_input_with_bypass(rest, counter, this_addr, those_addrs)
+          } else {
+            False
+          }
+        // the actual datum hash isn't important here
+        DatumHash(_) ->
+          if vkh_addr_eq(input.output.address, this_addr) {
+            // count it
+            do_single_input_with_bypass(
+              rest,
+              counter + 1,
+              this_addr,
+              those_addrs,
+            )
+          } else if list.any(
+            those_addrs,
+            fn(n) { vkh_addr_eq(input.output.address, n) },
+          ) {
+            // all good
+            do_single_input_with_bypass(rest, counter, this_addr, those_addrs)
+          } else {
+            False
+          }
+        _ -> do_single_input_with_bypass(rest, counter, this_addr, those_addrs)
+      }
+    // there can be only this address and any amount of those addresses but nothing else
+    [] -> counter == 1
+  }
+}
+
+test single_input_with_no_bypass() {
+  let this_inputs: List<Input> = fake_tx.test_bad_inputs()
+  let addr1: Address = addresses.create_script_address(#"acab", #"")
+  let addr2: Address = addresses.create_script_address(#"cafe", #"acab")
+  single_input_with_bypass(this_inputs, addr1, [addr2]) == True
+}
+
+test single_input_with_a_bad_bypass() {
+  let this_inputs: List<Input> = fake_tx.test_bad_inputs()
+  let addr: Address = addresses.create_script_address(#"acab", #"")
+  single_input_with_bypass(this_inputs, addr, []) == False
+}
+
+
+
+================================================
+FILE: lib/validation/find.ak
+================================================
+//// This module contains code for finding various aspects of 
+//// a validating transaction.
+////
+
+use aiken/collection/list
+use aiken/collection/pairs
+use cardano/address.{Address, Credential, Script}
+use cardano/addresses
+use cardano/assets.{AssetName, PolicyId, Value}
+use cardano/datum
+use cardano/transaction.{
+  InlineDatum, Input, Output, OutputReference, Redeemer, ScriptPurpose, Spend,
+  Transaction,
+}
+use cardano/value
+// for testing only
+use tests/fake_tx
+
+/// Find the first input's output reference index.
+/// Output references have the form `TxId#Idx`, this function
+/// extracts the `Idx` part. If nothing is found then error.
+///
+/// ```aiken
+/// find.first_input_index(tx.inputs)
+/// ```
+pub fn first_input_index(inputs: List<Input>) -> Int {
+  when list.head(inputs) is {
+    Some(input) -> input.output_reference.output_index
+    None -> fail @"No First Input Index Found"
+  }
+}
+
+test find_first_input_index() {
+  let inputs: List<Input> = fake_tx.test_tx().inputs
+  first_input_index(inputs) == 0
+}
+
+test cant_find_first_input_index() fail {
+  let inputs: List<Input> = []
+  // this will fail
+  first_input_index(inputs) == 0
+}
+
+/// Find the first input's output reference transaction id hash.
+/// Output references have the form `TxId#Idx`, this function
+/// extracts the `TxId` part. If nothing is found then error.
+///
+/// ```aiken
+/// find.first_input_txid(tx.inputs)
+/// ```
+pub fn first_input_txid(inputs: List<Input>) -> ByteArray {
+  when list.head(inputs) is {
+    Some(input) -> input.output_reference.transaction_id
+    None -> fail @"No First Input TxId Found"
+  }
+}
+
+test find_first_input_txid() {
+  let inputs: List<Input> = fake_tx.test_tx().inputs
+  first_input_txid(inputs) == #"acab"
+}
+
+test cant_find_first_input_txid() fail {
+  let inputs: List<Input> = []
+  // this will fail
+  first_input_txid(inputs) == #"acab"
+}
+
+/// Find an input by an output reference. If nothing is found then error. 
+/// Similar to the builtin function in stdlib but auto errors instead of
+/// returning an `Option`.
+///
+/// ```aiken
+/// find.input_by_ref(tx.inputs, out_ref)
+/// ```
+pub fn input_by_ref(inputs: List<Input>, out_ref: OutputReference) -> Input {
+  when inputs is {
+    [input, ..rest] ->
+      if input.output_reference == out_ref {
+        input
+      } else {
+        input_by_ref(rest, out_ref)
+      }
+    [] -> fail @"No Input Found By Output Reference"
+  }
+}
+
+test find_input_by_ref() {
+  let inputs: List<Input> = fake_tx.test_tx().inputs
+  let out_ref: OutputReference =
+    OutputReference { transaction_id: #"acab", output_index: 0 }
+  input_by_ref(inputs, out_ref) == fake_tx.test_input()
+}
+
+test cant_find_input_by_ref() fail {
+  let inputs: List<Input> = []
+  let out_ref: OutputReference =
+    OutputReference { transaction_id: #"acab", output_index: 0 }
+  // this will fail
+  input_by_ref(inputs, out_ref) == fake_tx.test_input()
+}
+
+/// Find the first occurrence of an input by a specific address. If nothing
+/// is found then error. The address here is an exact match, so both the
+/// pkh and sc need to be correct.
+///
+/// ```aiken
+/// find.input_by_addr(tx.reference_inputs, ref_addr)
+/// ```
+pub fn input_by_addr(inputs: List<Input>, addr: Address) -> Input {
+  when inputs is {
+    [input, ..rest] ->
+      if input.output.address == addr {
+        input
+      } else {
+        input_by_addr(rest, addr)
+      }
+    [] -> fail @"No Input Found By Address"
+  }
+}
+
+test find_input_by_addr() {
+  let inputs: List<Input> = fake_tx.test_tx().inputs
+  let addr: Address = addresses.create_address(#"acab", #"")
+  input_by_addr(inputs, addr) == fake_tx.test_input()
+}
+
+test cant_find_input_by_addr() fail {
+  let inputs: List<Input> = []
+  let addr: Address = addresses.create_address(#"acab", #"")
+  // this will fail
+  input_by_addr(inputs, addr) == fake_tx.test_input()
+}
+
+/// Find the first occurrence of an output by a specific address. If nothing
+/// is found then error. The address here is an exact match.
+///
+/// ```aiken
+/// find.output_by_addr(tx.outputs, your_address)
+/// ```
+pub fn output_by_addr(outputs: List<Output>, addr: Address) -> Output {
+  when outputs is {
+    [output, ..rest] ->
+      if output.address == addr {
+        output
+      } else {
+        output_by_addr(rest, addr)
+      }
+    [] -> fail @"No Output Found By Address"
+  }
+}
+
+test find_output_by_addr() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  let addr: Address = addresses.create_address(#"acab", #"")
+  output_by_addr(outputs, addr) == fake_tx.test_output()
+}
+
+test cant_find_output_by_addr() fail {
+  let outputs: List<Output> = []
+  let addr: Address = addresses.create_address(#"acab", #"")
+  // this will fail
+  output_by_addr(outputs, addr) == fake_tx.test_output()
+}
+
+/// Find the first output with an inline datum and return the datum.
+/// If nothing is found then error. This works great for tx with a
+/// single output and datum or where ordering is irrelevant.
+///
+/// ```aiken
+/// find.first_output_datum(tx.outputs)
+/// ```
+pub fn first_output_datum(outputs: List<Output>) -> Data {
+  when outputs is {
+    [output, ..rest] ->
+      when output.datum is {
+        InlineDatum(outbound_datum) -> outbound_datum
+        _ -> first_output_datum(rest)
+      }
+    [] -> fail @"No First Output Datum Found"
+  }
+}
+
+test find_first_output_datum() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  expect datum: ByteArray = first_output_datum(outputs)
+  datum == fake_tx.test_datum
+}
+
+test cant_find_first_output_datum() fail {
+  let outputs: List<Output> = []
+  expect datum: ByteArray = first_output_datum(outputs)
+  // this will fail
+  datum == fake_tx.test_datum
+}
+
+/// Find the first occurence of output datum by some address. If nothing is
+/// found then error.
+///
+/// ```aiken
+/// expect datum: Datum = find.output_datum_by_addr(tx.outputs, this_addr)
+/// ```
+pub fn output_datum_by_addr(outputs: List<Output>, addr: Address) -> Data {
+  let outbound_output: Output = output_by_addr(outputs, addr)
+  datum.output_datum(outbound_output)
+}
+
+test find_output_datum_by_addr() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  let addr: Address = addresses.create_address(#"acab", #"")
+  expect datum: ByteArray = output_datum_by_addr(outputs, addr)
+  datum == fake_tx.test_datum
+}
+
+test cant_find_output_datum_by_addr() fail {
+  let outputs: List<Output> = []
+  let addr: Address = addresses.create_address(#"acab", #"")
+  expect datum: ByteArray = output_datum_by_addr(outputs, addr)
+  // this will fail
+  datum == fake_tx.test_datum
+}
+
+/// Return the first occurrence of an output that contains at least some specific
+/// value at some address. If nothing is found then error. This function
+/// does not search for an exact UTxO match.
+///
+/// ```aiken
+/// find.output_by_addr_value(tx.outputs, wallet_addr, just_token_value)
+/// ```
+pub fn output_by_addr_value(
+  outputs: List<Output>,
+  addr: Address,
+  value: Value,
+) -> Output {
+  when outputs is {
+    [output, ..rest] ->
+      if and {
+        output.address == addr,
+        value.contains(output.value, value),
+      } {
+        output
+      } else {
+        output_by_addr_value(rest, addr, value)
+      }
+    // nothing was found
+    [] -> fail @"No Output Found By Address And Value"
+  }
+}
+
+test find_output_by_addr_value() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let value: Value = assets.from_asset(#"acab", #"beef", 40)
+  output_by_addr_value(outputs, addr, value) == fake_tx.test_output()
+}
+
+test find_just_enough_output_by_addr_value() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let value: Value = assets.from_asset(#"acab", #"beef", 20)
+  output_by_addr_value(outputs, addr, value) == fake_tx.test_output()
+}
+
+test cant_find_output_by_addr_value() fail {
+  let outputs: List<Output> = []
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let value: Value = assets.from_asset(#"acab", #"beef", 40)
+  // this will fail
+  output_by_addr_value(outputs, addr, value) == fake_tx.test_output()
+}
+
+/// Return the first occurrence of an output that contains at least some specific
+/// value. If nothing is found then error. This function
+/// does not search for an exact UTxO match.
+///
+/// ```aiken
+/// find.output_by_value(tx.outputs, just_token_value)
+/// ```
+pub fn output_by_value(outputs: List<Output>, value: Value) -> Output {
+  when outputs is {
+    [output, ..rest] ->
+      if value.contains(output.value, value) {
+        output
+      } else {
+        output_by_value(rest, value)
+      }
+    // nothing was found
+    [] -> fail @"No Output Found By Value"
+  }
+}
+
+test find_output_by_value() {
+  let outputs: List<Output> = fake_tx.test_tx().outputs
+  let value: Value = assets.from_asset(#"acab", #"beef", 10)
+  output_by_value(outputs, value) == fake_tx.test_output()
+}
+
+test cant_find_output_by_value() fail {
+  let outputs: List<Output> = []
+  let value: Value = assets.from_asset(#"acab", #"beef", 10)
+  // this will fail
+  output_by_value(outputs, value) == fake_tx.test_output()
+}
+
+/// Find the staking reward amount in loveace for some stake credential.
+/// If no rewards are available then error. This is a great method for
+/// checking on-chain staking rewards and withdrawal validation.
+///
+/// ```aiken
+/// find.stake_reward_by_sc(tx.withdrawals, datum.wallet.sc)
+/// ```
+pub fn stake_reward_by_sc(
+  withdraws: Pairs<Credential, Int>,
+  stake_credential: Credential,
+) -> Int {
+  when pairs.get_first(withdraws, stake_credential) is {
+    Some(reward) -> reward
+    None -> fail @"No Staking Rewards Available"
+  }
+}
+
+test find_stake_reward_by_sc() {
+  let withdrawal: Pairs<Credential, Int> = fake_tx.test_tx().withdrawals
+  stake_reward_by_sc(withdrawal, Script(#"acab")) == 100
+}
+
+test cant_find_stake_reward_by_sc() fail {
+  let withdrawal: Pairs<Credential, Int> = []
+  stake_reward_by_sc(withdrawal, Script(#"face")) == 0
+}
+
+/// Find a redeemer data by an output reference. This is good for checking
+/// if a specific redeemer is being used on some specific UTxO inside 
+/// the transaction.
+///
+/// ```aiken
+/// find.redeemer_by_ref(tx.redeemers, that_out_ref)
+/// ```
+pub fn redeemer_by_ref(
+  redeemers: Pairs<ScriptPurpose, Redeemer>,
+  out_ref: OutputReference,
+) -> Data {
+  // make sure only the spend purpose here
+  when pairs.get_first(redeemers, Spend(out_ref)) is {
+    Some(redeemer) -> redeemer
+    None -> fail @"No Spend Redeemer Found"
+  }
+}
+
+test find_redeemer_by_ref() {
+  let tx: Transaction = fake_tx.test_tx()
+  expect datum: Int = redeemer_by_ref(tx.redeemers, fake_tx.test_out_ref())
+  datum == 1
+}
+
+test cant_find_redeemer_by_ref() fail {
+  let tx: Transaction = fake_tx.test_tx()
+  // this will fails
+  expect datum: Int = redeemer_by_ref(tx.redeemers, fake_tx.test_bad_out_ref())
+  datum == 1
+}
+
+/// Find the first occurance of an inline datum on an output with a value 
+/// that contains a specific nft.
+pub fn output_datum_by_nft(
+  outputs: List<Output>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> Data {
+  when outputs is {
+    [output, ..rest] ->
+      if value.prove_exact_nft(output.value, pid, tkn) {
+        when output.datum is {
+          // inline and holding the nft
+          InlineDatum(outbound_datum) -> outbound_datum
+          _ -> fail @"No Datum On Output"
+        }
+      } else {
+        output_datum_by_nft(rest, pid, tkn)
+      }
+    [] -> fail @"No Datum Found In Outputs"
+  }
+}
+
+test find_output_datum_by_nft() {
+  let outputs: List<Output> = fake_tx.test_bad_outputs()
+  expect outcome: ByteArray = output_datum_by_nft(outputs, #"fade", #"cafe")
+  outcome == fake_tx.test_datum
+}
+
+test cant_find_output_datum_by_nft1() fail {
+  let outputs: List<Output> = fake_tx.test_bad_outputs()
+  expect outcome: ByteArray = output_datum_by_nft(outputs, #"fadebeef", #"cafe")
+  outcome == fake_tx.test_datum
+}
+
+test cant_find_output_datum_by_nft2() fail {
+  let outputs: List<Output> = fake_tx.test_bad_outputs()
+  expect outcome: ByteArray = output_datum_by_nft(outputs, #"fade", #"fade")
+  outcome == fake_tx.test_datum
+}
+
+/// Find the first occurance of an inline datum on an output with a value 
+/// that contains a specific nft.
+pub fn input_by_nft(inputs: List<Input>, pid: PolicyId, tkn: AssetName) -> Input {
+  when inputs is {
+    [input, ..rest] ->
+      if value.prove_exact_nft(input.output.value, pid, tkn) {
+        input
+      } else {
+        input_by_nft(rest, pid, tkn)
+      }
+    [] -> fail @"No Input Found In Inputs"
+  }
+}
+
+test cant_find_input_by_nft() fail {
+  let inputs: List<Input> = fake_tx.test_bad_inputs()
+  let input: Input = input_by_nft(inputs, #"acab", #"beef")
+  input == fake_tx.test_one_lovelace_input()
+}
+
+test can_find_input_by_nft() {
+  let inputs: List<Input> = fake_tx.test_bad_inputs()
+  let input: Input = input_by_nft(inputs, #"", #"")
+  input == fake_tx.test_one_lovelace_input()
+}
+
+
+
+================================================
+FILE: lib/validation/payout.ak
+================================================
+//// This module contains code that assists with payout logic. Payout
+//// functions are designed to return a boolean value instead of an error.
+////
+
+use cardano/address.{Address}
+use cardano/addresses
+use cardano/assets.{Value}
+use cardano/transaction.{Output, Transaction}
+use cardano/value
+// for testing only
+use tests/fake_tx
+
+/// Find the first occurrence of an exact output that matches a specific
+/// address and assets. If nothing is found then return False.
+///
+/// ```aiken
+/// payout.exact(wallet_addr, validating_value, tx.outputs)
+/// ```
+pub fn exact(
+  payout_address: Address,
+  payout_value: Value,
+  outputs: List<Output>,
+) -> Bool {
+  when outputs is {
+    [output, ..rest] ->
+      // exact address and value
+      if and {
+        output.address == payout_address,
+        output.value == payout_value,
+      } {
+        True
+      } else {
+        exact(payout_address, payout_value, rest)
+      }
+    // nothing was found
+    [] -> False
+  }
+}
+
+test find_exact_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"face", #"")
+  let val: Value = assets.from_lovelace(40)
+  exact(addr, val, tx.outputs) == True
+}
+
+test missing_exact_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let val: Value = assets.from_lovelace(40)
+  exact(addr, val, tx.outputs) == False
+}
+
+/// Find the first occurrence of an output that contains at least some specific
+/// value at some address. If nothing is found then return False. This function
+/// does not search for an exact UTxO match.
+///
+/// ```aiken
+/// payout.at_least(wallet_addr, just_token_value, tx.outputs)
+/// ```
+pub fn at_least(
+  payout_address: Address,
+  payout_value: Value,
+  outputs: List<Output>,
+) -> Bool {
+  when outputs is {
+    [output, ..rest] ->
+      if and {
+        output.address == payout_address,
+        value.contains(output.value, payout_value),
+      } {
+        True
+      } else {
+        at_least(payout_address, payout_value, rest)
+      }
+    // nothing was found
+    [] -> False
+  }
+}
+
+test at_least_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let val: Value = assets.from_asset(#"acab", #"beef", 40)
+  at_least(addr, val, tx.outputs) == True
+}
+
+test find_just_enough_token_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let val: Value = assets.from_asset(#"acab", #"beef", 20)
+  at_least(addr, val, tx.outputs) == True
+}
+
+test missing_token_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let val: Value = assets.from_asset(#"acab", #"beef", 60)
+  at_least(addr, val, tx.outputs) == False
+}
+
+test negative_token_payout() {
+  let tx: Transaction = fake_tx.test_tx()
+  let addr: Address = addresses.create_address(#"acab", #"")
+  let val: Value = assets.from_asset(#"acab", #"beef", -20)
+  at_least(addr, val, tx.outputs) == True
+}
+
+

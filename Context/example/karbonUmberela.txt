@@ -1,0 +1,3073 @@
+================================================
+FILE: README.md
+================================================
+# Karbon-Umbrella Project Documentation
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Key Components](#key-components)
+  - [Configuration (`aiken.toml`)](#configuration-aikentoml)
+  - [Constants (`lib/constants.ak`)](#constants-libconstantsak)
+  - [Data Types (`lib/types/*.ak`)](#data-types-libtypesak)
+  - [Utility Functions (`lib/functions/utils.ak`)](#utility-functions-libfunctionsutilsak)
+  - [Validators (`validators/*.ak`)](#validators-validatorsak)
+    - [1. `carbonica_validator.ak`](#1-carbonica_validatorak)
+    - [2. `cet_minter.ak`](#2-cet_minterak)
+    - [3. `cet_user_script.ak`](#3-cet_user_scriptak)
+    - [4. `config_datum_holder.ak`](#4-config_datum_holderak)
+    - [5. `crowdfunding.ak`](#5-crowdfundingak)
+    - [6. `identification_nft.ak`](#6-identification_nftak)
+    - [7. `marketplace.ak`](#7-marketplaceak)
+- [Flow](#flow)
+  - [Detailed Workflow](#detailed-workflow)
+  - [Flowchart](#flowchart)
+- [Glossary](#glossary)
+- [Security Considerations](#security-considerations)
+- [Deployment Instructions](#deployment-instructions)
+- [Error Handling](#error-handling)
+- [Example Use Case](#example-use-case)
+
+## Overview
+
+The `karbonumbrella` project, developed by `konma-org`, is a suite of Aiken-based smart contracts for the Cardano blockchain, leveraging Plutus v3. It enables carbon credit trading, crowdfunding, and marketplace functionalities, focusing on carbon emission tokens (CET) and carbon offset tokens (COT). The project includes validators for project validation, token minting, crowdfunding campaigns, and marketplace transactions, with a configuration system secured by an identification NFT.
+
+This document provides a detailed overview of the project’s structure, components, functionality, workflow, and key terms.
+
+## Project Structure
+
+- **lib/**: Supporting modules for constants, utility functions, and data types.
+  - `constants.ak`: Defines constants (e.g., `KARBON_IDENTIFICATION`, `royalty_amt`).
+  - `functions/utils.ak`: Utility functions for validation and token handling.
+  - `types/datum.ak`, `types/redeemer.ak`, `types/utils.ak`: Data types for datums, redeemers, and utilities.
+- **validators/**: Smart contract validators:
+  - `carbonica_validator.ak`: Project initiation and validation with multisig.
+  - `cet_minter.ak`: Mints/burns CET and COT tokens.
+  - `cet_user_script.ak`: Manages CET/COT user interactions.
+  - `config_datum_holder.ak`: Stores configuration data and identification NFT.
+  - `crowdfunding.ak`: Manages crowdfunding campaigns.
+  - `identification_nft.ak`: Mints/burns identification NFTs.
+  - `marketplace.ak`: Handles marketplace trading with royalties.
+- **aiken.toml**: Project configuration with dependencies.
+- **README.md**: Instructions for building, testing, and documentation.
+- **.github/workflows/continuous-integration.yml**: CI pipeline.
+
+## Key Components
+
+### Configuration (`aiken.toml`)
+
+- **Name**: `konma-org/karbonumbrella`
+- **Version**: `0.0.0`
+- **Compiler**: Aiken `v1.1.17`
+- **Plutus Version**: `v3`
+- **Dependencies**:
+  - `aiken-lang/stdlib` (v2.2.0)
+  - `logical-mechanism/assist` (v0.5.1)
+- **Network ID**: 41
+
+### Constants (`lib/constants.ak`)
+
+- **Identification Token**: `"KARBON_IDENTIFICATION"`
+- **Royalty Amount**: 3%
+- **Royalty Address**: Wallet with a specific public key hash.
+
+### Data Types (`lib/types/*.ak`)
+
+- **ConfigDatum**: Fees, addresses, categories, multisig settings, CET/COT policy IDs.
+- **ProjectDatum**: Developer, document, category, fees.
+- **MarketplaceDatum**: Owner, amount.
+- **CETDatum**: Location, quantity, time.
+- **CampaignDatum**: Name, goal, deadline, creator, milestones, state.
+- **BackerDatum**: Backer’s wallet.
+- **Redeemers**: `Mint`, `Burn`, `Buy`, `Withdraw`, `CampaignAction` (`Support`, `Cancel`, `Finish`, `Refund`, `Release`).
+- **Utilities**: `AssetClass`, `PaymentKeyHash`, `StakeKeyHash`, `AddressTuple`, `Multisig`.
+
+### Utility Functions (`lib/functions/utils.ak`)
+
+- `is_category_from_supported_categories`: Validates project categories.
+- `must_send_nft_and_datum_to_script`: Ensures NFT and datum outputs.
+- `must_burn_less_than_0`: Verifies token burning.
+- `ref_datum_by_nft`: Retrieves configuration datum.
+- `calculate_payout_royalty`: Splits marketplace payments (3% to platform).
+- `must_reach_goal_and_send_to_creator`: Ensures crowdfunding payouts.
+
+### Validators (`validators/*.ak`)
+
+#### 1. `carbonica_validator.ak`
+
+- **Purpose**: Manages project initiation and validation.
+- **Contracts**:
+  - **Project Initiator**: Mints project NFTs, ensuring valid categories and fees.
+  - **Project Validation**: Approves/rejects projects with multisig, mints COT tokens on approval.
+- **Logic**:
+  - Initiation: Verifies category and sends NFT to validation contract.
+  - Validation: Burns NFT; mints COT on approval, burns tokens on rejection.
+
+#### 2. `cet_minter.ak`
+
+- **Purpose**: Mints/burns CET and COT tokens.
+- **Logic**:
+  - Mints CET with matching datum and quantity.
+  - Burns CET and COT in equal quantities for offsetting.
+- **Redeemer**: `CETDatum` (mint), `EmissionBurnRedeemer` (burn).
+
+#### 3. `cet_user_script.ak`
+
+- **Purpose**: Manages CET/COT for users.
+- **Logic**:
+  - Burns CET and COT equally.
+  - Allows COT withdrawal.
+  - CET Tokens are non-transferable, only burnable.
+- **Redeemer**: 0 (burn), 1 (withdraw).
+
+#### 4. `config_datum_holder.ak`
+
+- **Purpose**: Stores configuration datum and identification NFT.
+- **Logic**: Requires multisig to spend.
+
+#### 5. `crowdfunding.ak`
+
+- **Purpose**: Manages crowdfunding campaigns.
+- **Actions**:
+  - **Support**: Backers contribute and receive reward tokens.
+  - **Cancel**: Cancels campaign (creator or platform).
+  - **Finish**: Marks campaign as finished, burns tokens.
+  - **Refund**: Refunds backers in cancelled campaigns.
+  - **Release**: Releases funds per milestone.
+- **Logic**:
+  - Ensures future deadlines and unset milestones.
+  - Verifies signatures and state transitions.
+
+#### 6. `identification_nft.ak`
+
+- **Purpose**: Mints/burns identification NFT for configuration reference.
+- **Logic**: Mints one NFT or burns it.
+
+#### 7. `marketplace.ak`
+
+- **Purpose**: Facilitates COT trading with royalties.
+- **Actions**:
+  - **Buy**: Pays seller and platform (3% royalty).
+  - **Withdraw**: Seller withdraws funds.
+- **Logic**: Ensures correct payouts and signatures.
+
+## Flow
+
+The `karbonumbrella` project orchestrates a workflow for carbon credit management, project validation, crowdfunding, and trading. Below is a detailed explanation, followed by a flowchart.
+
+### Detailed Workflow
+
+1. **Project Initiation**:
+
+   - A developer initiates a project via the `project_initiator` contract in `carbonica_validator.ak`.
+   - The project is submitted with a `ProjectDatum` (category, developer, fees, etc.).
+   - The contract checks if the category is supported (`is_category_from_supported_categories`) and mints a unique project NFT.
+   - The NFT and associated datum are sent to the `project_validation` contract, along with fees to the configured address.
+
+2. **Project Validation**:
+
+   - A group of validators, defined in the `ConfigDatum`’s `multisig_validator_group`, reviews the project via the `project_validation` contract.
+   - **Approval** (`action: 0`):
+     - Requires multisig signatures (`verify_multisig`).
+     - Burns the project NFT.
+     - Mints COT tokens, derived from the output reference (`token_name_oref`), and sends them to the developer’s address (`payout.exact`).
+   - **Rejection** (`action: 1`):
+     - Requires multisig signatures.
+     - Burns the project NFT and any associated tokens.
+   - The `ConfigDatum` is referenced via the identification NFT (`KARBON_IDENTIFICATION`) to retrieve multisig settings.
+
+3. **CET Minting**:
+
+   - Factories, industries, or individuals mint CET tokens through the `cet_minter` contract.
+   - A `CETDatum` (location, quantity, time) is provided as the redeemer.
+   - The contract mints CET tokens and sends them to the `cet_user_script` address, ensuring the datum matches the redeemer and the quantity is correct.
+   - CET tokens represent carbon emissions and are non-transferable, stored in `cet_user_script`.
+
+4. **CET/COT Offsetting**:
+
+   - Users offset emissions by burning CET and COT tokens via the `cet_user_script` contract.
+   - The redeemer (`0`) triggers burning, ensuring equal quantities of CET and COT are burned (`cet_qty == cot_qty`).
+   - Remaining COT tokens, if any, are sent back to the user’s script address (`must_send_remaining_token_to_addr`).
+   - CET and COT tokens cannot be transferred, only burned or withdrawn (COT only).
+
+5. **Marketplace Trading**:
+
+   - Developers trade COT tokens on the marketplace (`marketplace.ak`).
+   - **Buy**:
+     - A buyer purchases COT tokens, triggering a `Buy` redeemer.
+     - The contract splits the payment: 3% royalty to the platform (`roylaty_addr`) and the remainder to the seller (`calculate_payout_royalty`).
+   - **Withdraw**:
+     - The seller withdraws funds with a `Withdraw` redeemer, requiring their signature.
+   - The `MarketplaceDatum` tracks ownership and amounts.
+
+6. **Crowdfunding**:
+
+   - Developers raise funds via the `crowdfunding` contract.
+   - A campaign is created with a `CampaignDatum` (name, goal, deadline, milestones, etc.), minting reward tokens.
+   - **Support**: Backers contribute funds and receive reward tokens proportional to their contribution.
+   - **Cancel**: The creator or platform cancels the campaign, refunding backers.
+   - **Finish**: Marks the campaign as completed, burning reward tokens.
+   - **Refund**: Refunds backers in a cancelled campaign.
+   - **Release**: Releases funds to the creator per milestone, updating the `milestone` list.
+   - State transitions (`Initiated`, `Running`, `Cancelled`, `Finished`, `Released`) are validated with signatures.
+
+### Flowchart
+
+```mermaid
+graph TD
+    A[Developer Initiates Project<br>project_initiator] -->|Mints Project NFT| B[Project Validation<br>project_validation]
+    B -->|Multisig Approval| C[Burn Project NFT<br>Mint COT Tokens]
+    B -->|Multisig Rejection| D[Burn Project NFT<br>Burn Tokens]
+    C --> E[Send COT to Developer]
+    E --> F[Trade COT<br>marketplace]
+    E --> G[Offset CET<br>cet_user_script]
+    H[Factory/Individual Mints CET<br>cet_minter] --> I[Store CET<br>cet_user_script]
+    I --> G
+    F -->|Buy/Withdraw| J[Pay Seller & Platform]
+    K[Developer Starts Crowdfunding<br>crowdfunding] --> L[Backers Support]
+    L --> M[Cancel/Finish/Refund/Release]
+    M -->|Release| N[Pay Creator per Milestone]
+```
+
+## Glossary
+
+- **CET (Carbon Emission Token)**: A token representing carbon emissions, minted by factories or individuals, non-transferable, and burnable for offsetting.
+- **COT (Carbon Offset Token)**: A token representing carbon offsets, minted upon project approval, tradable in the marketplace, and burnable for offsetting.
+- **ConfigDatum**: A data structure storing platform configuration (fees, addresses, multisig settings, policy IDs).
+- **Identification NFT**: A unique NFT (`KARBON_IDENTIFICATION`) used to reference the `ConfigDatum` in transactions.
+- **Multisig**: Multi-signature validation requiring a minimum number of signatures from a group of validators.
+- **Project NFT**: A unique token representing a project during validation, burned upon approval or rejection.
+- **ProjectDatum**: Data structure for project details (developer, category, fees).
+- **MarketplaceDatum**: Data structure for marketplace transactions (owner, amount).
+- **CampaignDatum**: Data structure for crowdfunding campaigns (name, goal, deadline, milestones, state).
+- **BackerDatum**: Data structure representing a backer’s wallet in crowdfunding.
+- **Redeemer**: A data input to a validator specifying the action (e.g., `Mint`, `Burn`, `Buy`, `Support`).
+- **Royalty**: A 3% fee paid to the platform in marketplace transactions.
+- **Milestone**: A boolean list in `CampaignDatum` tracking crowdfunding progress, updated upon fund release.
+
+## Security Considerations
+
+- **Multisig Validation**: The `project_validation`, `config_datum_holder`, and `crowdfunding` contracts use multisig to ensure trusted parties approve critical actions, reducing single-point failures.
+- **Non-Transferable Tokens**: CET tokens in `cet_user_script` are non-transferable, preventing unauthorized trading and ensuring they are only used for offsetting.
+- **Datum Validation**: Functions like `ref_datum_by_nft` and `must_send_nft_and_datum_to_script` enforce correct datum types, preventing malformed inputs.
+- **Potential Risks**:
+  - **Invalid Redeemers**: Validators use `fail` for unexpected redeemers (e.g., `cet_minter` fails on invalid redeemer types), but off-chain code must ensure correct inputs.
+  - **Signature Spoofing**: Multisig relies on Cardano’s `verify_multisig`; compromised validator keys could allow unauthorized approvals.
+  - **Hardcoded Constants**: Values like `royalty_amt` and `roylaty_addr` are hardcoded, posing risks if not updated securely via `config_datum_holder`.
+
+## Error Handling
+
+Validators use `fail` to halt execution on invalid conditions, ensuring robust behavior:
+
+- **Common Failures**:
+  - `No Datum On Input` (`utils.ak`): Triggered if an input lacks an inline datum.
+  - `Invalid Redeemer` (`cet_minter.ak`): Fails on unexpected redeemer types.
+  - `Incorrect Stake Component` (`utils.ak`): Ensures correct address credentials.
+- **Protection**:
+  - Explicit checks (e.g., `expect`) prevent invalid state transitions.
+  - Multisig requirements in `crowdfunding` and `project_validation` block unauthorized actions.
+  - Token quantity checks (`must_burn_less_than_0`) ensure correct minting/burning.
+
+## Example Use Case
+
+**Scenario**: A developer, Alice, proposes a reforestation project, validates it, trades COT, and raises funds.
+
+1. **Initiate Project**:
+   - Alice submits a `ProjectDatum` (category: "forestry", fees: 100 ADA) via `project_initiator`.
+   - A project NFT is minted and sent to `project_validation`.
+2. **Validation**:
+   - Validators approve the project with multisig signatures.
+   - The NFT is burned, and 1000 COT tokens are minted and sent to Alice’s wallet.
+3. **Trade COT**:
+   - Alice lists 500 COT on the marketplace (`marketplace.ak`).
+   - Bob buys them for 5000 ADA; 3% (150 ADA) goes to the platform, and Alice receives 4850 ADA.
+4. **Offset Emissions**:
+   - A factory mints 200 CET tokens via `cet_minter` and stores them in `cet_user_script`.
+   - They burn 200 CET and 200 COT (purchased from Alice) to offset emissions.
+5. **Crowdfunding**:
+   - Alice starts a campaign (`crowdfunding.ak`) with a 10,000 ADA goal and three milestones.
+   - Backers contribute 12,000 ADA, receiving reward tokens.
+   - After the first milestone, Platform releases 4000 ADA with Multisig approval.
+
+
+
+================================================
+FILE: aiken.toml
+================================================
+name = "konma-org/karbonumbrella"
+version = "0.0.0"
+compiler = "v1.1.17"
+plutus = "v3"
+license = "Apache-2.0"
+description = "Aiken contracts for project 'konma-org/karbonumbrella'"
+
+[repository]
+user = "konma-org"
+project = "karbonumbrella"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "v2.2.0"
+source = "github"
+
+[[dependencies]]
+name = "logical-mechanism/assist"
+version = "v0.5.1"
+source = "github"
+
+[config]
+
+
+
+================================================
+FILE: architecture.md
+================================================
+Decision Tree for Konmaorg-Generic System
+
+1. Project Initiation
+
+   - Is the project category valid (in ConfigDatum.categories)?
+     - Yes: Proceed to pay platform fee
+       - Is the platform fee paid (exact amount to fees_address)?
+         - Yes: Mint project NFT
+           - Is NFT sent to validator contract with ProjectDatum?
+             - Yes: Project submitted (Success)
+             - No: Fail (Invalid NFT output)
+         - No: Fail (Incorrect fee)
+     - No: Fail (Invalid category)
+
+2. Project Validation
+
+   - Is the transaction signed by multisig (ConfigDatum.multisig_validator_group)?
+     - Yes: Is the action to approve (redeemer.action == 0)?
+       - Yes: Burn project NFT
+         - Are credit tokens minted and sent to initiator?
+           - Yes: Validation success
+           - No: Fail (Invalid credit token output)
+       - No (reject, redeemer.action == 1): Burn project NFT
+         - Are associated tokens burned?
+           - Yes: Validation rejected
+           - No: Fail (Invalid burn)
+     - No: Fail (Unauthorized)
+
+3. Asset Token Minting
+
+   - Is the redeemer an AssetDatum?
+     - Yes: Does the minted quantity match AssetDatum.asset_qty?
+       - Yes: Are tokens sent to user script with matching datum?
+         - Yes: Minting success
+         - No: Fail (Invalid output)
+       - No: Fail (Quantity mismatch)
+     - No (AssetBurnRedeemer): Are asset and credit tokens burned equally?
+       - Yes: Burning success
+       - No: Fail (Unequal burn)
+
+4. Asset/Credit Reconciliation
+
+   - Is redeemer == 0 (burn)?
+     - Yes: Are asset and credit tokens burned in equal quantities?
+       - Yes: Are remaining tokens sent to user script?
+         - Yes: Reconciliation success
+         - No: Fail (Invalid output)
+       - No: Fail (Unequal burn)
+     - No (redeemer == 1, withdraw): Not implemented
+       - Fail (Invalid redeemer)
+
+5. Marketplace Trading
+
+   - Is redeemer Buy?
+     - Yes: Is seller paid (amount - 3%) and platform paid 3% royalty?
+       - Yes: Trade success
+       - No: Fail (Incorrect payout)
+     - No (Withdraw): Is transaction signed by owner?
+       - Yes: Withdraw success
+       - No: Fail (Unauthorized)
+
+6. Crowdfunding
+
+   - Action: Initiate Campaign
+     - Are goal > 0 and deadline in future?
+       - Yes: Are all milestones unset (False)?
+         - Yes: Are reward tokens minted and sent to campaign address?
+           - Yes: Campaign initiated
+           - No: Fail (Invalid token output)
+         - No: Fail (Invalid milestones)
+       - No: Fail (Invalid goal/deadline)
+   - Action: Support
+     - Is campaign in Running state?
+       - Yes: Does backer’s contribution match reward tokens?
+         - Yes: Are reward tokens sent to backer and campaign datum unchanged?
+           - Yes: Support success
+           - No: Fail (Invalid output)
+         - No: Fail (Invalid contribution)
+       - No: Fail (Invalid state)
+   - Action: Cancel
+     - Is transaction signed by creator or platform (post-deadline)?
+       - Yes: Is campaign in Running state?
+         - Yes: Is state set to Cancelled?
+           - Yes: Cancel success
+           - No: Fail (Invalid datum)
+         - No: Fail (Invalid state)
+       - No: Fail (Unauthorized)
+   - Action: Finish
+     - Is transaction signed by creator or platform (post-deadline if platform)?
+       - Yes: Is campaign in Running state and goal met?
+         - Yes: Is state set to Finished and tokens burned?
+           - Yes: Finish success
+           - No: Fail (Invalid output)
+         - No: Fail (Invalid state or goal)
+       - No: Fail (Unauthorized)
+   - Action: Refund
+     - Is campaign in Cancelled state?
+       - Yes: Is backer refunded and tokens burned?
+         - Yes: Refund success
+         - No: Fail (Invalid refund)
+       - No: Fail (Not cancelled)
+   - Action: Release
+     - Is campaign in Finished state and multisig signed?
+       - Yes: Is milestone updated and creator paid?
+         - Yes: Release success
+         - No: Fail (Invalid payout)
+       - No: Fail (Unauthorized or invalid state)
+
+7. DAO Governance
+   - Action: Submit Proposal
+     - Is transaction signed by submitter?
+       - Yes: Is proposal NFT minted and state InProgress?
+         - Yes: Proposal submitted
+         - No: Fail (Invalid output)
+       - No: Fail (Unauthorized)
+   - Action: Vote
+     - Is proposal in InProgress and before deadline?
+       - Yes: Is voter authorized and hasn’t voted?
+         - Yes: Is vote recorded and count incremented?
+           - Yes: Vote success
+           - No: Fail (Invalid output)
+         - No: Fail (Unauthorized or already voted)
+       - No: Fail (Invalid state or deadline)
+   - Action: Execute
+     - Is proposal in InProgress and after deadline?
+       - Yes: Are Yes votes > No votes?
+         - Yes: Is ConfigDatum updated and state Executed?
+           - Yes: Execution success
+           - No: Fail (Invalid update)
+         - No: Fail (Not approved)
+       - No: Fail (Invalid state or deadline)
+   - Action: Reject
+     - Is proposal in InProgress and after deadline?
+       - Yes: Are No votes > Yes votes?
+
+```mermaid
+graph TD
+    A[Start: System Interaction] --> B[Initiate Project]
+
+    %% Project Initiation
+    B -->|Submit Project| C{Valid Category?}
+    C -->|Yes| D[Pay Platform Fee]
+    C -->|No| E[Fail: Invalid Category]
+    D --> F[Mint Project NFT]
+    F --> G[Send NFT to Validator Contract]
+    G --> H[Project Submitted]
+
+    %% Project Validation
+    H --> I[Validate Project]
+    I -->|Multisig Review| J{Approved?}
+    J -->|Yes| K[Burn Project NFT]
+    K --> L[Mint Credit Tokens]
+    L --> M[Send Credit Tokens to Initiator]
+    M --> N[Validation Success]
+    J -->|No| O[Burn Project NFT]
+    O --> P[Burn Associated Tokens]
+    P --> Q[Validation Rejected]
+
+    %% Asset Token Minting
+    A --> R[Mint Asset Tokens]
+    R --> S{Valid Datum & Quantity?}
+    S -->|Yes| T[Send Asset Tokens to User Script]
+    T --> U[Asset Minting Success]
+    S -->|No| V[Fail: Invalid Mint]
+
+    %% Asset/Credit Reconciliation
+    A --> W[Reconcile Tokens]
+    W --> X{Burn Equal Asset & Credit Tokens?}
+    X -->|Yes| Y[Send Remaining Tokens to User Script]
+    Y --> Z[Reconciliation Success]
+    X -->|No| AA[Fail: Unequal Burn]
+
+    %% Marketplace Trading
+    A --> AB[Trade Credit Tokens]
+    AB --> AC{Action: Buy or Withdraw?}
+    AC -->|Buy| AD{Pay Seller & 3% Royalty?}
+    AD -->|Yes| AE[Transfer Credit Tokens]
+    AE --> AF[Trade Success]
+    AD -->|No| AG[Fail: Incorrect Payout]
+    AC -->|Withdraw| AH{Signed by Owner?}
+    AH -->|Yes| AI[Withdraw Funds]
+    AI --> AJ[Withdraw Success]
+    AH -->|No| AK[Fail: Unauthorized]
+
+    %% Crowdfunding
+    A --> AL[Start Crowdfunding]
+    AL --> AM{Valid Goal & Deadline?}
+    AM -->|Yes| AN[Mint Reward Tokens]
+    AN --> AO[Send Tokens to Campaign Address]
+    AO --> AP[Campaign Initiated]
+    AM -->|No| AQ[Fail: Invalid Campaign]
+    AP --> AR[Backer Support]
+    AR --> AS{Sufficient Funds & Tokens?}
+    AS -->|Yes| AT[Send Reward Tokens to Backer]
+    AT --> AU[Support Success]
+    AS -->|No| AV[Fail: Invalid Support]
+    AP --> AW{Action: Cancel, Finish, Refund, Release?}
+    AW -->|Cancel| AX{Signed by Creator or Platform Post-Deadline?}
+    AX -->|Yes| AY[Set State to Cancelled]
+    AY --> AZ[Cancel Success]
+    AX -->|No| BA[Fail: Unauthorized Cancel]
+    AW -->|Finish| BB{Signed by Creator or Platform & Goal Met?}
+    BB -->|Yes| BC[Set State to Finished]
+    BC --> BD[Burn Reward Tokens]
+    BD --> BE[Finish Success]
+    BB -->|No| BF[Fail: Invalid Finish]
+    AW -->|Refund| BG{Campaign Cancelled?}
+    BG -->|Yes| BH[Refund Backer & Burn Tokens]
+    BH --> BI[Refund Success]
+    BG -->|No| BJ[Fail: Not Cancelled]
+    AW -->|Release| BK{Campaign Finished & Multisig Signed?}
+    BK -->|Yes| BL[Update Milestone & Pay Creator]
+    BL --> BM[Release Success]
+    BK -->|No| BN[Fail: Invalid Release]
+
+    %% DAO Governance
+    A --> BO[Submit DAO Proposal]
+    BO --> BP{Signed by Submitter?}
+    BP -->|Yes| BQ[Mint Proposal NFT]
+    BQ --> BR[Set State to InProgress]
+    BR --> BS[Proposal Submitted]
+    BP -->|No| BT[Fail: Unauthorized]
+    BS --> BU[Vote on Proposal]
+    BU --> BV{Voter Authorized & Before Deadline?}
+    BV -->|Yes| BW[Record Vote]
+    BW --> BX[Vote Success]
+    BV -->|No| BY[Fail: Invalid Vote]
+    BS --> BZ{After Deadline?}
+    BZ -->|Yes| CA{Yes Votes > No Votes?}
+    CA -->|Yes| CB[Execute Proposal]
+    CB --> CC[Update ConfigDatum]
+    CC --> CD[Execution Success]
+    CA -->|No| CE[Reject Proposal]
+    CE --> CF[Set State to Rejected]
+    CF --> CG[Rejection Success]
+    BZ -->|No| CH[Continue Voting]
+
+    %% End Points
+    E --> ZZZ[End: Failure]
+    Q --> ZZZ
+    V --> ZZZ
+    AA --> ZZZ
+    AG --> ZZZ
+    AK --> ZZZ
+    AQ --> ZZZ
+    AV --> ZZZ
+    BA --> ZZZ
+    BF --> ZZZ
+    BJ --> ZZZ
+    BN --> ZZZ
+    BT --> ZZZ
+    BY --> ZZZ
+    N --> ZZZZ[End: Success]
+    U --> ZZZZ
+    Z --> ZZZZ
+    AF --> ZZZZ
+    AJ --> ZZZZ
+    AU --> ZZZZ
+    AZ --> ZZZZ
+    BE --> ZZZZ
+    BI --> ZZZZ
+    BM --> ZZZZ
+    BX --> ZZZZ
+    CD --> ZZZZ
+    CG --> ZZZZ
+```
+
+
+
+================================================
+FILE: documentation.md
+================================================
+# Karbon-Umbrella Project Documentation
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Key Components](#key-components)
+  - [Configuration (`aiken.toml`)](#configuration-aikentoml)
+  - [Constants (`lib/constants.ak`)](#constants-libconstantsak)
+  - [Data Types (`lib/types/*.ak`)](#data-types-libtypesak)
+  - [Utility Functions (`lib/functions/utils.ak`)](#utility-functions-libfunctionsutilsak)
+  - [Validators (`validators/*.ak`)](#validators-validatorsak)
+    - [1. `carbonica_validator.ak`](#1-carbonica_validatorak)
+    - [2. `cet_minter.ak`](#2-cet_minterak)
+    - [3. `cet_user_script.ak`](#3-cet_user_scriptak)
+    - [4. `config_datum_holder.ak`](#4-config_datum_holderak)
+    - [5. `crowdfunding.ak`](#5-crowdfundingak)
+    - [6. `identification_nft.ak`](#6-identification_nftak)
+    - [7. `marketplace.ak`](#7-marketplaceak)
+- [Flow](#flow)
+  - [Detailed Workflow](#detailed-workflow)
+  - [Flowchart](#flowchart)
+- [Glossary](#glossary)
+- [Security Considerations](#security-considerations)
+- [Deployment Instructions](#deployment-instructions)
+- [Error Handling](#error-handling)
+- [Example Use Case](#example-use-case)
+
+## Overview
+
+The `karbonumbrella` project, developed by `konma-org`, is a suite of Aiken-based smart contracts for the Cardano blockchain, leveraging Plutus v3. It enables carbon credit trading, crowdfunding, and marketplace functionalities, focusing on carbon emission tokens (CET) and carbon offset tokens (COT). The project includes validators for project validation, token minting, crowdfunding campaigns, and marketplace transactions, with a configuration system secured by an identification NFT.
+
+This document provides a detailed overview of the project’s structure, components, functionality, workflow, and key terms.
+
+## Project Structure
+
+- **lib/**: Supporting modules for constants, utility functions, and data types.
+  - `constants.ak`: Defines constants (e.g., `KARBON_IDENTIFICATION`, `royalty_amt`).
+  - `functions/utils.ak`: Utility functions for validation and token handling.
+  - `types/datum.ak`, `types/redeemer.ak`, `types/utils.ak`: Data types for datums, redeemers, and utilities.
+- **validators/**: Smart contract validators:
+  - `carbonica_validator.ak`: Project initiation and validation with multisig.
+  - `cet_minter.ak`: Mints/burns CET and COT tokens.
+  - `cet_user_script.ak`: Manages CET/COT user interactions.
+  - `config_datum_holder.ak`: Stores configuration data and identification NFT.
+  - `crowdfunding.ak`: Manages crowdfunding campaigns.
+  - `identification_nft.ak`: Mints/burns identification NFTs.
+  - `marketplace.ak`: Handles marketplace trading with royalties.
+- **aiken.toml**: Project configuration with dependencies.
+- **README.md**: Instructions for building, testing, and documentation.
+- **.github/workflows/continuous-integration.yml**: CI pipeline.
+
+## Key Components
+
+### Configuration (`aiken.toml`)
+
+- **Name**: `konma-org/karbonumbrella`
+- **Version**: `0.0.0`
+- **Compiler**: Aiken `v1.1.17`
+- **Plutus Version**: `v3`
+- **Dependencies**:
+  - `aiken-lang/stdlib` (v2.2.0)
+  - `logical-mechanism/assist` (v0.5.1)
+- **Network ID**: 41
+
+### Constants (`lib/constants.ak`)
+
+- **Identification Token**: `"KARBON_IDENTIFICATION"`
+- **Royalty Amount**: 3%
+- **Royalty Address**: Wallet with a specific public key hash.
+
+### Data Types (`lib/types/*.ak`)
+
+- **ConfigDatum**: Fees, addresses, categories, multisig settings, CET/COT policy IDs.
+- **ProjectDatum**: Developer, document, category, fees.
+- **MarketplaceDatum**: Owner, amount.
+- **CETDatum**: Location, quantity, time.
+- **CampaignDatum**: Name, goal, deadline, creator, milestones, state.
+- **BackerDatum**: Backer’s wallet.
+- **Redeemers**: `Mint`, `Burn`, `Buy`, `Withdraw`, `CampaignAction` (`Support`, `Cancel`, `Finish`, `Refund`, `Release`).
+- **Utilities**: `AssetClass`, `PaymentKeyHash`, `StakeKeyHash`, `AddressTuple`, `Multisig`.
+
+### Utility Functions (`lib/functions/utils.ak`)
+
+- `is_category_from_supported_categories`: Validates project categories.
+- `must_send_nft_and_datum_to_script`: Ensures NFT and datum outputs.
+- `must_burn_less_than_0`: Verifies token burning.
+- `ref_datum_by_nft`: Retrieves configuration datum.
+- `calculate_payout_royalty`: Splits marketplace payments (3% to platform).
+- `must_reach_goal_and_send_to_creator`: Ensures crowdfunding payouts.
+
+### Validators (`validators/*.ak`)
+
+#### 1. `carbonica_validator.ak`
+
+- **Purpose**: Manages project initiation and validation.
+- **Contracts**:
+  - **Project Initiator**: Mints project NFTs, ensuring valid categories and fees.
+  - **Project Validation**: Approves/rejects projects with multisig, mints COT tokens on approval.
+- **Logic**:
+  - Initiation: Verifies category and sends NFT to validation contract.
+  - Validation: Burns NFT; mints COT on approval, burns tokens on rejection.
+
+#### 2. `cet_minter.ak`
+
+- **Purpose**: Mints/burns CET and COT tokens.
+- **Logic**:
+  - Mints CET with matching datum and quantity.
+  - Burns CET and COT in equal quantities for offsetting.
+- **Redeemer**: `CETDatum` (mint), `EmissionBurnRedeemer` (burn).
+
+#### 3. `cet_user_script.ak`
+
+- **Purpose**: Manages CET/COT for users.
+- **Logic**:
+  - Burns CET and COT equally.
+  - Allows COT withdrawal.
+  - Tokens are non-transferable, only burnable.
+- **Redeemer**: 0 (burn), 1 (withdraw).
+
+#### 4. `config_datum_holder.ak`
+
+- **Purpose**: Stores configuration datum and identification NFT.
+- **Logic**: Requires multisig to spend.
+
+#### 5. `crowdfunding.ak`
+
+- **Purpose**: Manages crowdfunding campaigns.
+- **Actions**:
+  - **Support**: Backers contribute and receive reward tokens.
+  - **Cancel**: Cancels campaign (creator or platform).
+  - **Finish**: Marks campaign as finished, burns tokens.
+  - **Refund**: Refunds backers in cancelled campaigns.
+  - **Release**: Releases funds per milestone.
+- **Logic**:
+  - Ensures future deadlines and unset milestones.
+  - Verifies signatures and state transitions.
+
+#### 6. `identification_nft.ak`
+
+- **Purpose**: Mints/burns identification NFT for configuration reference.
+- **Logic**: Mints one NFT or burns it.
+
+#### 7. `marketplace.ak`
+
+- **Purpose**: Facilitates COT trading with royalties.
+- **Actions**:
+  - **Buy**: Pays seller and platform (3% royalty).
+  - **Withdraw**: Seller withdraws funds.
+- **Logic**: Ensures correct payouts and signatures.
+
+## Flow
+
+The `karbonumbrella` project orchestrates a workflow for carbon credit management, project validation, crowdfunding, and trading. Below is a detailed explanation, followed by a flowchart.
+
+### Detailed Workflow
+
+1. **Project Initiation**:
+
+   - A developer initiates a project via the `project_initiator` contract in `carbonica_validator.ak`.
+   - The project is submitted with a `ProjectDatum` (category, developer, fees, etc.).
+   - The contract checks if the category is supported (`is_category_from_supported_categories`) and mints a unique project NFT.
+   - The NFT and associated datum are sent to the `project_validation` contract, along with fees to the configured address.
+
+2. **Project Validation**:
+
+   - A group of validators, defined in the `ConfigDatum`’s `multisig_validator_group`, reviews the project via the `project_validation` contract.
+   - **Approval** (`action: 0`):
+     - Requires multisig signatures (`verify_multisig`).
+     - Burns the project NFT.
+     - Mints COT tokens, derived from the output reference (`token_name_oref`), and sends them to the developer’s address (`payout.exact`).
+   - **Rejection** (`action: 1`):
+     - Requires multisig signatures.
+     - Burns the project NFT and any associated tokens.
+   - The `ConfigDatum` is referenced via the identification NFT (`KARBON_IDENTIFICATION`) to retrieve multisig settings.
+
+3. **CET Minting**:
+
+   - Factories, industries, or individuals mint CET tokens through the `cet_minter` contract.
+   - A `CETDatum` (location, quantity, time) is provided as the redeemer.
+   - The contract mints CET tokens and sends them to the `cet_user_script` address, ensuring the datum matches the redeemer and the quantity is correct.
+   - CET tokens represent carbon emissions and are non-transferable, stored in `cet_user_script`.
+
+4. **CET/COT Offsetting**:
+
+   - Users offset emissions by burning CET and COT tokens via the `cet_user_script` contract.
+   - The redeemer (`0`) triggers burning, ensuring equal quantities of CET and COT are burned (`cet_qty == cot_qty`).
+   - Remaining COT tokens, if any, are sent back to the user’s script address (`must_send_remaining_token_to_addr`).
+   - CET and COT tokens cannot be transferred, only burned or withdrawn (COT only).
+
+5. **Marketplace Trading**:
+
+   - Developers trade COT tokens on the marketplace (`marketplace.ak`).
+   - **Buy**:
+     - A buyer purchases COT tokens, triggering a `Buy` redeemer.
+     - The contract splits the payment: 3% royalty to the platform (`roylaty_addr`) and the remainder to the seller (`calculate_payout_royalty`).
+   - **Withdraw**:
+     - The seller withdraws funds with a `Withdraw` redeemer, requiring their signature.
+   - The `MarketplaceDatum` tracks ownership and amounts.
+
+6. **Crowdfunding**:
+
+   - Developers raise funds via the `crowdfunding` contract.
+   - A campaign is created with a `CampaignDatum` (name, goal, deadline, milestones, etc.), minting reward tokens.
+   - **Support**: Backers contribute funds and receive reward tokens proportional to their contribution.
+   - **Cancel**: The creator or platform cancels the campaign, refunding backers.
+   - **Finish**: Marks the campaign as completed, burning reward tokens.
+   - **Refund**: Refunds backers in a cancelled campaign.
+   - **Release**: Releases funds to the creator per milestone, updating the `milestone` list.
+   - State transitions (`Initiated`, `Running`, `Cancelled`, `Finished`, `Released`) are validated with signatures.
+
+### Flowchart
+
+```mermaid
+graph TD
+    A[Developer Initiates Project<br>project_initiator] -->|Mints Project NFT| B[Project Validation<br>project_validation]
+    B -->|Multisig Approval| C[Burn Project NFT<br>Mint COT Tokens]
+    B -->|Multisig Rejection| D[Burn Project NFT<br>Burn Tokens]
+    C --> E[Send COT to Developer]
+    E --> F[Trade COT<br>marketplace]
+    E --> G[Offset CET<br>cet_user_script]
+    H[Factory/Individual Mints CET<br>cet_minter] --> I[Store CET<br>cet_user_script]
+    I --> G
+    F -->|Buy/Withdraw| J[Pay Seller & Platform]
+    K[Developer Starts Crowdfunding<br>crowdfunding] --> L[Backers Support]
+    L --> M[Cancel/Finish/Refund/Release]
+    M -->|Release| N[Pay Creator per Milestone]
+```
+
+## Glossary
+
+- **CET (Carbon Emission Token)**: A token representing carbon emissions, minted by factories or individuals, non-transferable, and burnable for offsetting.
+- **COT (Carbon Offset Token)**: A token representing carbon offsets, minted upon project approval, tradable in the marketplace, and burnable for offsetting.
+- **ConfigDatum**: A data structure storing platform configuration (fees, addresses, multisig settings, policy IDs).
+- **Identification NFT**: A unique NFT (`KARBON_IDENTIFICATION`) used to reference the `ConfigDatum` in transactions.
+- **Multisig**: Multi-signature validation requiring a minimum number of signatures from a group of validators.
+- **Project NFT**: A unique token representing a project during validation, burned upon approval or rejection.
+- **ProjectDatum**: Data structure for project details (developer, category, fees).
+- **MarketplaceDatum**: Data structure for marketplace transactions (owner, amount).
+- **CampaignDatum**: Data structure for crowdfunding campaigns (name, goal, deadline, milestones, state).
+- **BackerDatum**: Data structure representing a backer’s wallet in crowdfunding.
+- **Redeemer**: A data input to a validator specifying the action (e.g., `Mint`, `Burn`, `Buy`, `Support`).
+- **Royalty**: A 3% fee paid to the platform in marketplace transactions.
+- **Milestone**: A boolean list in `CampaignDatum` tracking crowdfunding progress, updated upon fund release.
+
+## Security Considerations
+
+- **Multisig Validation**: The `project_validation`, `config_datum_holder`, and `crowdfunding` contracts use multisig to ensure trusted parties approve critical actions, reducing single-point failures.
+- **Non-Transferable Tokens**: CET tokens in `cet_user_script` are non-transferable, preventing unauthorized trading and ensuring they are only used for offsetting.
+- **Datum Validation**: Functions like `ref_datum_by_nft` and `must_send_nft_and_datum_to_script` enforce correct datum types, preventing malformed inputs.
+- **Potential Risks**:
+  - **Invalid Redeemers**: Validators use `fail` for unexpected redeemers (e.g., `cet_minter` fails on invalid redeemer types), but off-chain code must ensure correct inputs.
+  - **Signature Spoofing**: Multisig relies on Cardano’s `verify_multisig`; compromised validator keys could allow unauthorized approvals.
+  - **Hardcoded Constants**: Values like `royalty_amt` and `roylaty_addr` are hardcoded, posing risks if not updated securely via `config_datum_holder`.
+
+## Error Handling
+
+Validators use `fail` to halt execution on invalid conditions, ensuring robust behavior:
+
+- **Common Failures**:
+  - `No Datum On Input` (`utils.ak`): Triggered if an input lacks an inline datum.
+  - `Invalid Redeemer` (`cet_minter.ak`): Fails on unexpected redeemer types.
+  - `Incorrect Stake Component` (`utils.ak`): Ensures correct address credentials.
+- **Protection**:
+  - Explicit checks (e.g., `expect`) prevent invalid state transitions.
+  - Multisig requirements in `crowdfunding` and `project_validation` block unauthorized actions.
+  - Token quantity checks (`must_burn_less_than_0`) ensure correct minting/burning.
+
+## Example Use Case
+
+**Scenario**: A developer, Alice, proposes a reforestation project, validates it, trades COT, and raises funds.
+
+1. **Initiate Project**:
+   - Alice submits a `ProjectDatum` (category: "forestry", fees: 100 ADA) via `project_initiator`.
+   - A project NFT is minted and sent to `project_validation`.
+2. **Validation**:
+   - Validators approve the project with multisig signatures.
+   - The NFT is burned, and 1000 COT tokens are minted and sent to Alice’s wallet.
+3. **Trade COT**:
+   - Alice lists 500 COT on the marketplace (`marketplace.ak`).
+   - Bob buys them for 5000 ADA; 3% (150 ADA) goes to the platform, and Alice receives 4850 ADA.
+4. **Offset Emissions**:
+   - A factory mints 200 CET tokens via `cet_minter` and stores them in `cet_user_script`.
+   - They burn 200 CET and 200 COT (purchased from Alice) to offset emissions.
+5. **Crowdfunding**:
+   - Alice starts a campaign (`crowdfunding.ak`) with a 10,000 ADA goal and three milestones.
+   - Backers contribute 12,000 ADA, receiving reward tokens.
+   - After the first milestone, Platform releases 4000 ADA with Multisig approval.
+
+
+
+================================================
+FILE: lib/constants.ak
+================================================
+use types/wallet.{Wallet}
+
+/// The asset name for the unique identification token used to reference the configuration datum.
+pub const identication_tkn = "KARBON_IDENTIFICATION"
+
+/// The royalty percentage charged on marketplace transactions, specified as an integer (e.g., 3 for 3%).
+pub const royalty_amt: Int = 3
+
+/// The wallet address where marketplace royalties are sent.
+pub const roylaty_addr: Wallet =
+  Wallet {
+    pkh: #"70840826b6f202d0b9a1ade2b75b5eca9d326e6a9c7117c071ab4704",
+    sc: "",
+  }
+
+
+
+================================================
+FILE: lib/functions/utils.ak
+================================================
+use aiken/cbor
+use aiken/collection/dict
+use aiken/collection/list
+use aiken/crypto
+use cardano/address.{Address, Inline, Script, VerificationKey}
+use cardano/addresses
+use cardano/assets.{AssetName, PolicyId, Value}
+use cardano/transaction.{
+  InlineDatum, Input, Output, OutputReference, Transaction,
+}
+use cardano/value
+use constants
+use types/datum.{
+  BackerDatum, CampaignDatum, CampaignState, ConfigDatum, GovernanceDatum,
+  Milestone, ProjectDatum,
+}
+use types/token.{Token}
+use types/utils.{AddressTuple, PaymentKeyHash, StakeKeyHash, Vote, Voter, Votes}
+use validation/find
+use validation/payout
+
+/// Checks if a given project category is present in the list of supported categories.
+///
+/// # Arguments
+/// * `categories` - A list of supported category names.
+/// * `category` - The category to check.
+///
+/// # Returns
+/// `True` if the category is supported, `False` otherwise.
+pub fn is_category_from_supported_categories(
+  categories: List<ByteArray>,
+  category: ByteArray,
+) -> Bool {
+  list.has(categories, category)
+}
+
+/// Ensures that a transaction output sent to a script contains a specific NFT and a valid `ProjectDatum`.
+///
+/// # Arguments
+/// * `output` - The transaction output to validate.
+/// * `policy_id` - The policy ID of the required NFT.
+pub fn must_send_nft_and_datum_to_script(output: Output, policy_id: PolicyId) {
+  expect InlineDatum(output_datum) = output.datum
+  expect _: ProjectDatum = output_datum
+  list.has(output.value |> assets.policies, policy_id)?
+}
+
+/// Verifies that all tokens being minted under a specific policy have a negative amount (i.e., are being burned).
+///
+/// # Arguments
+/// * `mint` - The `Value` from the transaction's mint field.
+/// * `policy_id` - The policy ID of the tokens to check.
+///
+/// # Returns
+/// `True` if all specified tokens are being burned, otherwise fails.
+pub fn must_burn_less_than_0(mint: Value, policy_id: PolicyId) -> Bool {
+  let values: Pairs<AssetName, Int> =
+    mint
+      |> assets.tokens(policy_id)
+      |> dict.to_pairs()
+
+  list.all(values, fn(Pair(_, amount)) { amount < 0 })?
+}
+
+/// Finds and returns the `ConfigDatum` from a reference input that contains a specific NFT.
+///
+/// # Arguments
+/// * `inputs` - The list of reference inputs from the transaction.
+/// * `pid` - The policy ID of the identification NFT.
+/// * `tkn` - The asset name of the identification NFT.
+///
+/// # Returns
+/// The `ConfigDatum` found in the reference input. Fails if not found or if the datum type is incorrect.
+pub fn ref_datum_by_nft(
+  inputs: List<Input>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> ConfigDatum {
+  let datum_data = input_datum_by_nft(inputs, pid, tkn)
+  if datum_data is datum: ConfigDatum {
+    datum
+  } else {
+    fail @"Datum Type did not Match ConfigDatum On Input"
+  }
+}
+
+/// Finds and returns the `ConfigDatum` from a transaction output that contains a specific NFT.
+///
+/// # Arguments
+/// * `outputs` - The list of transaction outputs to search.
+/// * `pid` - The policy ID of the identification NFT.
+/// * `tkn` - The asset name of the identification NFT.
+///
+/// # Returns
+/// The `ConfigDatum` found in the output. Fails if not found or if the datum type is incorrect.
+pub fn output_ref_datum_by_nft(
+  outputs: List<Output>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> ConfigDatum {
+  let datum_data = find.output_datum_by_nft(outputs, pid, tkn)
+  if datum_data is datum: ConfigDatum {
+    datum
+  } else {
+    fail @"Datum Type did not Match ConfigDatum On Input"
+  }
+}
+
+/// Validates that a specific token is sent to a script address derived from a given address tuple,
+/// and that the output datum matches the address tuple.
+///
+/// # Arguments
+/// * `outputs` - The list of transaction outputs.
+/// * `policy_id` - The policy ID of the token.
+/// * `token_name` - The asset name of the token.
+/// * `redeemer` - The `AddressTuple` containing the payment and stake key hashes.
+pub fn script_address_check(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  token_name: ByteArray,
+  redeemer: AddressTuple,
+) {
+  expect Some(output) =
+    list.find(
+      outputs,
+      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
+    )
+  let address_data: Data = redeemer
+  expect InlineDatum(address_datum) = output.datum
+  and {
+    output.address == script_address_from_tuple(redeemer),
+    (address_datum == address_data)?,
+  }
+}
+
+/// Recursively searches through a list of inputs to find the inline datum of the input
+/// that contains a specific NFT.
+///
+/// # Arguments
+/// * `inputs` - The list of inputs to search.
+/// * `pid` - The policy ID of the NFT.
+/// * `tkn` - The asset name of the NFT.
+///
+/// # Returns
+/// The `Data` from the inline datum of the matching input. Fails if no matching input with a datum is found.
+pub fn input_datum_by_nft(
+  inputs: List<Input>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> Data {
+  when inputs is {
+    [input, ..rest] ->
+      if value.prove_exact_nft(input.output.value, pid, tkn) {
+        when input.output.datum is {
+          InlineDatum(inbound_datum) -> inbound_datum
+          _ -> fail @"No Datum On Input"
+        }
+      } else {
+        input_datum_by_nft(rest, pid, tkn)
+      }
+    [] -> fail @"No Datum Found In inputs"
+  }
+}
+
+/// Filters a list of outputs, returning only those that contain a specific token.
+///
+/// # Arguments
+/// * `outputs` - The list of outputs to filter.
+/// * `pid` - The policy ID of the token.
+/// * `tkn` - The asset name of the token.
+///
+/// # Returns
+/// A new list containing only the outputs with the specified token.
+pub fn outputs_by_pid(
+  outputs: List<Output>,
+  pid: PolicyId,
+  tkn: ByteArray,
+) -> List<Output> {
+  let output =
+    when outputs is {
+      [output, ..rest] ->
+        if value.prove_exact_nft(output.value, pid, tkn) {
+          [output, ..outputs_by_pid(rest, pid, tkn)]
+        } else {
+          outputs_by_pid(rest, pid, tkn)
+        }
+      [] -> []
+    }
+  output
+}
+
+/// Filters a list of outputs, returning only those sent to a specific address.
+///
+/// # Arguments
+/// * `outputs` - The list of outputs to filter.
+/// * `addr` - The address to match.
+///
+/// # Returns
+/// A new list containing only the outputs sent to the specified address.
+pub fn outputs_by_addr(outputs: List<Output>, addr: Address) -> List<Output> {
+  let output =
+    when outputs is {
+      [output, ..rest] ->
+        if output.address == addr {
+          [output, ..outputs_by_addr(rest, addr)]
+        } else {
+          outputs_by_addr(rest, addr)
+        }
+      [] -> []
+    }
+  output
+}
+
+/// A private helper function to recursively calculate the total amount of CET and COT tokens in a list of inputs.
+///
+/// # Arguments
+/// * `inputs` - The list of inputs to process.
+/// * `cet_pid` - The policy ID for CET tokens.
+/// * `cot_pid` - The policy ID for COT tokens.
+/// * `cet_tkn` - The asset name for CET tokens.
+/// * `cot_tkn` - The asset name for COT tokens.
+/// * `cet_qty` - The accumulated quantity of CET tokens.
+/// * `cot_qty` - The accumulated quantity of COT tokens.
+///
+/// # Returns
+/// A tuple containing the total quantities of CET and COT tokens.
+fn do_total_token_amount(
+  inputs: List<Input>,
+  cet_pid: PolicyId,
+  cot_pid: PolicyId,
+  cet_tkn: ByteArray,
+  cot_tkn: ByteArray,
+  cet_qty: Int,
+  cot_qty: Int,
+) {
+  when inputs is {
+    [input, ..rest] -> {
+      let cet_amt: Int =
+        assets.quantity_of(input.output.value, cet_pid, cet_tkn)
+      let cot_amt: Int =
+        assets.quantity_of(input.output.value, cot_pid, cot_tkn)
+      do_total_token_amount(
+        rest,
+        cet_pid,
+        cot_pid,
+        cet_tkn,
+        cot_tkn,
+        cet_qty + cet_amt,
+        cot_qty + cot_amt,
+      )
+    }
+    [] -> (cet_qty, cot_qty)
+  }
+}
+
+/// Constructs a script address with a delegation part derived from the stake credential of the first input.
+///
+/// # Arguments
+/// * `script` - The policy ID of the script, used as the payment credential.
+/// * `inputs` - The list of transaction inputs.
+///
+/// # Returns
+/// A new `Address` with the script as the payment part and the input's stake key as the delegation part.
+pub fn get_output_addr(script: PolicyId, inputs: List<Input>) {
+  expect Some(input) = list.head(inputs)
+  when input.output.address.stake_credential is {
+    Some(Inline(VerificationKey(skh))) ->
+      address.from_script(script)
+        |> address.with_delegation_key(skh)
+    _ -> fail @"Input Stake Componenet Missing"
+  }
+}
+
+/// Generates a unique token name by hashing an `OutputReference`.
+///
+/// # Arguments
+/// * `oref` - The `OutputReference` to hash.
+///
+/// # Returns
+/// A `ByteArray` representing the Blake2b-224 hash of the serialized `OutputReference`.
+pub fn token_name_oref(oref: OutputReference) {
+  let hashed = oref |> cbor.serialise |> crypto.blake2b_224
+  hashed
+}
+
+/// Calculates the payout amounts for the seller and the marketplace based on a fixed royalty percentage.
+///
+/// # Arguments
+/// * `amount` - The total sale amount.
+///
+/// # Returns
+/// A tuple containing the `Value` for the marketplace royalty and the `Value` for the seller's payout.
+pub fn calculate_payout_royalty(amount: Int) {
+  let marketplace = amount * constants.royalty_amt / 100
+  let seller = amount - marketplace
+  let marketplace_payout =
+    value.from_token(Token { pid: "", tkn: "", amt: marketplace })
+  let seller_payout = value.from_token(Token { pid: "", tkn: "", amt: seller })
+  (marketplace_payout, seller_payout)
+}
+
+/// Finds and returns the user script output by matching the stake key of an input with an output.
+///
+/// # Arguments
+/// * `inputs` - The list of transaction inputs.
+/// * `outputs` - The list of transaction outputs.
+///
+/// # Returns
+/// The `Output` that is sent to the user's script address. Fails if no matching output is found.
+pub fn user_script_address(inputs: List<Input>, outputs: List<Output>) {
+  expect Some(input) = list.head(inputs)
+  expect Some(Inline(VerificationKey(skh))) =
+    input.output.address.stake_credential
+  expect Some(output) = list.head(outputs)
+  when (output.address.payment_credential, output.address.stake_credential) is {
+    (Script(_), Some(Inline(VerificationKey(o_sk)))) ->
+      if skh == o_sk {
+        output
+      } else {
+        fail @"Incorrect Stake Component"
+      }
+    _ -> fail @"Incorrect Tokens Output Address"
+  }
+}
+
+/// Creates a script address from a tuple of payment and stake key hashes.
+///
+/// # Arguments
+/// * `key_hash_tuple` - A tuple containing the `PaymentKeyHash` and `StakeKeyHash`.
+///
+/// # Returns
+/// A new `Address` with a script payment credential and an optional stake credential.
+pub fn script_address_from_tuple(key_hash_tuple: (PaymentKeyHash, StakeKeyHash)) {
+  let (pkh, skh) = key_hash_tuple
+  Address {
+    payment_credential: pkh |> Script,
+    stake_credential: if skh == "" {
+      None
+    } else {
+      skh |> Script |> Inline |> Some
+    },
+  }
+}
+
+/// Finds and returns the first input that contains a token with the given policy ID.
+///
+/// # Arguments
+/// * `inputs` - The list of inputs to search.
+/// * `policy_id` - The policy ID to look for.
+///
+/// # Returns
+/// The first `Input` that contains a token with the specified policy ID. Fails if no such input is found.
+pub fn find_ref_input(inputs: List<Input>, policy_id: PolicyId) {
+  expect Some(input) =
+    list.find(
+      inputs,
+      fn(i) { list.has(i.output.value |> assets.policies, policy_id) },
+    )
+  input
+}
+
+/// Checks that there is exactly one output sent to a specific address containing a token with a given policy ID.
+///
+/// # Arguments
+/// * `outputs` - The list of outputs to check.
+/// * `policy_id` - The policy ID of the token.
+/// * `address` - The address the output must be sent to.
+///
+/// # Returns
+/// `True` if the condition is met, `False` otherwise.
+pub fn must_have_one_output_with_policy(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  address: Address,
+) {
+  list.count(
+    outputs,
+    fn(o) {
+      and {
+        list.has(o.value |> assets.policies, policy_id)?,
+        (o.address == address)?,
+      }
+    },
+  ) == 1
+}
+
+/// Ensures that the correct amount of remaining CET and COT tokens are sent back to the user's script address after a burn operation.
+///
+/// # Arguments
+/// * `tx` - The current transaction.
+/// * `cet_pid` - The policy ID for CET tokens.
+/// * `cot_pid` - The policy ID for COT tokens.
+/// * `cet_tkn` - The asset name for CET tokens.
+/// * `cot_tkn` - The asset name for COT tokens.
+/// * `burn_qty` - The quantity of tokens being burned (a negative value).
+/// * `user_script` - The user's script address where the remaining tokens should be sent.
+pub fn must_send_remaining_token_to_addr(
+  tx: Transaction,
+  cet_pid: PolicyId,
+  cot_pid: PolicyId,
+  cet_tkn: ByteArray,
+  cot_tkn: ByteArray,
+  burn_qty: Int,
+  user_script: Address,
+) {
+  let (cet_qty, cot_qty) =
+    do_total_token_amount(tx.inputs, cet_pid, cot_pid, cet_tkn, cot_tkn, 0, 0)
+
+  let o_cet = cet_qty + burn_qty
+  let o_cot = cot_qty + burn_qty
+
+  if o_cet == 0 && o_cot == 0 {
+    True
+  } else {
+    let expected_output =
+      value.from_tokens(
+        [
+          Token { pid: cet_pid, tkn: cet_tkn, amt: o_cet },
+          Token { pid: cot_pid, tkn: cot_tkn, amt: o_cot },
+        ],
+      )
+    payout.at_least(user_script, expected_output, tx.outputs)?
+  }
+}
+
+/// Checks if the campaign's current state matches the expected state.
+///
+/// # Arguments
+/// * `datum` - The `CampaignDatum` of the campaign.
+/// * `state` - The expected `CampaignState`.
+///
+/// # Returns
+/// `True` if the states match, `False` otherwise.
+pub fn campaign_state(datum: CampaignDatum, state: CampaignState) -> Bool {
+  datum.state == state
+}
+
+/// Validates that a backer is refunded at least the amount they contributed.
+///
+/// # Arguments
+/// * `tx` - The current transaction.
+/// * `script_address` - The address of the campaign script.
+/// * `backer_datum` - The `BackerDatum` identifying the backer to be refunded.
+///
+/// # Returns
+/// `True` if the output lovelace to the backer is greater than or equal to the input lovelace from the backer.
+pub fn must_refund(
+  tx: Transaction,
+  script_address: Address,
+  backer_datum: BackerDatum,
+) {
+  let backer_datum_data: Data = backer_datum
+  let backer_address: Address = addresses.from_wallet(backer_datum)
+
+  // Sum all lovelace from inputs belonging to the backer at the script address.
+  let sum_input =
+    fn(sum, Input { output: Output { address, datum, value, .. }, .. }) {
+      if address == script_address {
+        when datum is {
+          InlineDatum(input_datum) ->
+            if input_datum == backer_datum_data {
+              assets.lovelace_of(value) + sum
+            } else {
+              sum
+            }
+          _ -> sum
+        }
+      } else {
+        sum
+      }
+    }
+  let input_lovelace = list.reduce(tx.inputs, 0, sum_input)
+
+  // Sum all lovelace from outputs sent to the backer's address.
+  let sum_output =
+    fn(sum, Output { address, value, .. }) {
+      if address == backer_address {
+        assets.lovelace_of(value) + sum
+      } else {
+        sum
+      }
+    }
+  let output_lovelace = list.reduce(tx.outputs, 0, sum_output)
+
+  output_lovelace >= input_lovelace
+}
+
+/// Ensures that all funds contributed by backers are consolidated into a single output at the script address
+/// when a campaign is finished.
+///
+/// # Arguments
+/// * `tx` - The current transaction.
+/// * `script_address` - The address of the campaign script.
+/// * `campaign_datum` - The `CampaignDatum` for the finished campaign.
+///
+/// # Returns
+/// `True` if an output with the correct datum and sufficient funds is found at the script address.
+pub fn must_pay_to_script(
+  tx: Transaction,
+  script_address: Address,
+  campaign_datum: CampaignDatum,
+) {
+  let campaign_datum_data: Data = campaign_datum
+  // Sum all lovelace from inputs that are from backers.
+  let sum_support =
+    fn(sum, Input { output: Output { address, datum, value, .. }, .. }) {
+      if address == script_address {
+        when datum is {
+          InlineDatum(input_datum) ->
+            if input_datum is BackerDatum {
+              assets.lovelace_of(value) + sum
+            } else {
+              sum
+            }
+          _ -> sum
+        }
+      } else {
+        sum
+      }
+    }
+  let supports = tx.inputs |> list.reduce(0, sum_support)
+  // Check if any output at the script address contains the campaign datum and at least the total supported amount.
+  list.any(
+    tx.outputs,
+    fn(o) {
+      when o.datum is {
+        InlineDatum(datum_data) -> and {
+            campaign_datum_data == datum_data,
+            o.address == script_address,
+            assets.lovelace_of(o.value) >= supports,
+          }
+        _ -> False
+      }
+    },
+  )
+}
+
+/// Updates the campaign datum by marking the next uncompleted milestone as complete.
+///
+/// # Arguments
+/// * `datum` - The current `CampaignDatum`.
+///
+/// # Returns
+/// A new `CampaignDatum` with the next milestone in the list set to `True`.
+pub fn updating_datum_milestone(datum: CampaignDatum) -> CampaignDatum {
+  let milestones: Milestone = datum.milestone
+  expect Some(index) = list.index_of(milestones, False)
+  let updated_milestones =
+    list.indexed_map(
+      milestones,
+      fn(i, m) {
+        if i == index {
+          !m
+        } else {
+          m
+        }
+      },
+    )
+
+  CampaignDatum { ..datum, milestone: updated_milestones }
+}
+
+/// Validates the payout for a completed milestone.
+/// It ensures that the campaign goal has been met and that the creator and platform receive their correct share of the funds for the current milestone.
+///
+/// # Arguments
+/// * `tx` - The current transaction.
+/// * `self_address` - The address of the campaign script.
+/// * `campaign_datum` - The `CampaignDatum` of the campaign.
+pub fn must_reach_goal_and_send_to_creator(
+  tx: Transaction,
+  self_address: Address,
+  campaign_datum: CampaignDatum,
+) {
+  let CampaignDatum { creator, milestone, .. } = campaign_datum
+  let remaining_milestone = list.count(milestone, fn(m) { m == False })
+
+  // Sum the total funds collected, which are held in the CampaignDatum UTxO.
+  let sum_support =
+    fn(sum, Input { output: Output { address, datum, value, .. }, .. }) {
+      if address == self_address {
+        when datum is {
+          InlineDatum(input_datum) ->
+            if input_datum is CampaignDatum {
+              assets.lovelace_of(value) + sum
+            } else {
+              sum
+            }
+          _ -> sum
+        }
+      } else {
+        sum
+      }
+    }
+  let supports = tx.inputs |> list.reduce(0, sum_support)
+  let (platform_pay, creator_pay) = calculate_payout_platform_creator(supports)
+  let creator_address = addresses.from_wallet(creator)
+
+  // Sum the total lovelace paid to the creator in this transaction.
+  let sum_creator =
+    fn(sum, Output { address, value, .. }) {
+      if address == creator_address {
+        assets.lovelace_of(value) + sum
+      } else {
+        sum
+      }
+    }
+
+  // Sum the total lovelace paid to the platform in this transaction.
+  let sum_platform =
+    fn(sum, Output { address, value, .. }) {
+      when address.payment_credential is {
+        VerificationKey(vkh) ->
+          if vkh == constants.roylaty_addr.pkh {
+            assets.lovelace_of(value) + sum
+          } else {
+            sum
+          }
+        _ -> sum
+      }
+    }
+
+  // Sum the total lovelace returned to the script address.
+  let sum_script =
+    fn(sum, Output { address, value, .. }) {
+      if address == self_address {
+        assets.lovelace_of(value) + sum
+      } else {
+        sum
+      }
+    }
+
+  // Ensure that if there are remaining milestones, the correct amount of funds is returned to the script.
+  let to_script =
+    if remaining_milestone > 1 {
+      list.reduce(tx.outputs, 0, sum_script) >= supports - supports / remaining_milestone
+    } else {
+      True
+    }
+
+  and {
+    to_script,
+    // Verify that the creator receives at least their share for the current milestone.
+    list.reduce(tx.outputs, 0, sum_creator) >= creator_pay / remaining_milestone,
+    // Verify that the platform receives at least its share for the current milestone.
+    list.reduce(tx.outputs, 0, sum_platform) >= platform_pay / remaining_milestone,
+  }
+}
+
+/// A private helper function to calculate the payout distribution between the platform and the campaign creator.
+///
+/// # Arguments
+/// * `amount` - The total amount to be distributed.
+///
+/// # Returns
+/// A tuple containing the platform's share and the creator's share.
+fn calculate_payout_platform_creator(amount: Int) -> (Int, Int) {
+  let platform = amount * 5 / 100
+  let seller = amount - platform
+  (platform, seller)
+}
+
+/// Finds and returns the first transaction output that contains a specific NFT.
+///
+/// # Arguments
+/// * `outputs` - The list of outputs to search.
+/// * `pid` - The policy ID of the NFT.
+/// * `tkn` - The asset name of the NFT.
+///
+/// # Returns
+/// The first `Output` that contains the specified NFT. Fails if no such output is found.
+pub fn output_by_nft(
+  outputs: List<Output>,
+  pid: PolicyId,
+  tkn: AssetName,
+) -> Output {
+  when outputs is {
+    [output, ..rest] ->
+      if value.prove_exact_nft(output.value, pid, tkn) {
+        output
+      } else {
+        output_by_nft(rest, pid, tkn)
+      }
+    [] -> fail @"No Output Found In Outputs"
+  }
+}
+
+/// Extracts and returns a `GovernanceDatum` from a generic `Data` object.
+///
+/// # Arguments
+/// * `data` - The `Data` object to be converted.
+///
+/// # Returns
+/// A `GovernanceDatum` if the conversion is successful. Fails if the `Data` does not match the `GovernanceDatum` structure.
+pub fn governance_datum_from_data(data: Data) -> GovernanceDatum {
+  expect GovernanceDatum {
+    proposal_id,
+    submitted_by,
+    proposal_action,
+    votes,
+    votes_count,
+    deadline,
+    proposal_state,
+  } = data
+  GovernanceDatum {
+    proposal_id,
+    submitted_by,
+    proposal_action,
+    votes,
+    votes_count,
+    deadline,
+    proposal_state,
+  }
+}
+
+// ---
+pub fn get_vote(votes: Votes, voter: Voter) -> Vote {
+  when votes is {
+    [vote, ..rest] ->
+      if vote.voter == voter {
+        vote.vote
+      } else {
+        get_vote(rest, voter)
+      }
+    [] -> fail @"No Votes Found"
+  }
+}
+
+
+
+================================================
+FILE: lib/types/datum.ak
+================================================
+use cardano/assets.{PolicyId}
+use types/moment.{Moment}
+use types/utils.{
+  AssetClass, Multisig, ProposalAction, ProposalState, Voter, Votes, VotesCount,
+}
+use types/wallet.{Wallet}
+
+/// The main configuration datum for the entire protocol.
+pub type ConfigDatum {
+  /// The wallet address where platform fees are collected.
+  fees_address: Wallet,
+  /// The amount of the platform fee.
+  fees_amount: Int,
+  /// The asset class (policy ID and asset name) of the fee token.
+  fees_asset_class: AssetClass,
+  /// The wallet address for spending-related operations.
+  spend_address: Wallet,
+  /// A list of supported project categories.
+  categories: List<ByteArray>,
+  /// The multi-signature group required to validate projects.
+  multisig_validator_group: Multisig,
+  /// The multi-signature group required to update this configuration datum.
+  multisig_refutxoupdate: Multisig,
+  /// The policy ID of the Carbon Emission Token (CET).
+  cet_policyid: PolicyId,
+  /// The policy ID of the Carbon Offsetting Token (COT).
+  cot_policyid: PolicyId,
+  /// The wallet address for the DAO.
+  dao_policyid: PolicyId,
+}
+
+/// The datum for a project submitted for validation.
+pub type ProjectDatum {
+  /// The wallet of the project developer.
+  developer: Wallet,
+  /// A hash or identifier for the project's documentation.
+  document: ByteArray,
+  /// The category of the project.
+  category: ByteArray,
+  /// The asset name for the project's unique NFT.
+  asset_name: ByteArray,
+  /// The fee amount paid for project submission.
+  fees_amount: Int,
+  /// The asset class of the fee paid.
+  fees_asset_class: AssetClass,
+}
+
+/// The datum for an asset listed on the marketplace.
+pub type MarketplaceDatum {
+  /// The wallet of the asset's owner (the seller).
+  owner: Wallet,
+  /// The price of the asset in Lovelace.
+  amount: Int,
+}
+
+/// The datum associated with the minting of Carbon Emission Tokens (CET).
+pub type CETDatum {
+  /// The geographical location related to the emissions.
+  location: ByteArray,
+  /// The quantity of CETs to be minted.
+  cet_qty: Int,
+  /// The timestamp of the emission event.
+  time: Int,
+}
+
+/// A configuration type holding the policy IDs for CET and COT.
+pub type CetCotConfig {
+  /// The policy ID of the Carbon Emission Token (CET).
+  cet_policyid: PolicyId,
+  /// The policy ID of the Carbon Offsetting Token (COT).
+  cot_policyid: PolicyId,
+}
+
+/// Represents the possible states of a crowdfunding campaign.
+pub type CampaignState {
+  /// The initial state when a campaign is first created.
+  Initiated
+  /// The state when a campaign is active and accepting contributions.
+  Running
+  /// The state when a campaign has been cancelled.
+  Cancelled
+  /// The state when a campaign has successfully met its goal and ended.
+  Finished
+  /// The state when funds for a milestone have been released to the creator.
+  Released
+}
+
+/// A type alias for a list of booleans, representing the completion status of campaign milestones.
+pub type Milestone =
+  List<Bool>
+
+/// The datum for a crowdfunding campaign.
+pub type CampaignDatum {
+  /// The name of the campaign.
+  name: ByteArray,
+  /// The funding goal in Lovelace.
+  goal: Int,
+  /// The deadline for the campaign, as a POSIX timestamp.
+  deadline: Int,
+  /// The wallet of the campaign creator.
+  creator: Wallet,
+  /// A list representing the milestones of the campaign and their completion status.
+  milestone: Milestone,
+  /// The current state of the campaign.
+  state: CampaignState,
+  /// The fixed amount of reward tokens distributed per contribution fraction.
+  fraction: Int,
+}
+
+/// The datum for a campaign backer, represented by their wallet.
+pub type BackerDatum =
+  Wallet
+
+// -----DAO DATUM
+/// The datum for a governance proposal.
+pub type GovernanceDatum {
+  /// A unique identifier for the proposal.
+  proposal_id: ByteArray,
+  /// The voter who submitted the proposal.
+  submitted_by: Voter,
+  /// The action to be taken if the proposal is approved.
+  proposal_action: ProposalAction,
+  /// A dictionary mapping voters to their votes.
+  votes: Votes,
+  /// A count of the 'Yes', 'No', and 'Abstain' votes.
+  votes_count: VotesCount,
+  /// The deadline for voting on the proposal.
+  deadline: Moment,
+  /// The current state of the proposal (e.g., InProgress, Executed, Rejected).
+  proposal_state: ProposalState,
+}
+
+
+
+================================================
+FILE: lib/types/redeemer.ak
+================================================
+use cardano/assets.{PolicyId}
+use cardano/transaction.{OutputReference}
+use types/utils.{Vote, Voter}
+
+/// A redeemer for the `identification_nft` validator, specifying whether to mint or burn the NFT.
+pub type Action {
+  /// The action to mint the Identification NFT.
+  Mint
+  /// The action to burn the Identification NFT.
+  Burn
+}
+
+/// A redeemer for the `project_validation` validator.
+pub type ProjectValidationRedeemer {
+  /// The action to perform: 0 for accepting a project, 1 for rejecting it.
+  action: Int,
+  /// The amount of Carbon Offsetting Tokens (COT) to be minted upon project approval.
+  amount: Int,
+  /// The output reference of the UTxO being spent.
+  oref: OutputReference,
+}
+
+/// A redeemer for the `karbonstore` (marketplace) validator.
+pub type MarketplaceRedeemer {
+  /// The action to purchase an asset from the marketplace.
+  Buy
+  /// The action for the owner to withdraw their asset from the marketplace.
+  Withdraw
+}
+
+/// A redeemer for the `cet_minter` validator, used when burning Carbon Emission Tokens (CET).
+pub type EmissionBurnRedeemer {
+  /// The policy ID of the Carbon Offsetting Tokens (COT) being burned alongside the CETs.
+  cot_policyid: PolicyId,
+}
+
+/// A redeemer for the `campaign` validator, specifying the action to be taken on a crowdfunding campaign.
+pub type CampaignAction {
+  /// The action for a backer to contribute funds to a campaign.
+  Support
+  /// The action to cancel a campaign.
+  Cancel
+  /// The action to successfully finish a campaign.
+  Finish
+  /// The action for a backer to claim a refund from a cancelled campaign.
+  Refund
+  /// The action for the campaign creator to release milestone-based funds.
+  Release
+}
+
+// -----DAO REDEEMER
+/// A redeemer for the governance validator, specifying the action to be taken on a proposal.
+pub type GovernanceRedeemer {
+  /// The action to submit a new proposal.
+  SubmitProposal { proposal_id: ByteArray }
+  /// The action to vote on an existing proposal.
+  VoteProposal { proposal_id: ByteArray, voter: Voter, vote: Vote }
+  /// The action to execute an approved proposal.
+  ExecuteProposal { proposal_id: ByteArray }
+  /// The action to reject a proposal.
+  RejectProposal { proposal_id: ByteArray }
+}
+
+
+
+================================================
+FILE: lib/types/utils.ak
+================================================
+use aiken/crypto.{VerificationKeyHash}
+use cardano/assets.{AssetName, PolicyId}
+use types/wallet.{Wallet}
+
+/// Represents a specific type of asset, uniquely identified by its policy ID and asset name.
+pub type AssetClass {
+  /// The policy ID of the asset.
+  policy_id: PolicyId,
+  /// The name of the asset.
+  asset_name: AssetName,
+}
+
+/// A type alias for `VerificationKeyHash` to specifically represent a payment key hash.
+pub type PaymentKeyHash =
+  VerificationKeyHash
+
+/// A type alias for `VerificationKeyHash` to specifically represent a stake key hash.
+pub type StakeKeyHash =
+  VerificationKeyHash
+
+/// A tuple that combines a `PaymentKeyHash` and a `StakeKeyHash` to represent the core components of a Cardano address.
+pub type AddressTuple =
+  (PaymentKeyHash, StakeKeyHash)
+
+/// A type alias for `Int` used to specify the minimum number of required signatures in a multi-signature scheme.
+pub type Atleast =
+  Int
+
+/// Defines a multi-signature scheme.
+pub type Multisig {
+  /// The minimum number of signatures required for a transaction to be valid.
+  required: Atleast,
+  /// A list of the verification key hashes of the authorized signers.
+  signers: List<VerificationKeyHash>,
+}
+
+// ---- DAO UTILS
+// utils
+/// Represents the possible states of a governance proposal.
+pub type ProposalState {
+  /// The proposal is currently active and open for voting.
+  InProgress
+  /// The proposal has been successfully executed.
+  Executed
+  /// The proposal has been rejected.
+  Rejected
+}
+
+/// A type alias for `VerificationKeyHash` to represent a voter's identity.
+pub type Voter =
+  VerificationKeyHash
+
+/// A record to store the count of votes for a proposal.
+pub type VotesCount {
+  /// The number of 'Yes' votes.
+  yes: Int,
+  /// The number of 'No' votes.
+  no: Int,
+  /// The number of 'Abstain' votes.
+  abstain: Int,
+}
+
+/// Represents the possible voting options for a governance proposal.
+pub type Vote {
+  /// A vote in favor of the proposal.
+  Yes
+  /// A vote against the proposal.
+  No
+  /// A vote to abstain from the decision.
+  Abstain
+  /// A placeholder state for a vote that has not yet been cast.
+  Pending
+}
+
+/// Defines the possible actions that can be taken through a governance proposal.
+pub type ProposalAction {
+  /// Add a new validator to the multi-signature group.
+  ValidatorAdd(VerificationKeyHash)
+  /// Remove an existing validator from the multi-signature group.
+  ValidatorRemove(VerificationKeyHash)
+  /// Update the platform's fee amount.
+  FeeAmountUpdate(Int)
+  /// Update the platform's fee collection address.
+  FeeAddressUpdate(Wallet)
+}
+
+/// A type alias for a dictionary that maps voters to their votes on a proposal.
+pub type VotesStruct {
+  voter: Voter,
+  vote: Vote,
+}
+
+pub type Votes =
+  List<VotesStruct>
+
+
+
+================================================
+FILE: lib/types/var_tests.ak
+================================================
+use aiken/cbor.{serialise}
+use types/datum.{GovernanceDatum}
+use types/moment.{Moment}
+use types/redeemer.{
+  ExecuteProposal, GovernanceRedeemer, RejectProposal, SubmitProposal,
+  VoteProposal,
+}
+use types/utils.{
+  FeeAddressUpdate, FeeAmountUpdate, InProgress, Pending, VotesCount,
+  VotesStruct, Yes,
+}
+use types/wallet.{Wallet}
+
+// NOTE: The definitions for `Wallet` and `Moment` types were not found in the
+// project. Therefore, tests for `GovernanceDatum` and the `FeeAddressUpdate`
+// variant of `ProposalAction` cannot be written.
+// Please provide the definitions for `lib/types/wallet.ak` and
+// `lib/types/moment.ak` to enable complete testing.
+const proposalid = "1"
+
+const pkh1_hex = #"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3d0d1d2d3"
+
+const pkh2_hex = #"e0e1e2e3e4e5e6e7e8e9f0f1f2f3f4f5f6f7f8f9a0a1a2a3b0b1b2b3"
+
+const datum_var =
+  GovernanceDatum {
+    proposal_id: proposalid,
+    submitted_by: pkh1_hex,
+    proposal_action: FeeAmountUpdate(1000),
+    votes: [
+      VotesStruct { voter: pkh2_hex, vote: Pending },
+      VotesStruct { voter: pkh1_hex, vote: Pending },
+    ],
+    votes_count: VotesCount { yes: 0, no: 0, abstain: 0 },
+    deadline: Moment { start: 0, end: 0 },
+    proposal_state: InProgress,
+  }
+
+const feeaddress = FeeAddressUpdate(Wallet { pkh: pkh1_hex, sc: pkh2_hex })
+
+const submit_proposal: GovernanceRedeemer =
+  SubmitProposal { proposal_id: proposalid }
+
+const vote_proposal: GovernanceRedeemer =
+  VoteProposal { proposal_id: proposalid, voter: pkh2_hex, vote: Yes }
+
+const execute_proposal: GovernanceRedeemer =
+  ExecuteProposal { proposal_id: proposalid }
+
+const reject_proposal: GovernanceRedeemer =
+  RejectProposal { proposal_id: proposalid }
+
+test datum() {
+  // proposal_id matched with offchain cbor
+  trace @"proposal_id": serialise(datum_var.proposal_id)
+  // submitted_by matched with offchain cbor
+  trace @"submited_by": serialise(datum_var.submitted_by)
+  // proposal_action matched with offchain cbor
+  trace @"proposal_action": serialise(datum_var.proposal_action)
+  // ------------------------------
+  trace @"votes": serialise(datum_var.votes)
+  // votes_count matched with offchain cbor 
+  trace @"votes_count": serialise(datum_var.votes_count)
+  // deadline matched with offchain cbor 
+  trace @"deadline": serialise(datum_var.deadline)
+  // proposal_state matched with offchain cbor 
+  trace @"proposal_state": serialise(datum_var.proposal_state)
+  trace @"Pending": serialise(Pending)
+  trace @"-------------------REDEEMER-------------------"
+  // Redeemers matched with offchain cbor
+  trace @"submit_proposal": serialise(submit_proposal)
+  trace @"vote_proposal": serialise(vote_proposal)
+  trace @"execute_proposal": serialise(execute_proposal)
+  trace @"reject_proposal": serialise(reject_proposal)
+  // -----ENTIRE DATUM AS CBOR-----
+  trace @"------------------DATUM AS CBOR-----------------"
+  trace @"datum_var": serialise(datum_var)
+  trace @"feeAddress": serialise(feeaddress)
+  True
+}
+
+
+
+================================================
+FILE: validators/carbonica_validator.ak
+================================================
+//// This module contains two validators: 'project_initiator' for initiating projects
+//// and 'project_validation' for validating them.
+
+use aiken/collection/dict
+use cardano/address.{Script}
+use cardano/addresses
+use cardano/assets.{PolicyId}
+use cardano/transaction.{
+  InlineDatum, Output, OutputReference, Transaction, find_input,
+}
+use cardano/tx
+use cardano/value
+use constants
+use functions/utils
+use types/datum.{ProjectDatum}
+use types/redeemer.{ProjectValidationRedeemer}
+use types/token.{Token}
+use validation/find
+use validation/payout
+
+/// The `project_validation` validator manages the approval or rejection of projects.
+/// It enforces a multi-signature scheme where a group of validators must sign the transaction.
+/// This validator is also responsible for minting Carbon Offsetting Tokens (COT).
+validator project_validation(
+  config_nft: PolicyId,
+  validator_contract_mint: PolicyId,
+) {
+  /// This function handles the spending of the UTxO locked at the validator address.
+  /// It ensures that the transaction is signed by the required number of multi-signature
+  /// validators defined in the configuration datum.
+  spend(
+    datum: Option<ProjectDatum>,
+    redeemer: ProjectValidationRedeemer,
+    oref: OutputReference,
+    tx: Transaction,
+  ) {
+    expect Some(datum) = datum
+    let Transaction {
+      mint,
+      inputs,
+      reference_inputs,
+      extra_signatories,
+      outputs,
+      ..
+    } = tx
+    expect Some(script_input) = find_input(inputs, oref)
+    expect Script(script_hash) = script_input.output.address.payment_credential
+    let ref_datum =
+      utils.ref_datum_by_nft(
+        reference_inputs,
+        config_nft,
+        constants.identication_tkn,
+      )
+
+    // Handle different actions based on the redeemer.
+    when redeemer.action is {
+      // Action 0: Accept the project.
+      // The project developer receives the minted COT tokens.
+      // The project's NFT is burned as part of this process.
+      0 -> {
+        let developer_addr = addresses.from_wallet(datum.developer)
+        let tkname = utils.token_name_oref(oref)
+        let value =
+          value.from_token(
+            Token { pid: script_hash, tkn: tkname, amt: redeemer.amount },
+          )
+        and {
+          utils.must_burn_less_than_0(mint, validator_contract_mint),
+          payout.exact(developer_addr, value, outputs)?,
+        }
+      }
+      // Action 1: Reject the project.
+      // The project's NFT is burned, and the transaction must be signed by the multisig group.
+      1 -> and {
+          utils.must_burn_less_than_0(mint, validator_contract_mint),
+          tx.verify_multisig(
+            extra_signatories,
+            ref_datum.multisig_validator_group.signers,
+            ref_datum.multisig_validator_group.required,
+          ),
+        }
+      _ -> fail
+    }
+  }
+
+  /// This function handles the minting and burning of tokens.
+  /// It's responsible for minting Carbon Offsetting Tokens (COT) when a project is approved
+  /// and burning COT in exchange for Carbon Emission Tokens (CET).
+  mint(
+    redeemer: ProjectValidationRedeemer,
+    policy_id: PolicyId,
+    tx: Transaction,
+  ) {
+    let Transaction { inputs, mint, reference_inputs, extra_signatories, .. } =
+      tx
+    let ref_datum =
+      utils.ref_datum_by_nft(
+        reference_inputs,
+        config_nft,
+        constants.identication_tkn,
+      )
+
+    when redeemer.action is {
+      // Action 0: Mint COT for an approved project.
+      0 -> {
+        expect Some(oref_input) = find_input(inputs, redeemer.oref)
+        expect InlineDatum(oref_input_datum) = oref_input.output.datum
+        expect _: ProjectDatum = oref_input_datum
+        // Generate the token name from the output reference.
+        let tkname = utils.token_name_oref(redeemer.oref)
+        and {
+          utils.must_burn_less_than_0(mint, validator_contract_mint),
+          value.prove_exact_nft(mint, policy_id, tkname),
+          tx.verify_multisig(
+            extra_signatories,
+            ref_datum.multisig_validator_group.signers,
+            ref_datum.multisig_validator_group.required,
+          ),
+        }
+      }
+      // Action 1: Burn COT.
+      // This can be done either by a multisig approval or by providing an equivalent amount of CET to be burned.
+      1 -> {
+        let multi_sig =
+          tx.verify_multisig(
+            extra_signatories,
+            ref_datum.multisig_validator_group.signers,
+            ref_datum.multisig_validator_group.required,
+          )
+        if multi_sig {
+          utils.must_burn_less_than_0(mint, policy_id)
+        } else {
+          expect [Pair(_, cet_qty)] =
+            mint |> assets.tokens(ref_datum.cet_policyid) |> dict.to_pairs
+          expect [Pair(_, cot_qty)] =
+            mint |> assets.tokens(policy_id) |> dict.to_pairs
+          and {
+            cet_qty < 0,
+            cot_qty == cet_qty,
+          }
+        }
+      }
+      _ -> fail
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+/// This validator handles the creation of new projects.
+/// It mints a unique project NFT and sends it to the `project_validation` contract for approval.
+validator project_initiator(config_nft: PolicyId) {
+  mint(redeemer: Int, policy_id: PolicyId, tx: Transaction) {
+    let Transaction { mint, reference_inputs, outputs, .. } = tx
+    when redeemer is {
+      // Action 0: Create a new project.
+      // This action validates the project's category, ensures the platform fee is paid,
+      // mints the project NFT, and sends the NFT and project datum to the
+      // `project_validation` contract.
+      0 -> {
+        let ref_datum =
+          utils.ref_datum_by_nft(
+            reference_inputs,
+            config_nft,
+            constants.identication_tkn,
+          )
+        // Get the platform fee address from the reference datum.
+        let payout_addr = addresses.from_wallet(ref_datum.fees_address)
+        // Get the project validation contract address.
+        let project_validation_addr =
+          addresses.from_wallet(ref_datum.spend_address)
+        let project_validation_output =
+          find.output_by_addr(outputs, project_validation_addr)
+        expect InlineDatum(script_data) = project_validation_output.datum
+        expect project_validation_datum: ProjectDatum = script_data
+        let payout_value =
+          value.from_token(
+            Token {
+              pid: ref_datum.fees_asset_class.policy_id,
+              tkn: ref_datum.fees_asset_class.asset_name,
+              amt: ref_datum.fees_amount,
+            },
+          )
+        and {
+          utils.is_category_from_supported_categories(
+            ref_datum.categories,
+            project_validation_datum.category,
+          )?,
+          value.prove_exact_nft(
+            mint,
+            policy_id,
+            project_validation_datum.asset_name,
+          )?,
+          payout.exact(payout_addr, payout_value, outputs),
+          utils.must_send_nft_and_datum_to_script(
+            project_validation_output,
+            policy_id,
+          )?,
+        }
+      }
+      // Action 1: Burn a project NFT.
+      // This allows for the burning of one or more project NFTs at the same time.
+      1 -> utils.must_burn_less_than_0(mint, policy_id)
+
+      _ -> fail
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/cet_minter.ak
+================================================
+//// this module handle's the buring and minting of the `CET`
+
+use aiken/collection/dict
+use cardano/assets.{PolicyId}
+use cardano/transaction.{InlineDatum, Transaction}
+use functions/utils
+use types/datum.{CETDatum}
+use types/redeemer.{EmissionBurnRedeemer}
+
+/// The `cet_minter` validator handles the minting and burning of Carbon Emission Tokens (CET).
+/// It ensures that CETs are minted correctly based on emission data and can be burned
+/// in a 1:1 ratio with Carbon Offset Tokens (COT).
+validator cet_minter {
+  mint(redeemer: Data, policy_id: PolicyId, tx: Transaction) {
+    let Transaction { mint, inputs, outputs, .. } = tx
+
+    // The validator's behavior depends on the type of redeemer provided.
+    if redeemer is CETDatum {
+      // This branch handles the minting of new CETs.
+      let CETDatum { cet_qty, .. } = redeemer
+      // Ensure that tokens are being minted under the correct policy.
+      expect [Pair(token_name, qty)] =
+        mint |> assets.tokens(policy_id) |> dict.to_pairs
+      let cet_output = utils.user_script_address(inputs, outputs)
+      expect InlineDatum(datum_data) = cet_output.datum
+      let redeemer_data: Data = redeemer
+      and {
+        // The minted quantity must match the quantity specified in the redeemer.
+        qty == cet_qty,
+        // The same quantity of CETs must be sent to the user script address.
+        assets.quantity_of(cet_output.value, policy_id, token_name) == qty,
+        // The datum in the output must match the redeemer.
+        datum_data == redeemer_data,
+      }
+    } else if redeemer is EmissionBurnRedeemer {
+      // This branch handles the burning of CETs.
+      expect [Pair(_, cet_qty)] =
+        mint |> assets.tokens(policy_id) |> dict.to_pairs
+      expect [Pair(_, cot_qty)] =
+        mint |> assets.tokens(redeemer.cot_policyid) |> dict.to_pairs
+      and {
+        // The quantity of CETs being burned must be negative.
+        cet_qty < 0,
+        // The quantity of burned CETs must equal the quantity of burned COTs.
+        cet_qty == cot_qty,
+      }
+    } else {
+      fail @"invalid redeemer"
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/cet_user_script.ak
+================================================
+//// This module defines a validator that manages user-specific script addresses for holding
+//// Carbon Emission Tokens (CET).
+
+use aiken/collection/dict
+use cardano/address.{Script}
+use cardano/assets.{PolicyId}
+use cardano/transaction.{OutputReference, Transaction, find_input}
+use functions/utils
+
+/// This validator manages a user-specific script address for holding CETs.
+/// The address is unique to each user, derived from their stake credentials.
+/// This design ensures that CETs are locked in a user-specific contract and cannot be transferred,
+/// while allowing the user to spend their Carbon Offsetting Tokens (COT).
+validator user_script(cet_policyid: PolicyId, cot_policyid: PolicyId) {
+  spend(_datum, redeemer: Int, oref: OutputReference, tx: Transaction) {
+    let Transaction { inputs, mint, .. } = tx
+    expect Some(self_input) = find_input(inputs, oref)
+    expect Script(script) = self_input.output.address.payment_credential
+    let user_script_address = utils.get_output_addr(script, inputs)
+    when redeemer is {
+      // Action 0: Offset emissions by burning CET and COT.
+      0 -> {
+        expect [Pair(cet_tkn, cet_qty)] =
+          mint |> assets.tokens(cet_policyid) |> dict.to_pairs
+        expect [Pair(cot_tkn, cot_qty)] =
+          mint |> assets.tokens(cot_policyid) |> dict.to_pairs
+
+        and {
+          // Ensure the quantity of CETs being burned is negative.
+          (cet_qty < 0)?,
+          // The quantity of burned CETs must equal the quantity of burned COTs.
+          (cet_qty == cot_qty)?,
+          // Ensure any remaining tokens are sent back to the user's script address.
+          utils.must_send_remaining_token_to_addr(
+            tx,
+            cet_policyid,
+            cot_policyid,
+            cet_tkn,
+            cot_tkn,
+            cot_qty,
+            user_script_address,
+          )?,
+        }
+      }
+      // Action 1: Withdraw COT or other tokens.
+      // This action allows the user to spend tokens from the script address
+      1 -> fail @"not yet implemented"
+      _ -> fail @"invalid redeemer value"
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/config_datum_holder.ak
+================================================
+//// This validator is responsible for safeguarding the central configuration datum of the protocol.
+//// It ensures that any modifications to the configuration are authorized by a multi-signature group.
+
+use cardano/assets.{PolicyId}
+use cardano/transaction.{InlineDatum, Transaction}
+use functions/utils as lib
+use types/datum.{ConfigDatum}
+use types/utils.{Executed, InProgress}
+use validation/find
+
+/// The `config_datum_holder` validator locks the main `ConfigDatum` and the Identification NFT.
+/// Spending from this validator requires approval from a specified multi-signature group,
+/// preventing unauthorized changes to the protocol's configuration.
+/// added config_nft as param to have unique address while testing
+validator config_datum_holder(_config_nft: PolicyId) {
+  spend(
+    datum: Option<ConfigDatum>,
+    redeemer proposal_id: ByteArray,
+    _oref,
+    tx: Transaction,
+  ) {
+    // This validator ensures that any changes to the configuration are made
+    // only after a corresponding proposal has been approved and executed in the DAO.
+    //
+    // It performs the following checks:
+    // 1. Finds the DAO validator's input and output in the transaction using an NFT
+    //    uniquely associated with the proposal (`proposal_id`). The policy ID of this
+    //    NFT is stored in the `ConfigDatum`.
+    // 2. Extracts the `GovernanceDatum` from both the DAO's input and output.
+    // 3. Verifies that the proposal's state transitions from `InProgress` to `Executed`,
+    //    confirming that the proposal has been successfully approved and is now being
+    //    implemented.
+    when datum is {
+      Some(datum) -> {
+        trace @"-----------------\n dao Policy": datum.dao_policyid, proposal_id
+        let dao_input =
+          find.input_by_nft(tx.inputs, datum.dao_policyid, proposal_id)
+        trace @"dao input found"
+        let dao_output =
+          lib.output_by_nft(tx.outputs, datum.dao_policyid, proposal_id)
+        let input_governance_datum = {
+          expect InlineDatum(data) = dao_input.output.datum
+          lib.governance_datum_from_data(data)
+        }
+        let output_governance_datum = {
+          expect InlineDatum(data) = dao_output.datum
+          lib.governance_datum_from_data(data)
+        }
+        and {
+          input_governance_datum.proposal_state == InProgress,
+          output_governance_datum.proposal_state == Executed,
+        }
+      }
+      _ -> fail @"Invalid datum: Expected ConfigDatum, got None."
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/crowdfunding.ak
+================================================
+//// This module implements a comprehensive crowdfunding validator.
+
+use aiken/collection/list
+use cardano/address.{Address, Script}
+use cardano/addresses
+use cardano/assets.{PolicyId}
+use cardano/transaction.{
+  InlineDatum, Input, Output, OutputReference, Transaction,
+}
+use cardano/tx
+use cardano/value
+use constants
+use functions/utils
+use types/datum.{
+  BackerDatum, CampaignDatum, Cancelled, ConfigDatum, Finished, Initiated,
+  Running,
+}
+use types/moment.{Moment}
+use types/redeemer.{CampaignAction, Cancel, Finish, Refund, Release, Support}
+use types/token.{Token}
+use validation/find
+use validation/payout
+
+/// The `campaign` validator manages the entire lifecycle of a crowdfunding campaign.
+/// It ensures that each campaign has a unique address by combining the script hash with the creator's stake credentials.
+/// Key features include:
+/// - Milestone-based payment releases, authorized by a multi-signature group.
+/// - Fractional, fixed-amount contributions from supporters.
+/// - Reward token distribution to backers.
+validator campaign(config_nft: PolicyId) {
+  // This minting policy controls the campaign's reward tokens.
+  // It handles the initial minting of reward tokens when a campaign is created,
+  // and the burning of these tokens when a campaign is finished or cancelled.
+  mint(
+    redeemer campaign_datum: CampaignDatum,
+    policy_id self_script: PolicyId,
+    tx: Transaction,
+  ) {
+    when campaign_datum.state is {
+      // If the campaign is finished or cancelled, all remaining reward tokens must be burned.
+      Finished |
+      Cancelled ->
+        assets.quantity_of(tx.mint, self_script, campaign_datum.name) <= 0
+      // For any other state, it's assumed to be the campaign's initiation.
+      _ -> {
+        expect CampaignDatum {
+          goal,
+          name,
+          deadline,
+          milestone,
+          creator,
+          fraction,
+          state: Initiated,
+        } = campaign_datum
+        expect goal > 0
+        let script_addr = addresses.create_address(self_script, creator.sc)
+        let payout_value =
+          value.from_token(Token { pid: self_script, tkn: name, amt: fraction })
+        and {
+          // The campaign deadline must be in the future.
+          moment.is_before(
+            Moment { start: 0, end: deadline },
+            tx.validity_range,
+          ),
+          // All milestone completion flags must initially be set to `False`.
+          !list.has(milestone, True),
+          // The number of minted reward tokens must match the campaign's defined fraction.
+          assets.quantity_of(tx.mint, self_script, name) == fraction,
+          // The newly minted reward tokens must be sent to the unique campaign address.
+          payout.exact(script_addr, payout_value, tx.outputs),
+        }
+      }
+    }
+  }
+
+  spend(
+    datum: Option<Data>,
+    redeemer: CampaignAction,
+    o_ref: OutputReference,
+    tx: Transaction,
+  ) {
+    expect Some(Input { output: Output { address: script_address, .. }, .. }) =
+      transaction.find_input(tx.inputs, o_ref)
+    expect Script(self_script) = script_address.payment_credential
+    let ConfigDatum { multisig_validator_group, .. } =
+      utils.ref_datum_by_nft(
+        tx.reference_inputs,
+        config_nft,
+        constants.identication_tkn,
+      )
+    // matching based on the datum and redeemer
+    when (datum, redeemer) is {
+      // Action: Support the campaign.
+      // A backer sends funds and receives reward tokens in return.
+      // This action is only valid when the campaign is in the 'Running' state.
+      (Some(current_datum), Support) ->
+        if current_datum is campaign_datum: CampaignDatum {
+          let CampaignDatum { name, goal, fraction, creator, .. } =
+            campaign_datum
+          let fraction_amount = goal / fraction
+          // Find the outputs containing the reward tokens: one for the backer, one back to the script.
+          expect [backer_reward_output,
+            script_reward_output] =
+            utils.outputs_by_pid(tx.outputs, self_script, name)
+          // Find the outputs sent to the campaign address: one with the backer's funds, one with the remaining reward tokens.
+          expect [backer_amount_output,
+            script_token_output] =
+            utils.outputs_by_addr(
+              tx.outputs,
+              addresses.create_address(self_script, creator.sc),
+            )
+          let backer_reward_qty =
+            assets.quantity_of(backer_reward_output.value, self_script, name)
+          let script_reward_qty =
+            assets.quantity_of(script_reward_output.value, self_script, name)
+
+          let backer_lovelace_qty =
+            assets.lovelace_of(backer_amount_output.value)
+          let script_reward_qty_ =
+            assets.quantity_of(script_token_output.value, self_script, name)
+          expect InlineDatum(output_datum) = script_token_output.datum
+          and {
+            // The campaign datum must remain unchanged.
+            output_datum == current_datum,
+            // The campaign must be in the 'Running' state.
+            utils.campaign_state(campaign_datum, Running),
+            // The quantity of reward tokens returned to the script must be correct.
+            script_reward_qty == script_reward_qty_,
+            // The number of reward tokens sent to the backer must correspond to their contribution amount.
+            backer_lovelace_qty / fraction_amount == backer_reward_qty,
+          }
+        } else {
+          fail @"Invalid Support Datum Type! Must be CampaignDatum"
+        }
+      // Action: Cancel the campaign.
+      // This can be triggered by the creator at any time or by the platform (multisig) after the deadline.
+      // It transitions the campaign state to 'Cancelled' and allows backers to claim refunds.
+      (Some(current_datum), Cancel) ->
+        if current_datum is campaign_datum: CampaignDatum {
+          let CampaignDatum { creator, deadline, .. } = campaign_datum
+          let is_signed_by_platform =
+            tx.verify_multisig(
+              tx.extra_signatories,
+              multisig_validator_group.signers,
+              multisig_validator_group.required,
+            )
+          let output_datum_data =
+            find.output_datum_by_addr(
+              tx.outputs,
+              addresses.create_address(self_script, creator.sc),
+            )
+          let expected_datum_data: Data =
+            CampaignDatum { ..campaign_datum, state: Cancelled }
+          and {
+            // Authorization check: either the platform cancels after the deadline, or the creator cancels anytime.
+            if is_signed_by_platform? {
+              moment.is_after(
+                Moment { start: 0, end: deadline },
+                tx.validity_range,
+              )
+            } else {
+              list.has(tx.extra_signatories, creator.pkh)
+            },
+            // The campaign must be in the 'Running' state to be cancelled.
+            utils.campaign_state(campaign_datum, Running),
+            // The output datum must correctly reflect the new 'Cancelled' state.
+            output_datum_data == expected_datum_data,
+          }
+        } else if current_datum is backer_datum: BackerDatum {
+          // This part handles the refund logic for a supporter when the campaign is cancelled.
+          let output_datum_data =
+            find.output_datum_by_addr(tx.outputs, script_address)
+          expect campaign_datum: CampaignDatum = output_datum_data
+          and {
+            // The campaign state must be 'Cancelled' to process refunds.
+            utils.campaign_state(campaign_datum, Cancelled),
+            // The backer must receive the correct refund amount.
+            utils.must_refund(tx, script_address, backer_datum)?,
+            // The backer's reward tokens must be burned.
+            assets.quantity_of(tx.mint, self_script, campaign_datum.name) <= 0,
+          }
+        } else {
+          fail @"Invalid Cancel Datum Type! Must be CampaignDatum or BackerDatum"
+        }
+
+      // Action: Finish the campaign.
+      // This can be triggered by the creator or the platform when the campaign goal is met.
+      // It transitions the state to 'Finished' and consolidates all funds.
+      (Some(current_datum), Finish) ->
+        if current_datum is campaign_datum: CampaignDatum {
+          let is_signed_by_platform =
+            tx.verify_multisig(
+              tx.extra_signatories,
+              multisig_validator_group.signers,
+              multisig_validator_group.required,
+            )
+          let output_datum_data =
+            find.output_datum_by_addr(tx.outputs, script_address)
+          let expected_datum_data: Data =
+            CampaignDatum { ..campaign_datum, state: Finished }
+          and {
+            // Authorization: can be finished by the platform after the deadline or by the creator anytime.
+            if is_signed_by_platform? {
+              moment.is_after(
+                Moment { start: 0, end: campaign_datum.deadline },
+                tx.validity_range,
+              )
+            } else {
+              list.has(tx.extra_signatories, campaign_datum.creator.pkh)
+            },
+            // The campaign must be in the 'Running' state to be finished.
+            utils.campaign_state(campaign_datum, Running),
+            // The output datum must reflect the new 'Finished' state.
+            output_datum_data == expected_datum_data,
+            // All contributed funds must be consolidated into a single UTxO at the script address.
+            utils.must_pay_to_script(
+              tx,
+              script_address,
+              campaign_datum: CampaignDatum {
+                ..campaign_datum,
+                state: Finished,
+              },
+            ),
+            // Any remaining reward tokens must be burned.
+            assets.quantity_of(tx.mint, self_script, campaign_datum.name) <= 0,
+          }
+        } else if current_datum is BackerDatum {
+          // This ensures that backers' UTxOs can be consumed during the 'Finish' action.
+          let output_datum_data =
+            find.output_datum_by_addr(tx.outputs, script_address)
+          expect campaign_datum: CampaignDatum = output_datum_data
+          utils.campaign_state(campaign_datum, Running)
+        } else {
+          fail @"Invalid Finish Datum Type!"
+        }
+      // Action: Refund a backer.
+      // This allows a backer to get their funds back if the campaign has been cancelled.
+      (Some(current_datum), Refund) ->
+        if current_datum is backer_datum: BackerDatum {
+          let output_datum_data =
+            find.output_datum_by_addr(tx.outputs, script_address)
+          expect campaign_datum: CampaignDatum = output_datum_data
+          and {
+            // The campaign must be in the 'Cancelled' state.
+            utils.campaign_state(campaign_datum, Cancelled),
+            // The backer must receive their exact contribution back.
+            utils.must_refund(tx, script_address, backer_datum)?,
+            // The corresponding reward tokens must be burned.
+            assets.quantity_of(tx.mint, self_script, campaign_datum.name) <= 0,
+          }
+        } else {
+          fail @"Invalid Refund Datum Type! Must be BackerDatum"
+        }
+      // Action: Release funds to the creator.
+      // This is triggered after the campaign is 'Finished' and allows the creator to withdraw
+      // funds based on pre-defined milestones, requiring multisig approval.
+      (Some(current_datum), Release) ->
+        if current_datum is campaign_datum: CampaignDatum {
+          let updated_datum = utils.updating_datum_milestone(campaign_datum)
+          let expected_datum_data: Data = updated_datum
+          let output_datum_data =
+            find.output_datum_by_addr(tx.outputs, script_address)
+          and {
+            // The transaction must be signed by the multisig group.
+            tx.verify_multisig(
+              tx.extra_signatories,
+              multisig_validator_group.signers,
+              multisig_validator_group.required,
+            )?,
+            // The campaign must be in the 'Finished' state.
+            utils.campaign_state(campaign_datum, Finished)?,
+            // The output datum must reflect the updated milestone status.
+            output_datum_data == expected_datum_data,
+            // The funds must be sent to the creator, and the goal must have been met.
+            utils.must_reach_goal_and_send_to_creator(
+              tx,
+              script_address,
+              campaign_datum,
+            )?,
+          }
+        } else {
+          fail @"Invalid Release Datum Type! Must be CampaignDatum"
+        }
+      // NoDatum etc:
+      _ ->
+        tx.verify_multisig(
+          tx.extra_signatories,
+          multisig_validator_group.signers,
+          multisig_validator_group.required,
+        )
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/dao.ak
+================================================
+//// DAO Proposal Management Validator
+//// This validator manages the lifecycle of DAO proposals, including voting and execution.
+//// It ensures that proposals can only be voted on when they are in progress, and that
+//// they can only be executed after the voting period has ended and the proposal has been approved.
+//// It also handles the rejection of proposals that fail to meet the necessary criteria.
+
+use aiken/collection/list
+use cardano/address.{Script}
+use cardano/assets.{PolicyId}
+use cardano/transaction.{
+  InlineDatum, OutputReference, Transaction, find_input, find_script_outputs,
+}
+use constants
+use functions/utils
+use types/datum.{ConfigDatum, GovernanceDatum}
+use types/moment
+use types/redeemer.{
+  ExecuteProposal, GovernanceRedeemer, RejectProposal, SubmitProposal,
+  VoteProposal,
+}
+use types/utils.{
+  Abstain, Executed, FeeAddressUpdate, FeeAmountUpdate, InProgress, Multisig, No,
+  Pending, Rejected, ValidatorAdd, ValidatorRemove, Yes,
+} as types
+
+/// A validator for managing DAO proposals.
+/// This script controls the lifecycle of a proposal, including voting and resolution.
+///
+/// # Parameters
+/// * `config_nft` - The PolicyId of the configuration NFT. Note: This is not currently used in the spend validator.
+validator dao(config_nft: PolicyId) {
+  /// The `spend` validator logic is triggered when a UTxO locked by this script is spent.
+  /// It handles actions like voting on proposals and rejecting failed proposals.
+  spend(
+    datum: Option<Data>,
+    redeemer: GovernanceRedeemer,
+    oref: OutputReference,
+    tx: Transaction,
+  ) {
+    when datum is {
+      Some(data) -> {
+        let datum = utils.governance_datum_from_data(data)
+        // The script requires that the proposal UTxO be spent and a new one created
+        // in the same transaction, carrying forward the updated state.
+        // Find the script's own hash to locate the continuing output.
+        let self_hash = {
+          expect Some(input) = find_input(tx.inputs, oref)
+          expect Script(script_hash) = input.output.address.payment_credential
+          script_hash
+        }
+
+        // Expect exactly one output to be sent back to the script address.
+        let self_output = {
+          expect [output] = find_script_outputs(tx.outputs, self_hash)
+          output
+        }
+
+        // Decode the datum from the continuing output.
+        let self_output_datum = {
+          expect InlineDatum(data) = self_output.datum
+          utils.governance_datum_from_data(data)
+        }
+
+        // Handle actions based on the provided redeemer.
+        when redeemer is {
+          // Proposal submission is not handled by this spend validator.
+          // It's handled by a minting policy that creates the initial proposal UTxO.
+          SubmitProposal { .. } ->
+            fail @"Invalid Redeemer: Proposal submission not allowed"
+          // 1. The proposal ID must remain unchanged.
+          // 2. The proposal must be in the 'InProgress' state to allow voting.
+          // 3. The vote must be cast before the proposal's deadline.
+          // 5. The voter must not have already voted (their status must be 'Pending').
+          // 6. The output datum must correctly reflect the new vote cast by the voter.
+          // 7. The proposal state must remain 'InProgress' after the vote.
+          // 8. The relevant vote count must be incremented by exactly one.
+          // TODO: check if the voter has signed the tx
+          VoteProposal { proposal_id, voter, vote } -> and {
+              (proposal_id == self_output_datum.proposal_id)?,
+              (datum.proposal_id == self_output_datum.proposal_id)?,
+              (datum.proposal_state == InProgress)?,
+              moment.is_contained(datum.deadline, tx.validity_range)?,
+              (Pending == utils.get_vote(datum.votes, voter))?,
+              (vote == utils.get_vote(self_output_datum.votes, voter))?,
+              (self_output_datum.proposal_state == InProgress)?,
+              when vote is {
+                Yes ->
+                  (datum.votes_count.yes + 1 == self_output_datum.votes_count.yes)?
+                No ->
+                  (datum.votes_count.no + 1 == self_output_datum.votes_count.no)?
+                Abstain ->
+                  (datum.votes_count.abstain + 1 == self_output_datum.votes_count.abstain)?
+                _ -> fail @"Invalid Vote type"
+              },
+            }
+
+          // Proposal execution is not yet implemented.
+          // finds configDatum using config_nft
+          // finds the output_configDatum using config_nft
+          // match's the configDatum and the output_configDatum
+          // the match is done based on the ProposalAction. if its `feesupdate` then we update configDatum's fees field and compare it to the output_configDatum
+          ExecuteProposal { proposal_id } -> {
+            trace @"started Execute..........."
+            expect and {
+                // 1. The proposal ID must match.
+                // 2. The proposal must currently be 'InProgress'.
+                // 3. The transaction must be after the voting deadline.
+                // 4. The number of 'Yes' votes must be strictly greater than 'No' votes.
+                // 5. The final state of the proposal in the output datum must be 'Executed'.
+                (proposal_id == datum.proposal_id)?,
+                (datum.proposal_state == InProgress)?,
+                moment.is_after(datum.deadline, tx.validity_range)?,
+                (datum.votes_count.yes > datum.votes_count.no)?,
+                (self_output_datum.proposal_state == Executed)?,
+              }
+            trace @"passed and block --------------------"
+            let current_config_datum =
+              utils.ref_datum_by_nft(
+                tx.inputs,
+                config_nft,
+                constants.identication_tkn,
+              )
+            trace @"found config datm **************"
+            let new_config_datum =
+              utils.output_ref_datum_by_nft(
+                tx.outputs,
+                config_nft,
+                constants.identication_tkn,
+              )
+            trace @"found updated config datum"
+            when self_output_datum.proposal_action is {
+              ValidatorAdd(added_addr) -> {
+                let multisig_validator_group_new =
+                  Multisig {
+                    required: current_config_datum.multisig_validator_group.required,
+                    signers: [
+                      added_addr,
+                      ..current_config_datum.multisig_validator_group.signers
+                    ],
+                  }
+                // Comparing the configDatum with the new configDatum
+                ConfigDatum {
+                  ..current_config_datum,
+                  multisig_validator_group: multisig_validator_group_new,
+                } == new_config_datum
+              }
+              ValidatorRemove(removed_addr) -> {
+                let multisig_validator_group_new =
+                  Multisig {
+                    required: current_config_datum.multisig_validator_group.required,
+                    signers: list.delete(
+                      current_config_datum.multisig_validator_group.signers,
+                      removed_addr,
+                    ),
+                  }
+                // Comparing the configDatum with the new configDatum
+                ConfigDatum {
+                  ..current_config_datum,
+                  multisig_validator_group: multisig_validator_group_new,
+                } == new_config_datum
+              }
+              FeeAmountUpdate(updated_fee) ->
+                ConfigDatum { ..current_config_datum, fees_amount: updated_fee } == new_config_datum
+              FeeAddressUpdate(updated_addr) ->
+                ConfigDatum {
+                  ..current_config_datum,
+                  fees_address: updated_addr,
+                } == new_config_datum
+            }
+          }
+
+          // 1. The proposal ID must match.
+          // 2. The proposal must currently be 'InProgress'.
+          // 3. The transaction must be after the voting deadline.
+          // 4. The number of 'No' votes must be strictly greater than 'Yes' votes.
+          // 5. The final state of the proposal in the output datum must be 'Rejected'.
+          RejectProposal { proposal_id } -> and {
+              (proposal_id == self_output_datum.proposal_id)?,
+              (datum.proposal_id == self_output_datum.proposal_id)?,
+              (datum.proposal_state == InProgress)?,
+              moment.is_after(datum.deadline, tx.validity_range)?,
+              (datum.votes_count.no > datum.votes_count.yes)?,
+              (self_output_datum.proposal_state == Rejected)?,
+            }
+        }
+      }
+      None -> fail @"Datum is required"
+    }
+  }
+
+  mint(redeemer: GovernanceRedeemer, policy_id: PolicyId, tx: Transaction) {
+    when redeemer is {
+      SubmitProposal { proposal_id } -> {
+        // output datum must be a GovernanceDatum
+        // must be signedby the submitted_by
+        // output datum proposal_id must match the proposal_id from redeemer
+        // output datum proposal_state must be InProgress
+        // output must be going to a script address
+        let output = utils.output_by_nft(tx.outputs, policy_id, proposal_id)
+        let datum = {
+          expect InlineDatum(data) = output.datum
+          utils.governance_datum_from_data(data)
+        }
+        // TODO: configDatum.daoMember must match the datum.votes list.
+        // TODO: votes_count must be 0 for yes, no, abstain
+        and {
+          list.has(tx.extra_signatories, datum.submitted_by),
+          datum.proposal_id == proposal_id,
+          datum.proposal_state == InProgress,
+          output.address.payment_credential == Script(policy_id),
+        }
+      }
+      _ -> fail @"Invalid Redeemer: only SubmitProposal is allowed in minting"
+    }
+  }
+
+  else(_) {
+    fail @"Invalid transaction type"
+  }
+}
+
+
+
+================================================
+FILE: validators/identification_nft.ak
+================================================
+//// This validator manages the lifecycle of the Identification NFT, a singleton token
+//// used to uniquely identify the UTxO that holds the protocol's main configuration datum.
+//// The policy ID of this NFT is passed as a parameter to most other contracts,
+//// allowing them to easily locate and reference the configuration.
+
+use cardano/assets.{PolicyId}
+use cardano/minting
+use cardano/transaction.{OutputReference, Transaction}
+use cardano/tx as logical_tx
+use constants
+use types/redeemer.{Action, Burn, Mint}
+
+/// The `identification_nft` validator is a minting policy that controls the creation and
+/// destruction of the unique Identification NFT.
+/// It takes the `OutputReference` of the transaction output that will be consumed to mint the NFT,
+/// ensuring that the minting is a one-time event.
+validator identification_nft(o_ref: OutputReference) {
+  mint(redeemer: Action, policy_id: PolicyId, tx: Transaction) {
+    let Transaction { inputs, mint, .. } = tx
+    let flatten_value = assets.flatten(mint)
+    when redeemer is {
+      // The Mint action is used to create the Identification NFT.
+      // It enforces that exactly one token is minted and that the specific UTxO
+      // defined by `o_ref` is being spent in the transaction. This ensures
+      // that the NFT is a singleton.
+      Mint -> and {
+          logical_tx.is_spending_input(inputs, o_ref)?,
+          minting.exact(flatten_value, policy_id, constants.identication_tkn, 1)?,
+        }
+
+      // The Burn action is used to destroy the Identification NFT.
+      // It ensures that exactly one token is burned.
+      Burn ->
+        minting.exact(flatten_value, policy_id, constants.identication_tkn, -1)
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
+
+================================================
+FILE: validators/marketplace.ak
+================================================
+//// Marketplace validator for the Karbonstore
+//// This validator implements a simple marketplace for assets, allowing owners to list Carbon Offsetting Tokens (COT) for sale and buyers to purchase them.
+//// It also enforces a royalty fee on each sale.
+
+use aiken/collection/list
+use cardano/addresses
+use cardano/transaction.{OutputReference, Transaction}
+use constants
+use functions/utils
+use types/datum.{MarketplaceDatum}
+use types/redeemer.{Buy, MarketplaceRedeemer, Withdraw}
+use validation/payout
+
+/// The `karbonstore` validator implements a simple marketplace for assets.
+/// It allows owners to list `COT` for sale and buyers to purchase them.
+/// The validator also enforces a royalty fee on each sale.
+validator karbonstore {
+  spend(
+    datum: Option<MarketplaceDatum>,
+    redeemer: MarketplaceRedeemer,
+    _oref: OutputReference,
+    tx: Transaction,
+  ) {
+    let Transaction { outputs, extra_signatories, .. } = tx
+    expect Some(MarketplaceDatum { owner: seller, amount }) = datum
+    let (marketplace_payout, seller_payout) =
+      utils.calculate_payout_royalty(amount)
+    when redeemer is {
+      // The Buy action allows a user to purchase the asset locked at the contract.
+      // It ensures that the seller receives the correct payout and that the
+      // marketplace royalty is paid to the designated address.
+      Buy -> and {
+          payout.at_least(addresses.from_wallet(seller), seller_payout, outputs)?,
+          payout.at_least(
+            addresses.from_wallet(constants.roylaty_addr),
+            marketplace_payout,
+            outputs,
+          )?,
+        }
+      // The Withdraw action allows the original owner of the asset to withdraw it
+      // from the marketplace without a sale.
+      // It requires the transaction to be signed by the owner.
+      Withdraw -> list.has(extra_signatories, seller.pkh)
+    }
+  }
+
+  else(_) {
+    fail
+  }
+}
+
+
