@@ -28,19 +28,19 @@ type ScriptConfig = {
 
 const SCRIPTS: ScriptConfig[] = [
   {
-    name: "user_profile_spend",
+    name: "user_profile",
     script: userprofile_user_profile_spend,
     type: "SpendingValidator",
     params: "none",
   },
   {
-    name: "project_spend",
+    name: "project",
     script: project_project_contract_spend,
     type: "SpendingValidator",
     params: "single", // Takes profile_nft PolicyId
   },
   {
-    name: "arbitrator_spend",
+    name: "arbitrator",
     script: arbitrator_arbitrator_spend,
     type: "SpendingValidator",
     params: "double", // Takes profile_nft and project_nft PolicyIds
@@ -386,14 +386,14 @@ export default function AdminScriptsPage() {
       // Prepare all scripts
       const scripts = [
         {
-          name: "user_profile_spend",
+          name: "user_profile",
           script: {
             type: "PlutusV3" as const,
             script: applyDoubleCborEncoding(userprofile_user_profile_spend),
           },
         },
         {
-          name: "project_spend",
+          name: "project",
           script: {
             type: "PlutusV3" as const,
             script: applyDoubleCborEncoding(
@@ -404,7 +404,7 @@ export default function AdminScriptsPage() {
           },
         },
         {
-          name: "arbitrator_spend",
+          name: "arbitrator",
           script: {
             type: "PlutusV3" as const,
             script: applyDoubleCborEncoding(

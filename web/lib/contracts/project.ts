@@ -9,6 +9,8 @@ import {
   paymentCredentialOf,
   SpendingValidator,
   validatorToAddress,
+  UTxO,
+  Script,
 } from "@lucid-evolution/lucid";
 import {
   project_project_contract_mint,
@@ -24,6 +26,32 @@ import {
   UserProfileRedeemer,
 } from "@/types/contracts";
 import { blockfrost } from "@/lib/cardano";
+import { supabase } from "@/lib/supabase";
+
+const getReferenceScriptUtxo = async (
+  lucid: LucidEvolution,
+  scriptName: string
+): Promise<UTxO> => {
+  const { data, error } = await supabase
+    .from("reference_scripts")
+    .select("*")
+    .eq("script_name", scriptName)
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Reference script ${scriptName} not found in database`);
+  }
+
+  const [utxo] = await lucid.utxosByOutRef([
+    { txHash: data.tx_hash, outputIndex: data.output_index },
+  ]);
+  if (!utxo) {
+    throw new Error(
+      `Reference script UTxO not found on-chain: ${data.tx_hash}#${data.output_index}`
+    );
+  }
+  return utxo;
+};
 
 export const createProject = async (
   lucid: LucidEvolution,
@@ -140,10 +168,16 @@ export const createProject = async (
     dispute_nft: null,
   };
 
+  // 4. Fetch Reference Scripts
+  const profileSpendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile"
+  );
+
   // 4. Build Transaction
   const tx = await lucid
     .newTx()
-    // Mint Project NFT
+    // Mint Project NFT (still attach policy as it's one-time use)
     .mintAssets({ [unit]: 1n }, Data.to("Create", ProjectMintRedeemer))
     .attach.MintingPolicy(projectMintingPolicy)
     // Pay to Project Script
@@ -178,7 +212,7 @@ export const createProject = async (
       },
       userProfileUtxo.assets // Return same assets (Profile NFT)
     )
-    .attach.SpendingValidator(profileSpendingValidator)
+    .readFrom([profileSpendRefUtxo]) // Use reference script
     .addSignerKey(pkh)
     .complete();
 
@@ -291,12 +325,18 @@ export const acceptProject = async (
     );
   }
 
-  // 4. Build Transaction
+  // 4. Fetch Reference Scripts
+  const projectSpendRefUtxo = await getReferenceScriptUtxo(lucid, "project");
+  const profileSpendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile"
+  );
+
+  // 5. Build Transaction
   const tx = await lucid
     .newTx()
     // Consume Project UTxO
     .collectFrom([projectUtxo], Data.to("Accept", ProjectRedeemer))
-    .attach.SpendingValidator(projectSpendingValidator)
     // Pay back to Project Script with updated datum and collateral
     .pay.ToContract(
       projectScriptAddress,
@@ -311,7 +351,6 @@ export const acceptProject = async (
       [freelancerProfileUtxo],
       Data.to("ProjectAccept", UserProfileRedeemer)
     )
-    .attach.SpendingValidator(profileSpendingValidator)
     .pay.ToContract(
       profileScriptAddress,
       {
@@ -331,6 +370,7 @@ export const acceptProject = async (
       },
       freelancerProfileUtxo.assets
     )
+    .readFrom([projectSpendRefUtxo, profileSpendRefUtxo]) // Use reference scripts
     .addSignerKey(pkh)
     .complete();
 
@@ -431,12 +471,18 @@ export const submitProject = async (
     submission_time: { start: now, end: now },
   };
 
-  // 4. Build Transaction
+  // 4. Fetch Reference Scripts
+  const projectSpendRefUtxo = await getReferenceScriptUtxo(lucid, "project");
+  const profileSpendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile"
+  );
+
+  // 5. Build Transaction
   const tx = await lucid
     .newTx()
     // Consume Project UTxO
     .collectFrom([projectUtxo], Data.to("Submit", ProjectRedeemer))
-    .attach.SpendingValidator(projectSpendingValidator)
     // Pay back to Project Script with updated datum
     .pay.ToContract(
       projectScriptAddress,
@@ -451,7 +497,6 @@ export const submitProject = async (
       [freelancerProfileUtxo],
       Data.to("ProjectSubmit", UserProfileRedeemer)
     )
-    .attach.SpendingValidator(profileSpendingValidator)
     .pay.ToContract(
       profileScriptAddress,
       {
@@ -460,6 +505,7 @@ export const submitProject = async (
       },
       freelancerProfileUtxo.assets
     )
+    .readFrom([projectSpendRefUtxo, profileSpendRefUtxo]) // Use reference scripts
     .addSignerKey(pkh)
     .complete();
 
@@ -605,18 +651,23 @@ export const approveProject = async (
       freelancerProfileDatum.total_balance + currentProjectDatum.project_amount,
   };
 
-  // 6. Build Transaction
+  // 6. Fetch Reference Scripts
+  const projectSpendRefUtxo = await getReferenceScriptUtxo(lucid, "project");
+  const profileSpendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile"
+  );
+
+  // 7. Build Transaction
   const tx = await lucid
     .newTx()
     // Consume Project UTxO (Redeemer: Approve)
     .collectFrom([projectUtxo], Data.to("Approve", ProjectRedeemer))
-    .attach.SpendingValidator(projectSpendingValidator)
     // Consume Client Profile UTxO
     .collectFrom(
       [clientProfileUtxo],
       Data.to("ProjectApproval", UserProfileRedeemer)
     )
-    .attach.SpendingValidator(profileSpendingValidator)
     // Consume Freelancer Profile UTxO
     .collectFrom(
       [freelancerProfileUtxo],
@@ -642,6 +693,7 @@ export const approveProject = async (
           currentProjectDatum.project_amount,
       }
     )
+    .readFrom([projectSpendRefUtxo, profileSpendRefUtxo]) // Use reference scripts
     .addSignerKey(pkh)
     .complete();
 

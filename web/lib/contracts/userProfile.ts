@@ -74,10 +74,7 @@ export const registerUser = async (
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
   // Fetch Reference Script UTxOs
-  const mintRefUtxo = await getReferenceScriptUtxo(lucid, "user_profile_mint");
-  // We don't strictly need the spend ref for minting unless the minting policy interacts with the spending validator
-  // in a way that requires it to be present (e.g. checking output address credential).
-  // But usually for minting we just need the minting policy ref.
+  // We are not deploying minting policy as reference script, so we attach it directly.
 
   const tokenName = fromText(username);
   const unit = policyId + tokenName;
@@ -116,9 +113,8 @@ export const registerUser = async (
 
   const tx = await lucid
     .newTx()
-    .readFrom([mintRefUtxo]) // Reference the minting policy
     .mintAssets({ [unit]: 1n }, mintRedeemer)
-    // .attach.MintingPolicy(mintingPolicy) // REMOVED: Using reference script
+    .attach.MintingPolicy(mintingPolicy)
     .pay.ToContract(
       scriptAddress,
       { kind: "inline", value: Data.to(userProfileDatum, UserProfileDatum) },
@@ -153,10 +149,7 @@ export const depositFunds = async (
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
   // Fetch Reference Script UTxO
-  const spendRefUtxo = await getReferenceScriptUtxo(
-    lucid,
-    "user_profile_spend"
-  );
+  const spendRefUtxo = await getReferenceScriptUtxo(lucid, "user_profile");
 
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
 
@@ -235,10 +228,7 @@ export const withdrawFunds = async (
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
   // Fetch Reference Script UTxO
-  const spendRefUtxo = await getReferenceScriptUtxo(
-    lucid,
-    "user_profile_spend"
-  );
+  const spendRefUtxo = await getReferenceScriptUtxo(lucid, "user_profile");
 
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
 
