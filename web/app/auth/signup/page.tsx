@@ -29,6 +29,8 @@ import { SUPPORTEDWALLETS } from "@/components/WalletConnector/wallets";
 import Image from "next/image";
 import { toast } from "sonner";
 
+import { siteConfig } from "@/config/site";
+
 export default function SignupPage() {
   const router = useRouter();
   const { signUp } = useAuth();
@@ -182,7 +184,7 @@ export default function SignupPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Join Talendro
+            Join {siteConfig.name}
           </h1>
           <p className="text-neutral-400">
             Start earning with trustless smart contracts

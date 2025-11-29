@@ -29,6 +29,8 @@ import { SUPPORTEDWALLETS } from "@/components/WalletConnector/wallets";
 import Image from "next/image";
 import { toast } from "sonner";
 
+import { siteConfig } from "@/config/site";
+
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, loginWithWallet } = useAuth();
@@ -198,7 +200,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            Talendro
+            {siteConfig.name}
           </h1>
           <p className="text-neutral-400">
             Decentralized Freelance Platform on Cardano
