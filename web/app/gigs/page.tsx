@@ -9,6 +9,7 @@ import { SearchIcon, FilterIcon } from "@/components/icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
+import NextLink from "next/link";
 import {
     Popover,
     PopoverTrigger,
@@ -30,6 +31,14 @@ export default function MarketplacePage() {
     const [maxPrice, setMaxPrice] = useState<number>(10000);
     const [minReputation, setMinReputation] = useState<number>(0);
     const [skills, setSkills] = useState("");
+    const [projectType, setProjectType] = useState<"all" | "my_projects" | "accepted_projects">("all");
+
+    // Sync state with URL param on mount/change
+    useEffect(() => {
+        if (filterParam === "my_projects") setProjectType("my_projects");
+        else if (filterParam === "accepted_projects") setProjectType("accepted_projects");
+        else setProjectType("all");
+    }, [filterParam]);
 
     const fetchProjects = useCallback(async () => {
         setLoading(true);
@@ -41,9 +50,9 @@ export default function MarketplacePage() {
             const userId = user?.id || userProfile?.id;
 
             // Main Context Filters
-            if (filterParam === "my_projects" && userId) {
+            if (projectType === "my_projects" && userId) {
                 query = query.eq("client_id", userId);
-            } else if (filterParam === "accepted_projects" && userId) {
+            } else if (projectType === "accepted_projects" && userId) {
                 query = query.eq("freelancer_id", userId);
             } else {
                 // Default Gigs View
@@ -83,7 +92,7 @@ export default function MarketplacePage() {
         } finally {
             setLoading(false);
         }
-    }, [filterParam, user, userProfile, search, skills, minPrice, maxPrice, minReputation]);
+    }, [projectType, user, userProfile, search, skills, minPrice, maxPrice, minReputation]);
 
     useEffect(() => {
         fetchProjects();
@@ -94,14 +103,14 @@ export default function MarketplacePage() {
     };
 
     const getPageTitle = () => {
-        if (filterParam === "my_projects") return "My Projects";
-        if (filterParam === "accepted_projects") return "Accepted Projects";
+        if (projectType === "my_projects") return "My Projects";
+        if (projectType === "accepted_projects") return "Accepted Projects";
         return "Find Work. Build Trust.";
     };
 
     const getPageDescription = () => {
-        if (filterParam === "my_projects") return "Manage the projects you have created.";
-        if (filterParam === "accepted_projects") return "Track the projects you are working on.";
+        if (projectType === "my_projects") return "Manage the projects you have created.";
+        if (projectType === "accepted_projects") return "Track the projects you are working on.";
         return "The decentralized marketplace for Cardano developers. Secure payments, automated disputes, and on-chain reputation.";
     };
 
@@ -110,9 +119,10 @@ export default function MarketplacePage() {
         setMaxPrice(10000);
         setMinReputation(0);
         setSkills("");
+        setProjectType("all");
     };
 
-    const hasActiveFilters = minPrice > 0 || maxPrice < 10000 || minReputation > 0 || skills !== "";
+    const hasActiveFilters = minPrice > 0 || maxPrice < 10000 || minReputation > 0 || skills !== "" || projectType !== "all";
 
     return (
         <div className="flex flex-col gap-8 pb-10">
@@ -125,29 +135,39 @@ export default function MarketplacePage() {
                     {getPageDescription()}
                 </p>
 
-                <div className="w-full max-w-xl mt-8 flex gap-2">
-                    <Input
-                        classNames={{
-                            base: "max-w-full sm:max-w-[20rem] h-12",
-                            mainWrapper: "h-full",
-                            input: "text-small",
-                            inputWrapper:
-                                "h-full font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20",
-                        }}
-                        placeholder="Search projects..."
-                        size="sm"
-                        startContent={<SearchIcon size={18} />}
-                        type="search"
-                        value={search}
-                        onValueChange={setSearch}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    />
+                <div className="w-full max-w-xl mt-8 flex flex-col sm:flex-row gap-2 items-center justify-center">
+                    <div className="flex w-full gap-2">
+                        <Input
+                            classNames={{
+                                base: "w-full h-12",
+                                mainWrapper: "h-full",
+                                input: "text-small",
+                                inputWrapper:
+                                    "h-full font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20",
+                            }}
+                            placeholder="Search projects..."
+                            size="sm"
+                            startContent={<SearchIcon size={18} />}
+                            type="search"
+                            value={search}
+                            onValueChange={setSearch}
+                            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        />
+                        <Button
+                            color="primary"
+                            className="h-12 px-8 font-bold shadow-lg shadow-primary/40"
+                            onPress={handleSearch}
+                        >
+                            Search
+                        </Button>
+                    </div>
+
                     <Button
-                        color="primary"
-                        className="h-12 px-8 font-bold shadow-lg shadow-primary/40"
-                        onPress={handleSearch}
+                        as={NextLink}
+                        href="/projects/create"
+                        className="h-12 px-8 font-bold bg-secondary text-white shadow-lg shadow-secondary/40 w-full sm:w-auto"
                     >
-                        Search
+                        Create Project
                     </Button>
                 </div>
             </section>
@@ -167,6 +187,36 @@ export default function MarketplacePage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-[340px] p-4">
                             <div className="flex flex-col gap-4 w-full">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Project Type</label>
+                                    <div className="flex flex-col gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant={projectType === "all" ? "solid" : "bordered"}
+                                            color={projectType === "all" ? "primary" : "default"}
+                                            onPress={() => setProjectType("all")}
+                                        >
+                                            All Open Projects
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={projectType === "my_projects" ? "solid" : "bordered"}
+                                            color={projectType === "my_projects" ? "primary" : "default"}
+                                            onPress={() => setProjectType("my_projects")}
+                                        >
+                                            My Created Projects
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={projectType === "accepted_projects" ? "solid" : "bordered"}
+                                            color={projectType === "accepted_projects" ? "primary" : "default"}
+                                            onPress={() => setProjectType("accepted_projects")}
+                                        >
+                                            Accepted Projects
+                                        </Button>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Price Range (ADA)</label>
                                     <div className="flex gap-2 items-center">
@@ -218,6 +268,16 @@ export default function MarketplacePage() {
 
                     {/* Active Filter Chips */}
                     <div className="flex flex-wrap gap-2 items-center">
+                        {projectType === "my_projects" && (
+                            <Chip onClose={() => setProjectType("all")} variant="flat" color="primary">
+                                My Projects
+                            </Chip>
+                        )}
+                        {projectType === "accepted_projects" && (
+                            <Chip onClose={() => setProjectType("all")} variant="flat" color="primary">
+                                Accepted Projects
+                            </Chip>
+                        )}
                         {minPrice > 0 && (
                             <Chip onClose={() => setMinPrice(0)} variant="flat" color="secondary">
                                 Min Price: {minPrice} ADA

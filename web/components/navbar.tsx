@@ -9,6 +9,7 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
+import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
@@ -74,55 +75,65 @@ export const Navbar = () => {
         <NavbarItem className="hidden sm:flex gap-2">
           <ThemeSwitch />
         </NavbarItem>
-        <NavbarItem className="hidden md:flex">
+        <NavbarItem className="hidden md:flex gap-2">
           {user || userProfile ? (
-            <Dropdown placement="bottom-end">
-              <DropdownTrigger>
-                <Avatar
-                  isBordered
-                  as="button"
-                  className="transition-transform"
-                  color="secondary"
-                  name={userProfile?.username?.charAt(0).toUpperCase() || "U"}
-                  size="sm"
-                  src={undefined} // Add avatar_url if available in userProfile
-                />
-              </DropdownTrigger>
-              <DropdownMenu aria-label="Profile Actions" variant="flat">
-                <DropdownItem
-                  key="profile"
-                  className="h-14 gap-2"
-                  textValue="Signed in as"
-                >
-                  <p className="font-semibold">Signed in as</p>
-                  <p className="font-semibold">
-                    {userProfile?.username || user?.email}
-                  </p>
-                </DropdownItem>
-                <DropdownItem key="dashboard" href="/dashboard">
-                  Dashboard
-                </DropdownItem>
-                <DropdownItem
-                  key="my_projects"
-                  href="/gigs?filter=my_projects"
-                >
-                  My Projects
-                </DropdownItem>
-                <DropdownItem
-                  key="accepted_projects"
-                  href="/gigs?filter=accepted_projects"
-                >
-                  Accepted Projects
-                </DropdownItem>
-                <DropdownItem
-                  key="logout"
-                  color="danger"
-                  onPress={handleLogout}
-                >
-                  Log Out
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
+            <>
+              <Button
+                as={NextLink}
+                className="bg-primary text-white font-medium"
+                href="/projects/create"
+                variant="flat"
+              >
+                Create Project
+              </Button>
+              <Dropdown placement="bottom-end">
+                <DropdownTrigger>
+                  <Avatar
+                    isBordered
+                    as="button"
+                    className="transition-transform"
+                    color="secondary"
+                    name={userProfile?.username?.charAt(0).toUpperCase() || "U"}
+                    size="sm"
+                    src={undefined} // Add avatar_url if available in userProfile
+                  />
+                </DropdownTrigger>
+                <DropdownMenu aria-label="Profile Actions" variant="flat">
+                  <DropdownItem
+                    key="profile"
+                    className="h-14 gap-2"
+                    textValue="Signed in as"
+                  >
+                    <p className="font-semibold">Signed in as</p>
+                    <p className="font-semibold">
+                      {userProfile?.username || user?.email}
+                    </p>
+                  </DropdownItem>
+                  <DropdownItem key="dashboard" href="/dashboard">
+                    Dashboard
+                  </DropdownItem>
+                  <DropdownItem
+                    key="my_projects"
+                    href="/gigs?filter=my_projects"
+                  >
+                    My Projects
+                  </DropdownItem>
+                  <DropdownItem
+                    key="accepted_projects"
+                    href="/gigs?filter=accepted_projects"
+                  >
+                    Accepted Projects
+                  </DropdownItem>
+                  <DropdownItem
+                    key="logout"
+                    color="danger"
+                    onPress={handleLogout}
+                  >
+                    Log Out
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </>
           ) : (
             <Link
               as={NextLink}
