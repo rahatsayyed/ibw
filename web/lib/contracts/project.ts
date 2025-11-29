@@ -167,6 +167,12 @@ export const createProject = async (
             ...userProfileDatum,
             active_projects_as_client:
               userProfileDatum.active_projects_as_client + 1n,
+            project_collateral:
+              userProfileDatum.project_collateral + 25_000_000n,
+            available_balance:
+              userProfileDatum.available_balance -
+              projectData.payment_amount -
+              25_000_000n,
           },
           UserProfileDatum
         ),

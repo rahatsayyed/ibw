@@ -206,7 +206,7 @@ export const depositFunds = async (
     .pay.ToContract(
       scriptAddress,
       { kind: "inline", value: Data.to(updatedDatum, UserProfileDatum) },
-      { [unit]: 1n }
+      { lovelace: depositAmount,[unit]: 1n }
     )
     .attach.SpendingValidator(spendingValidator)
     .addSignerKey(pkh)
