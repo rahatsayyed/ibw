@@ -11,6 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { DepositModal } from "@/components/deposit-modal";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -21,6 +22,9 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [missingAmount, setMissingAmount] = useState(0);
 
   useEffect(() => {
     fetchProject();
@@ -76,9 +80,13 @@ export default function ProjectDetailsPage() {
         .single();
 
       if ((profile?.available_balance || 0) < collateralAmount) {
-        throw new Error(
-          `Insufficient balance for collateral. You need ${collateralAmount / 1000000} ADA.`
-        );
+        const currentBalanceADA = (profile?.available_balance || 0) / 1000000;
+        const requiredADA = collateralAmount / 1000000;
+        const missing = requiredADA - currentBalanceADA;
+        setMissingAmount(Number(Math.ceil(missing)));
+        setShowDepositModal(true);
+        setAccepting(false);
+        return;
       }
 
       // ---------------------------------------------------------
@@ -263,6 +271,12 @@ export default function ProjectDetailsPage() {
           )}
         </div>
       </div>
+      <DepositModal
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        missingAmount={missingAmount}
+        onSuccess={handleAcceptProject}
+      />
     </div>
   );
 }

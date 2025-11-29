@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { DepositModal } from "@/components/deposit-modal";
 
 export default function CreateProjectPage() {
   const { user, userProfile, isAuthenticated } = useAuth();
@@ -26,6 +27,9 @@ export default function CreateProjectPage() {
     min_completion_percentage: 80,
     deadline: "",
   });
+
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [missingAmount, setMissingAmount] = useState(0);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -74,7 +78,12 @@ export default function CreateProjectPage() {
       const totalLovelace = total * 1000000;
 
       if (!profile || (profile.available_balance || 0) < totalLovelace) {
-        throw new Error(`Insufficient balance. You need ${total} ADA.`);
+        const currentBalanceADA = (profile?.available_balance || 0) / 1000000;
+        const missing = total - currentBalanceADA;
+        setMissingAmount(Number(Math.ceil(missing))); // Round up to nearest whole ADA for simplicity
+        setShowDepositModal(true);
+        setLoading(false);
+        return;
       }
 
       // ---------------------------------------------------------
@@ -295,6 +304,12 @@ export default function CreateProjectPage() {
           </Card>
         </div>
       </div>
+      <DepositModal
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        missingAmount={missingAmount}
+        onSuccess={handleSubmit}
+      />
     </div>
   );
 }
