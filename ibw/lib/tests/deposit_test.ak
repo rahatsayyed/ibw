@@ -2,8 +2,9 @@ use cardano/address
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, Input, Output, OutputReference, Transaction}
 use functions/deposit.{
-  validate_deposit, verify_balance_update, verify_profile_nft_in_input,
-  verify_profile_nft_returned, verify_unchanged_fields,
+  validate_deposit, verify_balance_update, verify_output_lovelace_matches_datum,
+  verify_profile_nft_in_input, verify_profile_nft_returned,
+  verify_unchanged_fields,
 }
 use types/moment.{Moment}
 use types/types.{AssetClass, UserProfileDatum}
@@ -111,6 +112,25 @@ test test_verify_unchanged_fields_success() {
   verify_unchanged_fields(input_datum, output_datum)
 }
 
+// Tests that verify_output_lovelace_matches_datum returns true when output lovelace matches datum total_balance.
+test test_verify_output_lovelace_matches_datum_success() {
+  let total_balance = 150
+  let output =
+    Output {
+      address: address.from_script(mock_script_hash),
+      value: assets.from_asset(mock_policy_id, mock_token_name, 1)
+        |> assets.add(assets.ada_policy_id, assets.ada_asset_name, total_balance),
+      datum: InlineDatum(Void),
+      reference_script: None,
+    }
+  verify_output_lovelace_matches_datum(
+    [output],
+    mock_policy_id,
+    mock_token_name,
+    total_balance,
+  )
+}
+
 // Tests the full validate_deposit function with valid inputs.
 test test_validate_deposit_success() {
   let input_datum = get_mock_datum()
@@ -125,7 +145,12 @@ test test_validate_deposit_success() {
   let output =
     Output {
       address: script_address,
-      value: assets.from_asset(mock_policy_id, mock_token_name, 1),
+      value: assets.from_asset(mock_policy_id, mock_token_name, 1)
+        |> assets.add(
+            assets.ada_policy_id,
+            assets.ada_asset_name,
+            output_datum.total_balance,
+          ),
       datum: InlineDatum(output_datum),
       reference_script: None,
     }

@@ -1,8 +1,10 @@
 use cardano/address
+use cardano/addresses
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, Output, Transaction}
 use functions/withdraw.{
-  validate_withdrawal, verify_balance_decrease, verify_profile_nft_in_output,
+  validate_withdrawal, verify_balance_decrease,
+  verify_output_lovelace_matches_datum, verify_profile_nft_in_output,
   verify_sufficient_balance, verify_unchanged_fields_withdrawal,
   verify_withdrawal_to_user,
 }
@@ -107,54 +109,75 @@ test test_verify_unchanged_fields_withdrawal_success() {
   verify_unchanged_fields_withdrawal(input_datum, output_datum)
 }
 
+// Tests that verify_output_lovelace_matches_datum returns true when output lovelace matches datum total_balance.
+test test_verify_output_lovelace_matches_datum_success() {
+  let total_balance = 50
+  let output =
+    Output {
+      address: address.from_script(mock_script_hash),
+      value: assets.from_asset(mock_policy_id, mock_token_name, 1)
+        |> assets.add(assets.ada_policy_id, assets.ada_asset_name, total_balance),
+      datum: InlineDatum(Void),
+      reference_script: None,
+    }
+  verify_output_lovelace_matches_datum(
+    [output],
+    mock_policy_id,
+    mock_token_name,
+    total_balance,
+  )
+}
+
 // Tests the full validate_withdrawal function with valid inputs.
-// Note: This test is complex and requires proper setup of addresses.from_wallet
-// which depends on the logical-mechanism library. Uncomment and adjust if needed.
-// test test_validate_withdrawal_success() {
-//   let input_datum = get_mock_datum_with_balance()
-//   let withdrawal_amount = 50
-//   let output_datum =
-//     UserProfileDatum {
-//       ..input_datum,
-//       total_balance: input_datum.total_balance - withdrawal_amount,
-//       available_balance: input_datum.available_balance - withdrawal_amount,
-//     }
-//   let script_address = address.from_script(mock_script_hash)
-//   let user_address = address.from_verification_key(mock_pkh)
-//   
-//   // Output with the profile NFT back to script
-//   let nft_output =
-//     Output {
-//       address: script_address,
-//       value: assets.from_asset(mock_policy_id, mock_token_name, 1)
-//         |> assets.add(#"", #"", 50_000_000),
-//       datum: InlineDatum(output_datum),
-//       reference_script: None,
-//     }
-//   
-//   // Output sending withdrawn amount to user
-//   let user_output =
-//     Output {
-//       address: user_address,
-//       value: assets.from_lovelace(withdrawal_amount),
-//       datum: InlineDatum(Void),
-//       reference_script: None,
-//     }
-//   
-//   let tx =
-//     Transaction {
-//       ..transaction.placeholder,
-//       outputs: [nft_output, user_output],
-//       extra_signatories: [mock_pkh],
-//     }
-//   
-//   validate_withdrawal(
-//     tx,
-//     input_datum,
-//     output_datum,
-//     withdrawal_amount,
-//     mock_policy_id,
-//     mock_token_name,
-//     script_address,
-//   )
-// }
+test test_validate_withdrawal_success() {
+  let input_datum = get_mock_datum_with_balance()
+  let withdrawal_amount = 50
+  let output_datum =
+    UserProfileDatum {
+      ..input_datum,
+      total_balance: input_datum.total_balance - withdrawal_amount,
+      available_balance: input_datum.available_balance - withdrawal_amount,
+    }
+  let script_address = address.from_script(mock_script_hash)
+  let user_address = addresses.from_wallet(get_mock_wallet())
+  
+  // Output with the profile NFT back to script
+  let nft_output =
+    Output {
+      address: script_address,
+      value: assets.from_asset(mock_policy_id, mock_token_name, 1)
+        |> assets.add(
+            assets.ada_policy_id,
+            assets.ada_asset_name,
+            output_datum.total_balance,
+          ),
+      datum: InlineDatum(output_datum),
+      reference_script: None,
+    }
+  
+  // Output sending withdrawn amount to user
+  let user_output =
+    Output {
+      address: user_address,
+      value: assets.from_lovelace(withdrawal_amount),
+      datum: InlineDatum(Void),
+      reference_script: None,
+    }
+  
+  let tx =
+    Transaction {
+      ..transaction.placeholder,
+      outputs: [nft_output, user_output],
+      extra_signatories: [mock_pkh],
+    }
+  
+  validate_withdrawal(
+    tx,
+    input_datum,
+    output_datum,
+    withdrawal_amount,
+    mock_policy_id,
+    mock_token_name,
+    script_address,
+  )
+}

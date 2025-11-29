@@ -140,7 +140,38 @@ pub fn validate_deposit(
     verify_balance_update(input_datum, output_datum, deposit_amount)?,
     // 4. Verify all other fields unchanged
     verify_unchanged_fields(input_datum, output_datum)?,
+    // 5. Verify output lovelace matches datum total_balance
+    verify_output_lovelace_matches_datum(
+      outputs,
+      profile_nft_policy,
+      profile_nft_name,
+      output_datum.total_balance,
+    )?,
   }
+}
+
+/// Validates that the output containing the Profile NFT has lovelace equal to the datum's total_balance.
+///
+/// # Arguments
+/// * `outputs` - List of transaction outputs
+/// * `policy_id` - The policy ID of the profile NFT
+/// * `token_name` - The asset name of the profile NFT
+/// * `total_balance` - The expected total balance from the datum
+///
+/// # Returns
+/// `True` if the output lovelace matches the total_balance
+pub fn verify_output_lovelace_matches_datum(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  token_name: ByteArray,
+  total_balance: Int,
+) -> Bool {
+  expect Some(output) =
+    list.find(
+      outputs,
+      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
+    )
+  assets.lovelace_of(output.value) == total_balance
 }
 
 /// Calculates the deposit amount from input and output values.
