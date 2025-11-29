@@ -9,7 +9,7 @@ import {
   NavbarItem,
   NavbarMenuItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
+import { Button } from "@/components/ui/button";
 import { Link } from "@heroui/link";
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
@@ -78,14 +78,6 @@ export const Navbar = () => {
         <NavbarItem className="hidden md:flex gap-2">
           {user || userProfile ? (
             <>
-              <Button
-                as={NextLink}
-                className="bg-primary text-white font-medium"
-                href="/projects/create"
-                variant="flat"
-              >
-                Create Project
-              </Button>
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
                   <Avatar
@@ -135,13 +127,9 @@ export const Navbar = () => {
               </Dropdown>
             </>
           ) : (
-            <Link
-              as={NextLink}
-              href="/auth/login"
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
-            >
+            <Button onClick={() => router.push("/auth/login")} size="sm">
               Login
-            </Link>
+            </Button>
           )}
         </NavbarItem>
       </NavbarContent>
