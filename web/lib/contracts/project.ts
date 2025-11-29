@@ -23,7 +23,7 @@ import {
   UserProfileDatum,
   UserProfileRedeemer,
 } from "@/types/contracts";
-import { blockfrost } from "@/lib/utils";
+import { blockfrost } from "@/lib/cardano";
 
 export const createProject = async (
   lucid: LucidEvolution,

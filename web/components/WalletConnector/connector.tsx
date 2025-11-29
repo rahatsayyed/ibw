@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Button } from "../ui/button";
 
 import { Wallet } from "@/types/cardano";
-import { handleError } from "@/lib/utils";
+import { handleError } from "@/lib/cardano";
 import { useWallet } from "@/context/walletContext";
 import { mkLucid } from "@/lib/lucid";
 import {

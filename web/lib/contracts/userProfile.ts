@@ -12,7 +12,7 @@ import {
   UTxO,
 } from "@lucid-evolution/lucid";
 import { UserProfileDatum, UserProfileRedeemer } from "@/types/contracts";
-import { blockfrost } from "@/lib/utils";
+import { blockfrost } from "@/lib/cardano";
 import {
   userprofile_user_profile_mint,
   userprofile_user_profile_spend,

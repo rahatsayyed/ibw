@@ -11,7 +11,7 @@ import { Skeleton } from '@heroui/skeleton'
 
 import { Button } from '@/components/ui/button'
 
-import { handleError } from '@/lib/utils'
+import { handleError } from '@/lib/cardano'
 import { useWallet } from '@/context/walletContext'
 import {
   accountA,

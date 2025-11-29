@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -58,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       setUserProfile(data);
-      // Persist wallet session
-      localStorage.setItem("wallet_session", address);
+      // Persist wallet session - only on client
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("wallet_session", address);
+      }
     } catch (error) {
       console.error("Error logging in with wallet:", error);
       throw error;
@@ -106,7 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("wallet_session");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("wallet_session");
+    }
     setUser(null);
     setUserProfile(null);
   };
@@ -144,7 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Set mounted state on client side only
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side after component is mounted
+    if (!mounted) return;
+
     // Check active sessions and sets the user
     const initAuth = async () => {
       try {
@@ -157,8 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
           await fetchUserProfile(session.user.id);
         } else {
-          // 2. Check Wallet Session
-          const savedWallet = localStorage.getItem("wallet_session");
+          // 2. Check Wallet Session - safe to access localStorage now
+          const savedWallet = typeof window !== 'undefined' 
+            ? localStorage.getItem("wallet_session") 
+            : null;
+          
           if (savedWallet) {
             await loginWithWallet(savedWallet);
           }
@@ -180,18 +196,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session.user);
         await fetchUserProfile(session.user.id);
         // Clear wallet session if supabase session exists to avoid conflict
-        localStorage.removeItem("wallet_session");
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("wallet_session");
+        }
       } else {
         setUser(null);
         // Only clear profile if no wallet session
-        if (!localStorage.getItem("wallet_session")) {
+        const hasWalletSession = typeof window !== 'undefined' 
+          ? localStorage.getItem("wallet_session") 
+          : null;
+        
+        if (!hasWalletSession) {
           setUserProfile(null);
         }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [mounted]);
 
   const value = {
     user,
