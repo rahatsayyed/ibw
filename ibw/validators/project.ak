@@ -111,7 +111,6 @@ validator project_contract(profile_nft: PolicyId) {
     _utxo: OutputReference,
     _self: Transaction,
   ) {
-    // Project Create
     // --------------
     // 6. Project UTxO MUST return to SCRIPT (after accept/submit/etc)
     // Project Accept

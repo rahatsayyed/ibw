@@ -297,7 +297,7 @@ export const acceptProject = async (
       { kind: "inline", value: Data.to(updatedProjectDatum, ProjectDatum) },
       {
         ...projectUtxo.assets,
-        lovelace: projectUtxo.assets.lovelace + collateralAmount,
+        lovelace: projectUtxo.assets.lovelace,
       }
     )
     // Consume Freelancer Profile NFT (to prove ownership)
@@ -312,8 +312,9 @@ export const acceptProject = async (
     // So we should increment `active_projects_as_freelancer`.
     .collectFrom(
       [freelancerProfileUtxo],
-      Data.to("ProjectCreate", UserProfileRedeemer)
+      Data.to("ProjectAccept", UserProfileRedeemer)
     )
+    .attach.SpendingValidator(profileSpendingValidator)
     .pay.ToContract(
       profileScriptAddress,
       {

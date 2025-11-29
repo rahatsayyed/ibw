@@ -66,6 +66,7 @@ export const UserProfileRedeemerSchema = Data.Enum([
     }),
   }),
   Data.Literal("ProjectCreate"),
+  Data.Literal("ProjectAccept"),
 ]);
 
 export type UserProfileRedeemer = Data.Static<typeof UserProfileRedeemerSchema>;
