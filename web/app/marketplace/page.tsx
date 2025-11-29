@@ -1,32 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ProjectCard } from "@/components/project-card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { Slider } from "@heroui/slider";
 import { SearchIcon } from "@/components/icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { useSearchParams } from "next/navigation";
 
 export default function MarketplacePage() {
+    const { user, userProfile } = useAuth();
+    const searchParams = useSearchParams();
+    const filterParam = searchParams.get("filter");
+
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
+    // Filters
+    const [minPrice, setMinPrice] = useState<number>(0);
+    const [maxPrice, setMaxPrice] = useState<number>(10000);
+    const [minReputation, setMinReputation] = useState<number>(0);
+    const [skills, setSkills] = useState("");
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
+        setLoading(true);
         try {
             let query = supabase
                 .from("projects")
-                .select("*, client:users!client_id(reputation_score)")
-                .eq("status", "open")
-                .order("created_at", { ascending: false });
+                .select("*, client:users!client_id!inner(reputation_score)");
 
-            if (search) {
-                query = query.ilike("title", `%${search}%`);
+            const userId = user?.id || userProfile?.id;
+
+            // Main Context Filters
+            if (filterParam === "my_projects" && userId) {
+                query = query.eq("client_id", userId);
+            } else if (filterParam === "accepted_projects" && userId) {
+                query = query.eq("freelancer_id", userId);
+            } else {
+                // Default Marketplace View
+                query = query.eq("status", "open");
             }
+
+            // Search
+            if (search) {
+                query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+            }
+
+            // Skills Filter (searching in description/title as proxy)
+            if (skills) {
+                query = query.or(`title.ilike.%${skills}%,description.ilike.%${skills}%`);
+            }
+
+            // Price Filter (ADA to Lovelace)
+            if (minPrice > 0) {
+                query = query.gte("payment_amount", minPrice * 1000000);
+            }
+            if (maxPrice < 10000) {
+                query = query.lte("payment_amount", maxPrice * 1000000);
+            }
+
+            // Reputation Filter
+            if (minReputation > 0) {
+                query = query.gte("client.reputation_score", minReputation);
+            }
+
+            query = query.order("created_at", { ascending: false });
 
             const { data, error } = await query;
             if (error) throw error;
@@ -36,11 +77,26 @@ export default function MarketplacePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filterParam, user, userProfile, search, skills, minPrice, maxPrice, minReputation]);
+
+    useEffect(() => {
+        fetchProjects();
+    }, [fetchProjects]);
 
     const handleSearch = () => {
-        setLoading(true);
         fetchProjects();
+    };
+
+    const getPageTitle = () => {
+        if (filterParam === "my_projects") return "My Projects";
+        if (filterParam === "accepted_projects") return "Accepted Projects";
+        return "Find Work. Build Trust.";
+    };
+
+    const getPageDescription = () => {
+        if (filterParam === "my_projects") return "Manage the projects you have created.";
+        if (filterParam === "accepted_projects") return "Track the projects you are working on.";
+        return "The decentralized marketplace for Cardano developers. Secure payments, automated disputes, and on-chain reputation.";
     };
 
     return (
@@ -48,10 +104,10 @@ export default function MarketplacePage() {
             {/* Hero Section */}
             <section className="flex flex-col items-center justify-center py-12 text-center space-y-4">
                 <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    Find Work. Build Trust.
+                    {getPageTitle()}
                 </h1>
                 <p className="text-xl text-default-500 max-w-2xl">
-                    The decentralized marketplace for Cardano developers. Secure payments, automated disputes, and on-chain reputation.
+                    {getPageDescription()}
                 </p>
 
                 <div className="w-full max-w-xl mt-8 flex gap-2">
@@ -60,7 +116,8 @@ export default function MarketplacePage() {
                             base: "max-w-full sm:max-w-[20rem] h-12",
                             mainWrapper: "h-full",
                             input: "text-small",
-                            inputWrapper: "h-full font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20",
+                            inputWrapper:
+                                "h-full font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20",
                         }}
                         placeholder="Search projects..."
                         size="sm"
@@ -80,13 +137,51 @@ export default function MarketplacePage() {
                 </div>
             </section>
 
-            {/* Filters (Visual Only) */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-                {["All", "Development", "Design", "Marketing", "Writing", "Audit"].map((filter) => (
-                    <Button key={filter} variant="flat" size="sm" className="rounded-full">
-                        {filter}
-                    </Button>
-                ))}
+            {/* Advanced Filters */}
+            <div className="flex flex-col md:flex-row gap-6 p-6 bg-default-50 dark:bg-default-100 rounded-xl border border-default-200">
+                <div className="flex-1 space-y-2">
+                    <label className="text-sm font-medium">Price Range (ADA)</label>
+                    <div className="flex gap-2 items-center">
+                        <Input
+                            type="number"
+                            placeholder="Min"
+                            value={minPrice.toString()}
+                            onValueChange={(v) => setMinPrice(Number(v))}
+                            size="sm"
+                        />
+                        <span>-</span>
+                        <Input
+                            type="number"
+                            placeholder="Max"
+                            value={maxPrice.toString()}
+                            onValueChange={(v) => setMaxPrice(Number(v))}
+                            size="sm"
+                        />
+                    </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <label className="text-sm font-medium">Min Client Reputation</label>
+                    <Slider
+                        size="sm"
+                        step={10}
+                        maxValue={1000}
+                        minValue={0}
+                        defaultValue={0}
+                        value={minReputation}
+                        onChange={(v) => setMinReputation(Number(v))}
+                        className="max-w-md"
+                    />
+                    <div className="text-small text-default-500 text-right">{minReputation}</div>
+                </div>
+                <div className="flex-1 space-y-2">
+                    <label className="text-sm font-medium">Skills (Keywords)</label>
+                    <Input
+                        placeholder="e.g. React, Rust, Plutus"
+                        value={skills}
+                        onValueChange={setSkills}
+                        size="sm"
+                    />
+                </div>
             </div>
 
             {/* Project Grid */}

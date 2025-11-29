@@ -5,12 +5,8 @@ export const siteConfig = {
   description: "Decentralized Freelance Marketplace on Cardano",
   navItems: [
     {
-      label: "Marketplace",
+      label: "Gigs",
       href: "/marketplace",
-    },
-    {
-      label: "Dashboard",
-      href: "/dashboard",
     },
     {
       label: "Disputes",
