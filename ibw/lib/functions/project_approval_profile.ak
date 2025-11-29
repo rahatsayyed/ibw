@@ -21,15 +21,19 @@ pub fn validate_client_approval_profile(
   
   let active_projects_check =
     output_datum.active_projects_as_client == input_datum.active_projects_as_client - 1
+  trace @"client_approval:active_projects": active_projects_check
 
   let collateral_check =
     output_datum.project_collateral == input_datum.project_collateral - 25_000_000
+  trace @"client_approval:collateral": collateral_check
 
   let completed_check =
     output_datum.total_client_completed == input_datum.total_client_completed + 1
+  trace @"client_approval:completed": completed_check
 
   let reputation_check =
     output_datum.reputation_score == input_datum.reputation_score + 5
+  trace @"client_approval:reputation": reputation_check
 
   // Verify other fields unchanged
   let other_fields_unchanged =
@@ -88,19 +92,24 @@ pub fn validate_freelancer_approval_profile(
   
   let active_projects_check =
     output_datum.active_projects_as_freelancer == input_datum.active_projects_as_freelancer - 1
+  trace @"freelancer_approval:active_projects": active_projects_check
 
   // Collateral reduction - assuming same 25M for now (may need adjustment)
   let collateral_check =
     output_datum.project_collateral <= input_datum.project_collateral
+  trace @"freelancer_approval:collateral": collateral_check
 
   let available_balance_check =
     output_datum.available_balance == input_datum.available_balance + project_amount
+  trace @"freelancer_approval:available_balance": available_balance_check, project_amount
 
   let completed_check =
     output_datum.total_freelancer_completed == input_datum.total_freelancer_completed + 1
+  trace @"freelancer_approval:completed": completed_check
 
   let reputation_check =
     output_datum.reputation_score == input_datum.reputation_score + 10
+  trace @"freelancer_approval:reputation": reputation_check
 
   // Verify other fields unchanged
   let other_fields_unchanged =

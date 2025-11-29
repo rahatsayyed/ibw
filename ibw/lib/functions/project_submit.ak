@@ -15,6 +15,7 @@ pub fn validate_project_submit(
   // --------------
   // 1. status == Accepted
   let status_check = input_datum.status == Accepted
+  trace @"project_submit:status": input_datum.status
 
   // 2. Project NFT in inputs (Implicit)
 
@@ -36,11 +37,13 @@ pub fn validate_project_submit(
 
   let freelancer_nft_match =
     input_datum.freelancer_nft == Some(freelancer_datum.profile_nft)
+  trace @"project_submit:freelancer_nft_match": freelancer_nft_match
 
   // 5. Extract freelancer_address from Profile UTxO datum
   // 6. freelancer_address == tx signer
   let signer_check =
     list.has(tx.extra_signatories, freelancer_datum.user_address.pkh)
+  trace @"project_submit:signer_check": signer_check
 
   // 7. Project Datum updates:
   //    - status = Submitted
@@ -52,6 +55,8 @@ pub fn validate_project_submit(
       Some(hash) -> hash != ""
       None -> False
     }
+  trace @"project_submit:status_update": status_update_check
+  trace @"project_submit:details_check": details_check
 
   // 8. Project UTxO MUST return to SCRIPT
   // Implicitly checked by project_output being found at script address
@@ -60,6 +65,7 @@ pub fn validate_project_submit(
   // Ensure the output Project UTxO has the same ADA as input
   let project_ada_preserved =
     assets.lovelace_of(project_output.value) >= assets.lovelace_of(project_input.output.value)
+  trace @"project_submit:ada_preserved": project_ada_preserved, assets.lovelace_of(project_input.output.value), assets.lovelace_of(project_output.value)
 
   // 10. current_time <= completion_deadline (not expired)
   // TODO: Implement deadline check using tx.validity_range

@@ -14,6 +14,7 @@ pub fn validate_project_approval(
   // ----------------
   // 1. status == Submitted
   let status_check = input_datum.status == Submitted
+  trace @"project_approval:status": input_datum.status
 
   // 2. Client's Profile NFT in inputs
   // 3. Project NFT in inputs (Implicit)
@@ -34,11 +35,13 @@ pub fn validate_project_approval(
 
   let client_nft_match =
     input_datum.client_nft == client_datum.profile_nft
+  trace @"project_approval:client_nft_match": client_nft_match
 
   // 5. Extract client_address from Profile UTxO datum
   // 6. client_address == tx signer
   let signer_check =
     list.has(tx.extra_signatories, client_datum.user_address.pkh)
+  trace @"project_approval:signer_check": signer_check
 
   // 9. Project UTxO consumed (not returned)
 
@@ -88,6 +91,7 @@ pub fn validate_project_approval(
   // Check payment amount
   let payment_check =
     ( value_to_freelancer |> assets.lovelace_of ) >= input_datum.project_amount
+  trace @"project_approval:payment": payment_check, assets.lovelace_of(value_to_freelancer), input_datum.project_amount
 
   status_check? && client_nft_match? && signer_check? && payment_check?
 }

@@ -15,6 +15,7 @@ pub fn validate_project_accept(
   // --------------
   // 1. status == Open
   let status_check = input_datum.status == Open
+  trace @"project_accept:status": input_datum.status
 
   // 2. Freelancer's Profile NFT in inputs
   expect Some(freelancer_input) =
@@ -30,6 +31,7 @@ pub fn validate_project_accept(
 
   // Extract freelancer datum to get address
   let freelancer_datum: UserProfileDatum = freelancer_input.output.datum |> inline_datum
+  trace @"project_accept:freelancer_nft": freelancer_datum.profile_nft
 
   // 3. Project NFT in inputs (Implicitly checked by the validator calling this)
 
@@ -39,18 +41,22 @@ pub fn validate_project_accept(
   let freelancer_nft_check =
     output_datum.freelancer_nft == Some(freelancer_datum.profile_nft)
   let status_update_check = output_datum.status == Accepted
+  trace @"project_accept:freelancer_nft_check": freelancer_nft_check
+  trace @"project_accept:status_update": status_update_check
 
   // 6. Project UTxO ADA preservation
   // Ensure the output Project UTxO has at least the same ADA as input
   // (may increase if additional funds added, but should not decrease)
   let project_ada_preserved =
     assets.lovelace_of(project_output.value) >= assets.lovelace_of(project_input.output.value)
+  trace @"project_accept:ada_preserved": project_ada_preserved, assets.lovelace_of(project_input.output.value), assets.lovelace_of(project_output.value)
 
   // 7. Project UTxO MUST return to SCRIPT
   // Implicitly checked by project_output being found at script address
 
   // 9. Transaction signed by freelancer
   let signer_check = list.has(tx.extra_signatories, freelancer_datum.user_address.pkh)
+  trace @"project_accept:signer_check": signer_check
 
   // 12. Ensure project not already accepted
   // Checked by `status == Open`.

@@ -19,6 +19,7 @@ pub fn validate_freelancer_accept_profile(
   
   let active_projects_check =
     output_datum.active_projects_as_freelancer == input_datum.active_projects_as_freelancer + 1
+  trace @"profile_accept:active_projects": active_projects_check, input_datum.active_projects_as_freelancer, output_datum.active_projects_as_freelancer
 
   // Verify all other fields unchanged
   let other_fields_unchanged =
@@ -39,6 +40,7 @@ pub fn validate_freelancer_accept_profile(
       output_datum.arbitrations_completed == input_datum.arbitrations_completed,
       output_datum.registered_at == input_datum.registered_at,
     }
+  trace @"profile_accept:other_fields": other_fields_unchanged
 
   // Verify Profile NFT returned to same address
   let nft_returned =
@@ -48,6 +50,7 @@ pub fn validate_freelancer_accept_profile(
       profile_nft_name,
       script_address,
     )
+  trace @"profile_accept:nft_returned": nft_returned
 
   // Verify output lovelace matches datum total_balance
   let balance_matches =
@@ -57,6 +60,7 @@ pub fn validate_freelancer_accept_profile(
       profile_nft_name,
       output_datum.total_balance,
     )
+  trace @"profile_accept:balance_matches": balance_matches
 
   active_projects_check? && other_fields_unchanged? && nft_returned? && balance_matches?
 }
