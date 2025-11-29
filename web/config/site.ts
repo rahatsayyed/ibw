@@ -6,7 +6,7 @@ export const siteConfig = {
   navItems: [
     {
       label: "Gigs",
-      href: "/marketplace",
+      href: "/gigs",
     },
     {
       label: "Disputes",
