@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Wallet as WalletIcon, LoaderCircle } from "lucide-react";
+import { Wallet as WalletIcon, LoaderCircle, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/walletContext";
 import { supabase } from "@/lib/supabase";
@@ -306,7 +306,13 @@ export default function LoginPage() {
                 className="w-full h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium shadow-lg shadow-purple-900/20 transition-all duration-300"
                 disabled={loading}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (
+                  "Signing in..."
+                ) : (
+                  <>
+                    Sign In <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>

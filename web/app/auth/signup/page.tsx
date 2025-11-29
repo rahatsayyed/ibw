@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Wallet as WalletIcon, LoaderCircle, CheckCircle } from "lucide-react";
+import { Wallet as WalletIcon, LoaderCircle, CheckCircle, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/walletContext";
 import { supabase } from "@/lib/supabase";
@@ -179,54 +179,58 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-blue-950/20 to-neutral-950 p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/40 via-neutral-950 to-neutral-950 p-4 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 backdrop-blur-xl shadow-2xl">
+              {/* Logo Placeholder or Icon */}
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-400 rounded-lg" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent tracking-tight">
             Join {siteConfig.name}
           </h1>
-          <p className="text-neutral-400">
+          <p className="text-neutral-400 text-lg">
             Start earning with trustless smart contracts
           </p>
         </div>
 
-        <Card className="w-full border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              {step === "form" ? "Create account" : "Connect your wallet"}
+        <Card className="w-full border-white/10 bg-neutral-900/40 backdrop-blur-xl shadow-2xl ring-1 ring-white/5">
+          <CardHeader className="space-y-1 text-center pb-2">
+            <CardTitle className="text-xl font-semibold tracking-tight text-white">
+              {step === "form" ? "Create your account" : "Connect your wallet"}
             </CardTitle>
-            <CardDescription className="text-neutral-400">
-              {step === "form"
-                ? "Enter your details to get started"
-                : "Connect your Cardano wallet to complete signup"}
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             {step === "form" ? (
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label
                     htmlFor="username"
-                    className="text-sm font-medium text-neutral-200"
+                    className="text-sm font-medium text-neutral-300"
                   >
                     Username
                   </Label>
                   <Input
                     id="username"
-                    type="text"
-                    placeholder="Choose a username"
+                    placeholder="johndoe"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="border-neutral-800 bg-neutral-900/50 focus:border-purple-500"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-sm font-medium text-neutral-200"
+                    className="text-sm font-medium text-neutral-300"
                   >
                     Email
                   </Label>
@@ -237,14 +241,14 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="border-neutral-800 bg-neutral-900/50 focus:border-purple-500"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label
                     htmlFor="password"
-                    className="text-sm font-medium text-neutral-200"
+                    className="text-sm font-medium text-neutral-300"
                   >
                     Password
                   </Label>
@@ -255,75 +259,79 @@ export default function SignupPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="border-neutral-800 bg-neutral-900/50 focus:border-purple-500"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium shadow-lg shadow-blue-900/20 transition-all duration-300"
                 >
                   Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </form>
             ) : (
-              <div className="space-y-4">
-                {connectedAddress ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/50">
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-green-500">
-                          Wallet Connected
-                        </p>
-                        <p className="text-xs text-neutral-400 truncate">
-                          {connectedAddress}
-                        </p>
-                      </div>
-                    </div>
+              <div className="space-y-6">
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm">
+                  <p className="flex items-center gap-2">
+                    <WalletIcon className="h-4 w-4" />
+                    Connect your wallet to verify your identity and enable payments.
+                  </p>
+                </div>
 
-                    <Button
-                      onClick={handleCompleteSignup}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Complete Sign Up"
-                      )}
-                    </Button>
-                  </div>
-                ) : (
+                {!connectedAddress ? (
                   <Button
                     onClick={() => setShowWalletDialog(true)}
-                    className="w-full border-purple-500/50 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500"
+                    className="w-full h-12 border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 hover:border-blue-500/50 transition-all duration-300 group"
                     variant="outline"
                     disabled={connecting}
                   >
                     {connecting ? (
                       <>
-                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                        Connecting...
+                        <LoaderCircle className="mr-2 h-5 w-5 animate-spin text-blue-400" />
+                        <span className="text-blue-100">Connecting...</span>
                       </>
                     ) : (
                       <>
-                        <WalletIcon className="mr-2 h-4 w-4" />
-                        Connect Cardano Wallet
+                        <WalletIcon className="mr-2 h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-blue-100 font-medium">Connect Wallet</span>
                       </>
                     )}
                   </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-200 flex items-center justify-between">
+                      <span className="text-sm font-mono truncate max-w-[200px]">
+                        {connectedAddress}
+                      </span>
+                      <span className="text-xs font-bold bg-green-500/20 px-2 py-1 rounded text-green-300">
+                        CONNECTED
+                      </span>
+                    </div>
+                    <Button
+                      onClick={handleCompleteSignup}
+                      className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium shadow-lg shadow-green-900/20 transition-all duration-300"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Account...
+                        </>
+                      ) : (
+                        "Complete Signup"
+                      )}
+                    </Button>
+                  </div>
                 )}
 
                 <Button
-                  onClick={() => setStep("form")}
                   variant="ghost"
-                  className="w-full text-neutral-400 hover:text-white"
+                  onClick={() => setStep("form")}
+                  className="w-full text-neutral-400 hover:text-white hover:bg-white/5"
                 >
-                  ← Back to form
+                  Back to details
                 </Button>
               </div>
             )}
@@ -331,11 +339,11 @@ export default function SignupPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center text-sm text-neutral-400">
+        <div className="text-center text-sm text-neutral-500">
           Already have an account?{" "}
           <Link
             href="/auth/login"
-            className="text-blue-400 hover:text-blue-300 font-medium"
+            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
           >
             Sign in
           </Link>
@@ -359,35 +367,36 @@ export default function SignupPage() {
 
       {/* Wallet Connection Dialog */}
       <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
-        <DialogContent className="sm:max-w-[425px] border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
+        <DialogContent className="sm:max-w-[425px] border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">
               Connect Wallet
             </DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Choose a Cardano wallet to complete your registration
+              Choose a Cardano wallet to connect
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-4">
             {wallets.map((wallet) => (
               <Button
                 key={wallet.name}
-                className="w-full justify-start border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800"
+                className="w-full justify-start h-14 border-white/5 bg-white/5 hover:bg-white/10 hover:border-blue-500/30 transition-all group"
                 variant="outline"
                 disabled={!wallet.enable || connecting}
                 onClick={() => handleWalletConnect(wallet)}
               >
-                <Image
-                  alt={wallet.name}
-                  height={24}
-                  src={wallet.icon}
-                  width={24}
-                  className="mr-3"
-                />
-                <span>{wallet.name}</span>
+                <div className="p-2 rounded-lg bg-white/5 mr-3 group-hover:bg-white/10 transition-colors">
+                  <Image
+                    alt={wallet.name}
+                    height={24}
+                    src={wallet.icon}
+                    width={24}
+                  />
+                </div>
+                <span className="text-lg text-neutral-200 group-hover:text-white transition-colors">{wallet.name}</span>
                 {!wallet.enable && (
-                  <span className="ml-auto text-xs text-neutral-500">
-                    (Not installed)
+                  <span className="ml-auto text-xs text-neutral-600 bg-neutral-900/50 px-2 py-1 rounded">
+                    Not installed
                   </span>
                 )}
               </Button>
