@@ -39,7 +39,7 @@ export const Navbar = () => {
   useEffect(() => {
     mkLucid(setWalletConnection);
   }, []);
-  
+
   const handleLogout = async () => {
     await signOut();
     router.push("/");
@@ -83,7 +83,8 @@ export const Navbar = () => {
         </NavbarItem>
         <NavbarItem className="hidden md:flex gap-2">
           {user || userProfile ? (
-            <>
+            <div className="flex gap-5">
+              <WalletConnector />
               <Dropdown placement="bottom-end">
                 <DropdownTrigger>
                   <Avatar
@@ -131,7 +132,7 @@ export const Navbar = () => {
                   </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
-            </>
+            </div>
           ) : (
             <Button onClick={() => router.push("/auth/login")} size="sm">
               Login

@@ -52,3 +52,22 @@ export const UserProfileDatumSchema = Data.Object({
 export type UserProfileDatum = Data.Static<typeof UserProfileDatumSchema>;
 export const UserProfileDatum =
   UserProfileDatumSchema as unknown as UserProfileDatum;
+
+// ================UserProfileRedeemer================
+export const UserProfileRedeemerSchema = Data.Enum([
+  Data.Object({
+    Deposit: Data.Object({
+      amount: Data.Integer(),
+    }),
+  }),
+  Data.Object({
+    Withdraw: Data.Object({
+      amount: Data.Integer(),
+    }),
+  }),
+  Data.Literal("ProjectCreate"),
+]);
+
+export type UserProfileRedeemer = Data.Static<typeof UserProfileRedeemerSchema>;
+export const UserProfileRedeemer =
+  UserProfileRedeemerSchema as unknown as UserProfileRedeemer;

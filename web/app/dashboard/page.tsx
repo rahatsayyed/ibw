@@ -17,6 +17,8 @@ import { ProjectCard } from "@/components/project-card";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useWallet } from "@/context/walletContext";
+import { depositFunds, withdrawFunds } from "@/lib/contracts/userProfile";
 
 export default function DashboardPage() {
   const {
@@ -32,6 +34,9 @@ export default function DashboardPage() {
   const [actionType, setActionType] = useState<"deposit" | "withdraw">(
     "deposit"
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [walletConnection] = useWallet();
+  const { lucid } = walletConnection;
 
   useEffect(() => {
     if (!authLoading) {
@@ -65,34 +70,51 @@ export default function DashboardPage() {
   };
 
   const handleTransaction = async (onClose: () => void) => {
+    console.log("Transaction type:", actionType);
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (!lucid) {
+      toast.error("Wallet not connected");
       return;
     }
 
     const val = Number(amount);
     if (
       actionType === "withdraw" &&
-      val > (profile?.available_balance || 0) / 1000000
+      val > (profile?.available_balance || 0) / 1_000_000
     ) {
       toast.error("Insufficient available balance");
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      // ---------------------------------------------------------
-      // MOCK CARDANO TRANSACTION
-      // ---------------------------------------------------------
-      // In a real implementation, you would build and submit a transaction here.
-      // const tx = await lucid.newTx()
-      //   .payToContract(scriptAddress, { inline: datum }, { lovelace: BigInt(val * 1000000) })
-      //   .complete();
-      // const signedTx = await tx.sign().complete();
-      // const txHash = await signedTx.submit();
-      // console.log("Transaction submitted:", txHash);
-      // await lucid.awaitTx(txHash);
-      // ---------------------------------------------------------
+      // Convert ADA to lovelace
+      const lovelaceAmount = BigInt(val * 1000000);
+      let txHash: string;
 
+      if (actionType === "deposit") {
+        toast.info("Building deposit transaction...");
+        txHash = await depositFunds(lucid, lovelaceAmount);
+        toast.success(
+          `Deposit transaction submitted: ${txHash.slice(0, 10)}...`
+        );
+      } else {
+        toast.info("Building withdrawal transaction...");
+        txHash = await withdrawFunds(lucid, lovelaceAmount);
+        toast.success(
+          `Withdrawal transaction submitted: ${txHash.slice(0, 10)}...`
+        );
+      }
+
+      // Wait for transaction confirmation
+      toast.info("Waiting for transaction confirmation...");
+      await lucid.awaitTx(txHash);
+
+      // Update local database to reflect on-chain state
       const newBalance =
         actionType === "deposit"
           ? Number(profile.total_balance) + val * 1000000
@@ -103,31 +125,28 @@ export default function DashboardPage() {
           ? Number(profile.available_balance) + val * 1000000
           : Number(profile.available_balance) - val * 1000000;
 
-      // Get user ID from either supabase user or userProfile
       const userId = user?.id || userProfile?.id;
-      if (!userId) {
-        toast.error("User ID not found");
-        return;
+      if (userId) {
+        await supabase
+          .from("users")
+          .update({
+            total_balance: newBalance,
+            available_balance: newAvailable,
+          })
+          .eq("id", userId);
       }
 
-      const { error } = await supabase
-        .from("users")
-        .update({
-          total_balance: newBalance,
-          available_balance: newAvailable,
-        })
-        .eq("id", userId);
-
-      if (error) throw error;
-
       toast.success(
-        `${actionType === "deposit" ? "Deposit" : "Withdrawal"} successful!`
+        `${actionType === "deposit" ? "Deposit" : "Withdrawal"} confirmed!`
       );
       fetchProfile();
       onClose();
       setAmount("");
     } catch (error: any) {
-      toast.error(error.message);
+      console.error("Transaction error:", error);
+      toast.error(error.message || "Transaction failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -207,7 +226,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Transaction Modal */}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        isDismissable={!isSubmitting}
+        hideCloseButton={isSubmitting}
+      >
         <ModalContent>
           {(onClose) => (
             <>
@@ -225,22 +249,35 @@ export default function DashboardPage() {
                   }
                   value={amount}
                   onValueChange={setAmount}
+                  isDisabled={isSubmitting}
                 />
                 {actionType === "withdraw" && (
                   <p className="text-tiny text-default-500">
-                    Available: {profile?.available_balance} ₳
+                    Available: {profile?.available_balance / 1_000_000} ₳
+                  </p>
+                )}
+                {isSubmitting && (
+                  <p className="text-tiny text-primary">
+                    Transaction in progress... Please wait.
                   </p>
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button
+                  color="danger"
+                  variant="light"
+                  onPress={onClose}
+                  isDisabled={isSubmitting}
+                >
                   Cancel
                 </Button>
                 <Button
                   color="primary"
                   onPress={() => handleTransaction(onClose)}
+                  isDisabled={isSubmitting}
+                  isLoading={isSubmitting}
                 >
-                  Confirm
+                  {isSubmitting ? "Processing..." : "Confirm"}
                 </Button>
               </ModalFooter>
             </>
