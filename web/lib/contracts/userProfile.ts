@@ -10,6 +10,7 @@ import {
   stakeCredentialOf,
   applyDoubleCborEncoding,
   UTxO,
+  Script,
 } from "@lucid-evolution/lucid";
 import { UserProfileDatum, UserProfileRedeemer } from "@/types/contracts";
 import { blockfrost } from "@/lib/cardano";
@@ -17,6 +18,32 @@ import {
   userprofile_user_profile_mint,
   userprofile_user_profile_spend,
 } from "@/config/scripts/plutus";
+import { supabase } from "@/lib/supabase";
+
+const getReferenceScriptUtxo = async (
+  lucid: LucidEvolution,
+  scriptName: string
+): Promise<UTxO> => {
+  const { data, error } = await supabase
+    .from("reference_scripts")
+    .select("*")
+    .eq("script_name", scriptName)
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Reference script ${scriptName} not found in database`);
+  }
+
+  const [utxo] = await lucid.utxosByOutRef([
+    { txHash: data.tx_hash, outputIndex: data.output_index },
+  ]);
+  if (!utxo) {
+    throw new Error(
+      `Reference script UTxO not found on-chain: ${data.tx_hash}#${data.output_index}`
+    );
+  }
+  return utxo;
+};
 
 export const registerUser = async (
   lucid: LucidEvolution,
@@ -28,6 +55,8 @@ export const registerUser = async (
 
   if (!pkh || !sc) throw new Error("Invalid address");
 
+  // We still need the script object to derive Policy ID and Address,
+  // but we won't attach it to the tx.
   const mintingPolicy: MintingPolicy = {
     type: "PlutusV3",
     script: applyDoubleCborEncoding(userprofile_user_profile_mint),
@@ -40,49 +69,18 @@ export const registerUser = async (
 
   const policyId = mintingPolicyToId(mintingPolicy);
   const network = lucid.config().network;
-  console.log("network:", network);
   if (!network) throw new Error("Network not configured");
 
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
-  // Create Profile NFT AssetClass
-  // The token name for Profile NFT is usually empty or specific.
-  // Based on typical patterns, let's assume it's derived or empty.
-  // Checking the contract, it often validates the token name.
-  // For now, let's use the username as token name or empty.
-  // Re-reading whichContract.md: "Mint unique Profile NFT (one per address)"
-  // Usually unique NFTs are minted with a specific name.
-  // Let's use "Profile" as token name for now, or maybe the username itself?
-  // The contract says "Mint unique Profile NFT".
-  // Let's assume the token name is "Profile" encoded in hex.
+  // Fetch Reference Script UTxOs
+  const mintRefUtxo = await getReferenceScriptUtxo(lucid, "user_profile_mint");
+  // We don't strictly need the spend ref for minting unless the minting policy interacts with the spending validator
+  // in a way that requires it to be present (e.g. checking output address credential).
+  // But usually for minting we just need the minting policy ref.
+
   const tokenName = fromText(username);
   const unit = policyId + tokenName;
-
-  // Construct UserProfileDatum
-  // We need to match the Aiken struct fields order
-  /*
-    user_address: Wallet, (VerificationKeyHash)
-    username_hash: ByteArray,
-    profile_nft: AssetClass,
-    
-    active_projects_as_client: 0,
-    active_projects_as_freelancer: 0,
-    
-    total_balance: 0,
-    project_collateral: 0,
-    available_balance: 0,
-    
-    reputation_score: 0,
-    total_client_completed: 0,
-    total_freelancer_completed: 0,
-    total_disputed: 0,
-    fraud_count: 0,
-    
-    arbitration_score: 0,
-    arbitrations_completed: 0,
-    
-    registered_at: POSIXTime,
-  */
 
   const now = await blockfrost.getLatestTime();
 
@@ -114,18 +112,17 @@ export const registerUser = async (
     },
   };
 
-  // Redeemer for minting
-  // Redeemer for minting
   const mintRedeemer = Data.to(tokenName);
 
   const tx = await lucid
     .newTx()
+    .readFrom([mintRefUtxo]) // Reference the minting policy
     .mintAssets({ [unit]: 1n }, mintRedeemer)
-    .attach.MintingPolicy(mintingPolicy)
+    // .attach.MintingPolicy(mintingPolicy) // REMOVED: Using reference script
     .pay.ToContract(
       scriptAddress,
       { kind: "inline", value: Data.to(userProfileDatum, UserProfileDatum) },
-      { [unit]: 1n } // Sending the NFT to the script
+      { [unit]: 1n }
     )
     .addSignerKey(pkh)
     .complete();
@@ -155,10 +152,14 @@ export const depositFunds = async (
 
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
-  // Find the user's Profile NFT UTxO at the script address
+  // Fetch Reference Script UTxO
+  const spendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile_spend"
+  );
+
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
-  console.log("profileContract", scriptAddress);
-  // Find the UTxO that belongs to this user by checking the datum
+
   let userProfileUtxo: UTxO | null = null;
   let currentDatum: UserProfileDatum | null = null;
 
@@ -172,7 +173,6 @@ export const depositFunds = async (
           break;
         }
       } catch (e) {
-        // Skip UTxOs with invalid datum
         continue;
       }
     }
@@ -182,32 +182,30 @@ export const depositFunds = async (
     throw new Error("User profile UTxO not found");
   }
 
-  // Create updated datum with increased balances
   const updatedDatum: UserProfileDatum = {
     ...currentDatum,
     total_balance: currentDatum.total_balance + depositAmount,
     available_balance: currentDatum.available_balance + depositAmount,
   };
 
-  // Get the Profile NFT info
   const profileNftPolicy = currentDatum.profile_nft.policy_id;
   const profileNftName = currentDatum.profile_nft.asset_name;
   const unit = profileNftPolicy + profileNftName;
 
-  // Create redeemer
   const redeemer: UserProfileRedeemer = {
     Deposit: { amount: depositAmount },
   };
 
   const tx = await lucid
     .newTx()
+    .readFrom([spendRefUtxo]) // Reference the spending validator
     .collectFrom([userProfileUtxo], Data.to(redeemer, UserProfileRedeemer))
     .pay.ToContract(
       scriptAddress,
       { kind: "inline", value: Data.to(updatedDatum, UserProfileDatum) },
       { lovelace: depositAmount, [unit]: 1n }
     )
-    .attach.SpendingValidator(spendingValidator)
+    // .attach.SpendingValidator(spendingValidator) // REMOVED: Using reference script
     .addSignerKey(pkh)
     .complete();
 
@@ -236,10 +234,14 @@ export const withdrawFunds = async (
 
   const scriptAddress = validatorToAddress(network, spendingValidator);
 
-  // Find the user's Profile NFT UTxO at the script address
+  // Fetch Reference Script UTxO
+  const spendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile_spend"
+  );
+
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
 
-  // Find the UTxO that belongs to this user by checking the datum
   let userProfileUtxo: UTxO | null = null;
   let currentDatum: UserProfileDatum | null = null;
 
@@ -253,7 +255,6 @@ export const withdrawFunds = async (
           break;
         }
       } catch (e) {
-        // Skip UTxOs with invalid datum
         continue;
       }
     }
@@ -263,32 +264,29 @@ export const withdrawFunds = async (
     throw new Error("User profile UTxO not found");
   }
 
-  // Validate sufficient balance
   if (withdrawalAmount > currentDatum.available_balance) {
     throw new Error(
       `Insufficient balance. Available: ${currentDatum.available_balance}, Requested: ${withdrawalAmount}`
     );
   }
 
-  // Create updated datum with decreased balances
   const updatedDatum: UserProfileDatum = {
     ...currentDatum,
     total_balance: currentDatum.total_balance - withdrawalAmount,
     available_balance: currentDatum.available_balance - withdrawalAmount,
   };
 
-  // Get the Profile NFT info
   const profileNftPolicy = currentDatum.profile_nft.policy_id;
   const profileNftName = currentDatum.profile_nft.asset_name;
   const unit = profileNftPolicy + profileNftName;
 
-  // Create redeemer
   const redeemer: UserProfileRedeemer = {
     Withdraw: { amount: withdrawalAmount },
   };
 
   const tx = await lucid
     .newTx()
+    .readFrom([spendRefUtxo]) // Reference the spending validator
     .collectFrom([userProfileUtxo], Data.to(redeemer, UserProfileRedeemer))
     .pay.ToContract(
       scriptAddress,
@@ -296,7 +294,7 @@ export const withdrawFunds = async (
       { [unit]: 1n }
     )
     .pay.ToAddress(address, { lovelace: withdrawalAmount })
-    .attach.SpendingValidator(spendingValidator)
+    // .attach.SpendingValidator(spendingValidator) // REMOVED: Using reference script
     .addSignerKey(pkh)
     .complete();
 
