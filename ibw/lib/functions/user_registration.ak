@@ -1,13 +1,11 @@
 //// This module contains functions for user profile NFT minting and registration validation.
 
 use aiken/collection/list
-use cardano/address.{Address}
 use cardano/assets.{PolicyId, Value}
-use cardano/transaction.{InlineDatum, Output, OutputReference, Transaction}
+use cardano/transaction.{InlineDatum, Output, Transaction}
 use cardano/tx
 use cardano/value
-use types/moment.{Moment}
-use types/types.{AssetClass, UserProfileDatum}
+use types/types.{UserProfileDatum}
 use types/wallet.{Wallet}
 
 /// Validates that exactly one unique Profile NFT is being minted.

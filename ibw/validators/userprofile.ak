@@ -5,6 +5,7 @@ use cardano/assets.{PolicyId}
 use cardano/script_context.{ScriptContext}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
 use functions/deposit
+use functions/project_create
 use functions/user_registration
 use functions/withdraw
 use types/types.{UserProfileDatum}
@@ -13,6 +14,7 @@ use types/types.{UserProfileDatum}
 pub type UserProfileRedeemer {
   Deposit { amount: Int }
   Withdraw { amount: Int }
+  ProjectCreate
 }
 
 validator user_profile {
@@ -92,16 +94,25 @@ validator user_profile {
           profile_nft_name,
           script_address,
         )
+      ProjectCreate ->
+        // Project Create
+        // --------------
+        // 3. Verify client Profile UTxO updates:
+        //    - active_projects_as_client += 1
+        //    - project_collateral += 25_000_000
+        //    - total_balance unchanged (or +25 if shortfall)
+        // 4. Client Profile NFT returned to client
+        // 13. Validate project_collateral calculation (25 ADA * active_projects)
+        // 14. Ensure client has sufficient balance
+        project_create.validate_project_creation(
+          tx,
+          input_datum,
+          output_datum,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
     }
-    // Project Create
-    // --------------
-    // 3. Verify client Profile UTxO updates:
-    //    - active_projects_as_client += 1
-    //    - project_collateral += 25_000_000
-    //    - total_balance unchanged (or +25 if shortfall)
-    // 4. Client Profile NFT returned to client
-    // 13. Validate project_collateral calculation (25 ADA * active_projects)
-    // 14. Ensure client has sufficient balance
     // Project Accept
     // --------------
     // 4. Freelancer Profile UTxO updates:

@@ -1,37 +1,106 @@
-use cardano/address.{Credential}
+use aiken/collection/dict
+use aiken/collection/list
+use cardano/address.{Script}
 use cardano/assets.{PolicyId}
-use cardano/certificate.{Certificate}
-use cardano/governance.{ProposalProcedure, Voter}
 use cardano/script_context.{ScriptContext}
-use cardano/transaction.{OutputReference, Transaction}
+use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
+use cardano/value
+use types/types.{Open, ProjectDatum, UserProfileDatum}
+
+pub type ProjectMintRedeemer {
+  Create
+  Burn
+}
 
 // easier to find the user-utxo with profile_nft
 validator project_contract(profile_nft: PolicyId) {
   // MINTING POLICY VALIDATIONS
   // ===========================
-  mint(_redeemer: Data, _policy_id: PolicyId, _self: Transaction) {
-    // Project Create
-    // --------------
-    // 1. Client's Profile NFT MUST be in inputs
-    // 2. Extract client_address from Profile UTxO datum
-    // 5. Mint exactly ONE Project NFT
-    // 6. Project UTxO goes to SCRIPT address (not user wallet)
-    // 7. Project UTxO value = project_amount + Project NFT
-    // 9. status = Open
-    // 8. skipped this part of sending ada to treasury
-    // 10. collateral_rate in range [5, 10]
-    // 11. minimum_completion_percentage in range [70, 100]
-    // 12. completion_deadline > created_at
-    // Project Approval
-    // ----------------
-    // 10. Burn Project NFT
-    // No Re-dispute (Finalize)
-    // ------------------------
-    // 14. Burn Project NFT
-    // Human Arbitration
-    // -----------------
-    // 15. Burn Project NFT
-    todo @"mint logic goes here"
+  mint(redeemer: ProjectMintRedeemer, policy_id: PolicyId, self: Transaction) {
+    when redeemer is {
+      Create -> {
+        // Project Create
+        // --------------
+        // 1. Client's Profile NFT MUST be in inputs
+        expect Some(client_input) =
+          list.find(
+            self.inputs,
+            fn(input) {
+              list.any(
+                input.output.value |> assets.flatten,
+                fn((pid, _, _)) { pid == profile_nft },
+              )
+            },
+          )
+
+        // 2. Extract client_address from Profile UTxO datum
+        expect InlineDatum(datum_data) = client_input.output.datum
+        expect client_datum: UserProfileDatum = datum_data
+
+        // 5. Mint exactly ONE Project NFT
+        // Use the output reference of the first input as the token name for uniqueness,
+        // or just check that we are minting exactly one token of this policy.
+        // The requirement says "Mint exactly ONE Project NFT".
+        // We need to find the output that has this token to validate it.
+        expect Some(project_output) =
+          list.find(
+            self.outputs,
+            fn(output) {
+              list.any(
+                output.value |> assets.flatten,
+                fn((pid, _, _)) { pid == policy_id },
+              )
+            },
+          )
+
+        // Verify minting quantity is 1
+        expect [Pair(_, 1)] =
+          self.mint
+            |> assets.tokens(policy_id)
+            |> dict.to_pairs
+
+        // 6. Project UTxO goes to SCRIPT address (not user wallet)
+        expect Script(_) = project_output.address.payment_credential
+
+        // 7. Project UTxO value = project_amount + Project NFT
+        expect InlineDatum(project_datum_data) = project_output.datum
+        expect project_datum: ProjectDatum = project_datum_data
+
+        // Check value: project_amount + min_ada (implicitly handled by ledger, but we should check project_amount is there)
+        // Actually, we should check that the output value contains at least project_amount.
+        // And the Project NFT.
+        let value_check =
+          (
+            project_output.value
+              |> assets.lovelace_of
+          ) >= project_datum.project_amount
+
+        // 9. status = Open
+        let status_check = project_datum.status == Open
+
+        // 10. collateral_rate in range [5, 10]
+        let collateral_check =
+          project_datum.collateral_rate >= 5 && project_datum.collateral_rate <= 10
+
+        // 11. minimum_completion_percentage in range [70, 100]
+        let completion_check =
+          project_datum.minimum_completion_percentage >= 70 && project_datum.minimum_completion_percentage <= 100
+
+        // 12. completion_deadline > created_at
+        let deadline_check =
+          project_datum.completion_deadline.start > project_datum.created_at.end
+
+        // Verify client address matches signer (implicit in UserProfile logic, but good to check)
+        // 2. Extract client_address from Profile UTxO datum
+        // We already got client_datum.
+        // We should check that the transaction is signed by the user in the profile datum.
+        let signer_check =
+          list.has(self.extra_signatories, client_datum.user_address.pkh)
+
+        value_check? && status_check? && collateral_check? && completion_check? && deadline_check? && signer_check?
+      }
+      Burn -> todo @"burn logic"
+    }
   }
 
   // SPENDING VALIDATOR VALIDATIONS

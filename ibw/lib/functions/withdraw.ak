@@ -4,7 +4,7 @@ use aiken/collection/list
 use cardano/address.{Address}
 use cardano/addresses
 use cardano/assets.{PolicyId}
-use cardano/transaction.{InlineDatum, Input, Output, Transaction}
+use cardano/transaction.{Output, Transaction}
 use cardano/tx
 use types/types.{UserProfileDatum}
 use types/wallet.{Wallet}
