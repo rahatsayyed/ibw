@@ -49,6 +49,7 @@ pub fn validate_project_creation(
 
   let collateral_check =
     output_datum.project_collateral == input_datum.project_collateral + collateral_amount
+  trace @"collateral_check": input_datum.project_collateral, collateral_amount, output_datum.project_collateral
 
   // We allow total_balance to increase if the user provides extra input ADA to cover the collateral,
   // but the simplest case is using existing funds.
@@ -57,7 +58,6 @@ pub fn validate_project_creation(
   // Let's enforce:
   // available_balance_out = total_balance_out - project_collateral_out
   // And check that available_balance_out >= 0.
-
   let balance_math_check =
     output_datum.available_balance == output_datum.total_balance - output_datum.project_collateral
 
@@ -84,7 +84,6 @@ pub fn validate_project_creation(
   // Let's use `find_output_with_nft` equivalent that returns the Output.
   // Since we can't easily change `userprofile.ak`'s finding logic without refactoring it,
   // let's just re-find the output here to check its address.
-
   expect Some(output) =
     list.find(
       tx.outputs,
@@ -112,10 +111,8 @@ pub fn validate_project_creation(
 
   // 14. Ensure client has sufficient balance
   // Covered by `sufficient_balance_check`.
-
   // Verify other fields are unchanged
-  let other_fields_unchanged =
-    and {
+  let other_fields_unchanged = and {
       output_datum.user_address == input_datum.user_address,
       output_datum.username_hash == input_datum.username_hash,
       output_datum.profile_nft == input_datum.profile_nft,
