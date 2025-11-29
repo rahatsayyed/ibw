@@ -68,32 +68,31 @@ pub fn validate_project_approval(
   let freelancer_datum: UserProfileDatum =
     freelancer_input.output.datum |> inline_datum
 
-  let freelancer_address = freelancer_datum.user_address
-
-  // 13. Validate funds go to correct freelancer address
-  // Use addresses.from_wallet from logical-mechanism assist
-  let freelancer_addr = addresses.from_wallet(freelancer_address)
-
-  // Find the total value sent to freelancer.
-  let value_to_freelancer =
-    list.foldl(
+  // 13. Validate funds go to Freelancer Profile UTxO (increasing their balance)
+  // Find Freelancer Output by NFT
+  expect Some(freelancer_output) =
+    list.find(
       tx.outputs,
-      assets.zero,
-      fn(out, acc) {
-        if out.address == freelancer_addr {
-          assets.merge(acc, out.value)
-        } else {
-          acc
-        }
-      },
+      fn(out) {
+        list.any(
+          out.value |> assets.flatten,
+          fn((pid, _, _)) { pid == profile_nft_policy },
+        ) &&
+        // Ensure it's the same NFT as input (freelancer_datum.profile_nft)
+        // We know the policy matches, check token name if needed, but policy is usually unique per profile script?
+        // Actually profile_nft_policy is the policy for ALL profiles.
+        // We need to match the specific asset name.
+        assets.quantity_of(out.value, profile_nft_policy, freelancer_datum.profile_nft.asset_name) == 1
+      }
     )
 
-  // Check payment amount
-  let payment_check =
-    ( value_to_freelancer |> assets.lovelace_of ) >= input_datum.project_amount
-  trace @"project_approval:payment": payment_check, assets.lovelace_of(value_to_freelancer), input_datum.project_amount
+  // Check that Freelancer Profile value increased by at least project_amount
+  let value_increase_check =
+    assets.lovelace_of(freelancer_output.value) >= assets.lovelace_of(freelancer_input.output.value) + input_datum.project_amount
+  
+  trace @"project_approval:value_increase": value_increase_check, assets.lovelace_of(freelancer_output.value), assets.lovelace_of(freelancer_input.output.value), input_datum.project_amount
 
-  status_check? && client_nft_match? && signer_check? && payment_check?
+  status_check? && client_nft_match? && signer_check? && value_increase_check?
 }
 
 fn inline_datum(d: Datum) -> UserProfileDatum {

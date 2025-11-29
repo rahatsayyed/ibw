@@ -280,9 +280,16 @@ export const acceptProject = async (
     status: "Accepted",
   };
   // ProjectCollateral
+  // collateral_rate is a percentage (e.g. 5 means 5%)
   const projectCollateral =
-    (currentProjectDatum.project_amount * 100n) /
-    currentProjectDatum.collateral_rate;
+    (currentProjectDatum.project_amount * currentProjectDatum.collateral_rate) /
+    100n;
+
+  if (freelancerProfileDatum.available_balance < projectCollateral) {
+    throw new Error(
+      `Insufficient available balance for collateral. Required: ${projectCollateral}, Available: ${freelancerProfileDatum.available_balance}`
+    );
+  }
 
   // 4. Build Transaction
   const tx = await lucid
@@ -300,15 +307,6 @@ export const acceptProject = async (
       }
     )
     // Consume Freelancer Profile NFT (to prove ownership)
-    // We assume we need to update freelancer stats (e.g. active_projects_as_freelancer)
-    // But for now, let's just return it.
-    // We need a redeemer for UserProfile. "ProjectCreate" might not be appropriate.
-    // Let's check UserProfileRedeemer again. It has Deposit, Withdraw, ProjectCreate.
-    // Maybe "ProjectCreate" is reused for "ProjectJoin" or we need a new one?
-    // Or maybe we just use "ProjectCreate" as a generic "Update State" for projects?
-    // Let's assume "ProjectCreate" is fine or we use a void redeemer if allowed (unlikely).
-    // Actually, looking at `userprofile.ak`, `ProjectCreate` allows updating `active_projects`.
-    // So we should increment `active_projects_as_freelancer`.
     .collectFrom(
       [freelancerProfileUtxo],
       Data.to("ProjectAccept", UserProfileRedeemer)
@@ -332,6 +330,317 @@ export const acceptProject = async (
         ),
       },
       freelancerProfileUtxo.assets
+    )
+    .addSignerKey(pkh)
+    .complete();
+
+  const signedTx = await tx.sign.withWallet().complete();
+  const txHash = await signedTx.submit();
+
+  return txHash;
+};
+
+export const submitProject = async (
+  lucid: LucidEvolution,
+  projectNftAssetName: string,
+  submissionDetails: string
+): Promise<string> => {
+  const address = await lucid.wallet().address();
+  const pkh = paymentCredentialOf(address)?.hash;
+
+  if (!pkh) throw new Error("Invalid address");
+
+  const network = lucid.config().network;
+  if (!network) throw new Error("Network not configured");
+
+  // 1. Get Freelancer Profile NFT
+  const profileMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_mint),
+  };
+  const profilePolicyId = mintingPolicyToId(profileMintingPolicy);
+
+  const profileSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_spend),
+  };
+  const profileScriptAddress = validatorToAddress(
+    network,
+    profileSpendingValidator
+  );
+
+  const profileUtxos = await lucid.utxosAt(profileScriptAddress);
+  const freelancerProfileUtxo = profileUtxos.find((utxo) => {
+    try {
+      const datum = Data.from(utxo.datum!, UserProfileDatum);
+      return datum.user_address.pkh === pkh;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (!freelancerProfileUtxo) throw new Error("Freelancer profile not found");
+
+  const freelancerProfileDatum = Data.from(
+    freelancerProfileUtxo.datum!,
+    UserProfileDatum
+  );
+
+  // 2. Get Project UTxO
+  const projectSpendingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_spend),
+    [profilePolicyId]
+  );
+  const projectSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: projectSpendingScript,
+  };
+  const projectScriptAddress = validatorToAddress(
+    network,
+    projectSpendingValidator
+  );
+
+  const projectMintingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_mint),
+    [profilePolicyId]
+  );
+  const projectMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: projectMintingScript,
+  };
+  const projectPolicyId = mintingPolicyToId(projectMintingPolicy);
+
+  const projectUtxos = await lucid.utxosAt(projectScriptAddress);
+  const projectUtxo = projectUtxos.find((utxo) =>
+    Object.keys(utxo.assets).some(
+      (unit) =>
+        unit.startsWith(projectPolicyId) && unit.endsWith(projectNftAssetName)
+    )
+  );
+
+  if (!projectUtxo) throw new Error("Project not found");
+
+  const currentProjectDatum = Data.from(projectUtxo.datum!, ProjectDatum);
+
+  // 3. Update Project Datum
+  const now = await blockfrost.getLatestTime();
+  const updatedProjectDatum: ProjectDatum = {
+    ...currentProjectDatum,
+    status: "Submitted",
+    submission_details_hash: fromText(submissionDetails), // In real app, this might be IPFS hash
+    submission_time: { start: now, end: now },
+  };
+
+  // 4. Build Transaction
+  const tx = await lucid
+    .newTx()
+    // Consume Project UTxO
+    .collectFrom([projectUtxo], Data.to("Submit", ProjectRedeemer))
+    .attach.SpendingValidator(projectSpendingValidator)
+    // Pay back to Project Script with updated datum
+    .pay.ToContract(
+      projectScriptAddress,
+      { kind: "inline", value: Data.to(updatedProjectDatum, ProjectDatum) },
+      {
+        ...projectUtxo.assets,
+        lovelace: projectUtxo.assets.lovelace,
+      }
+    )
+    // Consume Freelancer Profile NFT (to prove ownership and satisfy validator)
+    .collectFrom(
+      [freelancerProfileUtxo],
+      Data.to("ProjectSubmit", UserProfileRedeemer)
+    )
+    .attach.SpendingValidator(profileSpendingValidator)
+    .pay.ToContract(
+      profileScriptAddress,
+      {
+        kind: "inline",
+        value: Data.to(freelancerProfileDatum, UserProfileDatum), // No changes to profile stats yet
+      },
+      freelancerProfileUtxo.assets
+    )
+    .addSignerKey(pkh)
+    .complete();
+
+  const signedTx = await tx.sign.withWallet().complete();
+  const txHash = await signedTx.submit();
+
+  return txHash;
+};
+
+export const approveProject = async (
+  lucid: LucidEvolution,
+  projectNftAssetName: string
+): Promise<string> => {
+  const address = await lucid.wallet().address();
+  const pkh = paymentCredentialOf(address)?.hash;
+
+  if (!pkh) throw new Error("Invalid address");
+
+  const network = lucid.config().network;
+  if (!network) throw new Error("Network not configured");
+
+  // 1. Get Client Profile NFT (Caller)
+  const profileMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_mint),
+  };
+  const profilePolicyId = mintingPolicyToId(profileMintingPolicy);
+
+  const profileSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_spend),
+  };
+  const profileScriptAddress = validatorToAddress(
+    network,
+    profileSpendingValidator
+  );
+
+  const profileUtxos = await lucid.utxosAt(profileScriptAddress);
+  const clientProfileUtxo = profileUtxos.find((utxo) => {
+    try {
+      const datum = Data.from(utxo.datum!, UserProfileDatum);
+      return datum.user_address.pkh === pkh;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (!clientProfileUtxo) throw new Error("Client profile not found");
+
+  const clientProfileDatum = Data.from(
+    clientProfileUtxo.datum!,
+    UserProfileDatum
+  );
+
+  // 2. Get Project UTxO
+  const projectSpendingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_spend),
+    [profilePolicyId]
+  );
+  const projectSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: projectSpendingScript,
+  };
+  const projectScriptAddress = validatorToAddress(
+    network,
+    projectSpendingValidator
+  );
+
+  const projectMintingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_mint),
+    [profilePolicyId]
+  );
+  const projectMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: projectMintingScript,
+  };
+  const projectPolicyId = mintingPolicyToId(projectMintingPolicy);
+
+  const projectUtxos = await lucid.utxosAt(projectScriptAddress);
+  const projectUtxo = projectUtxos.find((utxo) =>
+    Object.keys(utxo.assets).some(
+      (unit) =>
+        unit.startsWith(projectPolicyId) && unit.endsWith(projectNftAssetName)
+    )
+  );
+
+  if (!projectUtxo) throw new Error("Project not found");
+
+  const currentProjectDatum = Data.from(projectUtxo.datum!, ProjectDatum);
+
+  // 3. Get Freelancer Profile NFT
+  // We need to find the freelancer's profile to update it.
+  // We can find it by looking for the freelancer_nft specified in the project datum.
+  if (!currentProjectDatum.freelancer_nft) {
+    throw new Error("No freelancer assigned to this project");
+  }
+
+  const freelancerNftUnit =
+    currentProjectDatum.freelancer_nft.policy_id +
+    currentProjectDatum.freelancer_nft.asset_name;
+
+  const freelancerProfileUtxo = profileUtxos.find((utxo) =>
+    Object.keys(utxo.assets).includes(freelancerNftUnit)
+  );
+
+  if (!freelancerProfileUtxo) throw new Error("Freelancer profile not found");
+
+  const freelancerProfileDatum = Data.from(
+    freelancerProfileUtxo.datum!,
+    UserProfileDatum
+  );
+
+  // 4. Update Client Datum
+  const updatedClientDatum: UserProfileDatum = {
+    ...clientProfileDatum,
+    active_projects_as_client:
+      clientProfileDatum.active_projects_as_client - 1n,
+    project_collateral: clientProfileDatum.project_collateral - 25_000_000n,
+    total_client_completed: clientProfileDatum.total_client_completed + 1n,
+    reputation_score: clientProfileDatum.reputation_score + 5n,
+    available_balance: clientProfileDatum.available_balance + 25_000_000n,
+  };
+
+  // 5. Update Freelancer Datum
+  const projectCollateral =
+    (currentProjectDatum.project_amount * 100n) /
+    currentProjectDatum.collateral_rate;
+
+  const updatedFreelancerDatum: UserProfileDatum = {
+    ...freelancerProfileDatum,
+    active_projects_as_freelancer:
+      freelancerProfileDatum.active_projects_as_freelancer - 1n,
+    project_collateral:
+      freelancerProfileDatum.project_collateral - projectCollateral, // Assuming collateral is returned to available
+    available_balance:
+      freelancerProfileDatum.available_balance +
+      currentProjectDatum.project_amount +
+      projectCollateral,
+    total_freelancer_completed:
+      freelancerProfileDatum.total_freelancer_completed + 1n,
+    reputation_score: freelancerProfileDatum.reputation_score + 10n,
+    total_balance:
+      freelancerProfileDatum.total_balance + currentProjectDatum.project_amount,
+  };
+
+  // 6. Build Transaction
+  const tx = await lucid
+    .newTx()
+    // Consume Project UTxO (Redeemer: Approve)
+    .collectFrom([projectUtxo], Data.to("Approve", ProjectRedeemer))
+    .attach.SpendingValidator(projectSpendingValidator)
+    // Consume Client Profile UTxO
+    .collectFrom(
+      [clientProfileUtxo],
+      Data.to("ProjectApproval", UserProfileRedeemer)
+    )
+    .attach.SpendingValidator(profileSpendingValidator)
+    // Consume Freelancer Profile UTxO
+    .collectFrom(
+      [freelancerProfileUtxo],
+      Data.to("ProjectApproval", UserProfileRedeemer)
+    )
+    // Output Updated Client Profile
+    .pay.ToContract(
+      profileScriptAddress,
+      { kind: "inline", value: Data.to(updatedClientDatum, UserProfileDatum) },
+      clientProfileUtxo.assets
+    )
+    // Output Updated Freelancer Profile + Project Amount
+    .pay.ToContract(
+      profileScriptAddress,
+      {
+        kind: "inline",
+        value: Data.to(updatedFreelancerDatum, UserProfileDatum),
+      },
+      {
+        ...freelancerProfileUtxo.assets,
+        lovelace:
+          freelancerProfileUtxo.assets.lovelace +
+          currentProjectDatum.project_amount,
+      }
     )
     .addSignerKey(pkh)
     .complete();

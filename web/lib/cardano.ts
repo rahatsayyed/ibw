@@ -4,24 +4,21 @@ import {
   keyHashToCredential,
   LucidEvolution,
   UTxO,
-} from '@lucid-evolution/lucid'
+} from "@lucid-evolution/lucid";
 
-
-
-import { BF_PID, BF_URL, NETWORK } from '@/config'
-
+import { BF_PID, BF_URL, NETWORK } from "@/config";
 
 export function handleError(error: any) {
   const { info, message } = error;
 
   function toJSON(error: any) {
     try {
-      const errorString = JSON.stringify(error)
-      const errorJSON = JSON.parse(errorString)
+      const errorString = JSON.stringify(error);
+      const errorJSON = JSON.parse(errorString);
 
-      return errorJSON
+      return errorJSON;
     } catch {
-      return {}
+      return {};
     }
   }
 
@@ -48,17 +45,17 @@ export const blockfrost = {
 
     try {
       const assetResponse = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
           project_id: BF_PID,
         },
       })
 
       if (!assetResponse.ok) {
-        throw new Error(`Error: ${assetResponse.statusText}`)
+        throw new Error(`Error: ${assetResponse.statusText}`);
       }
 
-      const result = await assetResponse.json()
+      const result = await assetResponse.json();
 
       // const response = await fetch(`${BF_URL}/txs/${initialTx}/metadata`, {
       //   method: "GET",
@@ -71,36 +68,36 @@ export const blockfrost = {
       //   throw new Error(`Error: ${response.statusText}`);
       // }
       // const result = await response.json();
-      return result.onchain_metadata
+      return result.onchain_metadata;
     } catch (err: any) {
-      return err.message
+      return err.message;
     }
   },
 
   getAddress: async (address: string) => {
-    const url = `${BF_URL}/addresses/${address}`
+    const url = `${BF_URL}/addresses/${address}`;
 
     try {
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
           project_id: BF_PID,
         },
-      })
+      });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`)
+        throw new Error(`Error: ${response.statusText}`);
       }
 
-      const result = await response.json()
+      const result = await response.json();
 
-      return result
+      return result;
     } catch (err: any) {
-      return err.message
+      return err.message;
     }
   },
 
-  getLatestTime: async () => {
+  getLatestTime: async (): Promise<bigint> => {
     const url = `${BF_URL}/blocks/latest`;
 
     try {
@@ -116,38 +113,37 @@ export const blockfrost = {
       }
 
       const result = await assetResponse.json();
-      return result.time * 1000;
+      return BigInt(result.time * 1000);
     } catch (err: any) {
-      return err.message;
+      throw new Error(err.message);
     }
   },
-}
+};
 
 export type MetadataType = {
-  name: string
-  image: string
-  mediaType?: string
-  description?: string
-}
+  name: string;
+  image: string;
+  mediaType?: string;
+  description?: string;
+};
 
 export type CardanoAsset = {
-  asset: string
-  policy_id: string
-  asset_name: string
-  fingerprint: string
-  quantity: string
-  initial_mint_tx_hash: string
-  mint_or_burn_count: number
-  onchain_metadata: MetadataType
-  onchain_metadata_standard: string
-  onchain_metadata_extra: null | any
-  metadata: null | any
-}
-
+  asset: string;
+  policy_id: string;
+  asset_name: string;
+  fingerprint: string;
+  quantity: string;
+  initial_mint_tx_hash: string;
+  mint_or_burn_count: number;
+  onchain_metadata: MetadataType;
+  onchain_metadata_standard: string;
+  onchain_metadata_extra: null | any;
+  metadata: null | any;
+};
 
 export function vkhToAddress(vkh: string) {
-  const credential = keyHashToCredential(vkh)
-  const address = credentialToAddress(NETWORK, credential)
+  const credential = keyHashToCredential(vkh);
+  const address = credentialToAddress(NETWORK, credential);
 
-  return address
+  return address;
 }

@@ -18,6 +18,9 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { Logo } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import WalletConnector from "./WalletConnector/client";
+import { useWallet } from "@/context/walletContext";
+import { useEffect } from "react";
+import { mkLucid } from "@/lib/lucid";
 
 export default function Navbar() {
   const { user, userProfile, signOut } = useAuth();
@@ -27,6 +30,10 @@ export default function Navbar() {
     await signOut();
     router.push("/");
   };
+  const [walletConnection, setWalletConnection] = useWallet();
+  useEffect(() => {
+    mkLucid(setWalletConnection);
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -62,7 +69,10 @@ export default function Navbar() {
               <WalletConnector />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-9 w-9 rounded-full"
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-secondary">
                         {userProfile?.username?.charAt(0).toUpperCase() || "U"}
@@ -83,10 +93,16 @@ export default function Navbar() {
                   <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/gigs?filter=my_projects")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/gigs?filter=my_projects")}
+                  >
                     My Projects
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/gigs?filter=accepted_projects")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      router.push("/gigs?filter=accepted_projects")
+                    }
+                  >
                     Accepted Projects
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
