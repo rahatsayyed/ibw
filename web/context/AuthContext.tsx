@@ -20,6 +20,7 @@ interface AuthContextType {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  loginWithWallet: (address: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,43 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check active sessions and sets the user
-    const initAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setUserProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -78,6 +42,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(data);
     } catch (error) {
       console.error("Error fetching user profile:", error);
+    }
+  };
+
+  const loginWithWallet = async (address: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("wallet_address", address)
+        .single();
+
+      if (error) throw error;
+
+      setUserProfile(data);
+      // Persist wallet session
+      localStorage.setItem("wallet_session", address);
+    } catch (error) {
+      console.error("Error logging in with wallet:", error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,24 +103,94 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+  const logout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("wallet_session");
+    setUser(null);
+    setUserProfile(null);
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) throw new Error("No user logged in");
+    if (!user && !userProfile) throw new Error("No user logged in");
 
-    const { error } = await supabase
-      .from("users")
-      .update(updates)
-      .eq("id", user.id);
+    // If we have a supabase user, update by ID
+    if (user) {
+      const { error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("id", user.id);
 
-    if (error) throw error;
+      if (error) throw error;
+      await fetchUserProfile(user.id);
+    }
+    // If we only have wallet session (userProfile but no user), update by wallet address
+    else if (userProfile) {
+      const { error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("wallet_address", userProfile.wallet_address);
 
-    // Refresh user profile
-    await fetchUserProfile(user.id);
+      if (error) throw error;
+
+      // Refresh profile
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("wallet_address", userProfile.wallet_address)
+        .single();
+
+      if (data) setUserProfile(data);
+    }
   };
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    const initAuth = async () => {
+      try {
+        // 1. Check Supabase Session
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchUserProfile(session.user.id);
+        } else {
+          // 2. Check Wallet Session
+          const savedWallet = localStorage.getItem("wallet_session");
+          if (savedWallet) {
+            await loginWithWallet(savedWallet);
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchUserProfile(session.user.id);
+        // Clear wallet session if supabase session exists to avoid conflict
+        localStorage.removeItem("wallet_session");
+      } else {
+        setUser(null);
+        // Only clear profile if no wallet session
+        if (!localStorage.getItem("wallet_session")) {
+          setUserProfile(null);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value = {
     user,
@@ -142,8 +198,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signIn,
     signUp,
-    signOut,
+    signOut: logout,
     updateProfile,
+    loginWithWallet,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
