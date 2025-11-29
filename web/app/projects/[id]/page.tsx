@@ -71,6 +71,17 @@ export default function ProjectDetailsPage() {
                 throw new Error(`Insufficient balance for collateral. You need ${collateralAmount / 1000000} ADA.`);
             }
 
+            // ---------------------------------------------------------
+            // MOCK CARDANO TRANSACTION (Collateral Lock)
+            // ---------------------------------------------------------
+            // const tx = await lucid.newTx()
+            //   .payToContract(escrowScript, { inline: datum }, { lovelace: BigInt(collateralAmount) })
+            //   .complete();
+            // const signedTx = await tx.sign().complete();
+            // const txHash = await signedTx.submit();
+            // await lucid.awaitTx(txHash);
+            // ---------------------------------------------------------
+
             // Lock collateral
             await supabase.from("users").update({
                 available_balance: (profile?.available_balance || 0) - collateralAmount,

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [amount, setAmount] = useState("");
@@ -20,8 +20,14 @@ export default function DashboardPage() {
     const [actionType, setActionType] = useState<"deposit" | "withdraw">("deposit");
 
     useEffect(() => {
-        if (user) fetchProfile();
-    }, [user]);
+        if (!authLoading) {
+            if (user) {
+                fetchProfile();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [user, authLoading]);
 
     const fetchProfile = async () => {
         try {
@@ -53,6 +59,19 @@ export default function DashboardPage() {
         }
 
         try {
+            // ---------------------------------------------------------
+            // MOCK CARDANO TRANSACTION
+            // ---------------------------------------------------------
+            // In a real implementation, you would build and submit a transaction here.
+            // const tx = await lucid.newTx()
+            //   .payToContract(scriptAddress, { inline: datum }, { lovelace: BigInt(val * 1000000) })
+            //   .complete();
+            // const signedTx = await tx.sign().complete();
+            // const txHash = await signedTx.submit();
+            // console.log("Transaction submitted:", txHash);
+            // await lucid.awaitTx(txHash);
+            // ---------------------------------------------------------
+
             const newBalance = actionType === "deposit"
                 ? (Number(profile.total_balance) + val * 1000000)
                 : (Number(profile.total_balance) - val * 1000000);
@@ -85,7 +104,8 @@ export default function DashboardPage() {
         onOpen();
     };
 
-    if (loading) return <div className="p-10 text-center">Loading dashboard...</div>;
+    if (authLoading || loading) return <div className="p-10 text-center">Loading dashboard...</div>;
+    if (!user) return <div className="p-10 text-center">Please log in to view your dashboard.</div>;
 
     const stats = [
         { label: "Total Balance", value: `${(profile?.total_balance || 0) / 1000000} ₳`, color: "text-primary" },

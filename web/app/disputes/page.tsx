@@ -1,72 +1,91 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
-import { Divider } from "@heroui/divider";
+import { supabase } from "@/lib/supabase";
 
 export default function DisputesPage() {
-    const disputes = [
-        {
-            id: "D-102",
-            projectTitle: "E-commerce Payment Gateway",
-            reason: "Freelancer delivered incomplete code that fails security tests.",
-            status: "AI Analysis",
-            amount: 2000,
-            date: "2023-11-28",
-        },
-        {
-            id: "D-098",
-            projectTitle: "Landing Page Redesign",
-            reason: "Client refuses to release funds despite pixel-perfect delivery.",
-            status: "Human Review",
-            amount: 500,
-            date: "2023-11-25",
-        },
-    ];
+    const [disputes, setDisputes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchDisputes();
+    }, []);
+
+    const fetchDisputes = async () => {
+        try {
+            const { data, error } = await supabase
+                .from("disputes")
+                .select("*, project:projects(title, payment_amount)")
+                .order("created_at", { ascending: false });
+
+            if (error) throw error;
+            setDisputes(data || []);
+        } catch (error) {
+            console.error("Error fetching disputes:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="max-w-4xl mx-auto pb-10">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">Dispute Resolution Center</h1>
                 <p className="text-default-500">
-                    Fair, transparent, and AI-powered dispute resolution.
+                    AI-powered arbitration with human oversight. Fair, transparent, and efficient.
                 </p>
             </div>
 
-            <div className="flex flex-col gap-4">
-                {disputes.map((dispute) => (
-                    <Card key={dispute.id} className="glass-card">
-                        <CardBody>
-                            <div className="flex flex-col md:flex-row justify-between gap-4">
-                                <div className="flex-grow">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-xl font-bold">{dispute.projectTitle}</h3>
+            <div className="space-y-4">
+                {loading ? (
+                    <div className="text-center py-10">Loading disputes...</div>
+                ) : disputes.length === 0 ? (
+                    <div className="text-center py-10 text-default-500">No active disputes found.</div>
+                ) : (
+                    disputes.map((dispute) => (
+                        <Card key={dispute.id} className="glass-card">
+                            <CardBody className="flex flex-col md:flex-row justify-between gap-4 p-6">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-xl font-bold">{dispute.project?.title}</h3>
                                         <Chip
-                                            color={dispute.status === "AI Analysis" ? "secondary" : "warning"}
+                                            color={
+                                                dispute.state === "pending" ? "warning" :
+                                                    dispute.state === "resolved" ? "success" : "primary"
+                                            }
                                             variant="flat"
+                                            size="sm"
                                         >
-                                            {dispute.status}
+                                            {dispute.state.replace("_", " ")}
                                         </Chip>
                                     </div>
-                                    <p className="text-default-500 mb-2">
-                                        <span className="font-semibold text-foreground">Dispute Reason:</span> {dispute.reason}
+                                    <p className="text-default-500">
+                                        <span className="font-semibold text-foreground">Reason:</span> {dispute.reason}
                                     </p>
                                     <div className="flex gap-4 text-small text-default-400">
-                                        <span>ID: {dispute.id}</span>
-                                        <span>Date: {dispute.date}</span>
-                                        <span>Amount: {dispute.amount} ₳</span>
+                                        <span>ID: {dispute.id.slice(0, 8)}...</span>
+                                        <span>{new Date(dispute.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col justify-center gap-2 min-w-[150px]">
-                                    <Button color="primary" variant="ghost">
+
+                                <div className="flex flex-col items-end justify-center gap-2 min-w-[150px]">
+                                    <div className="text-right">
+                                        <p className="text-tiny text-default-500 uppercase">Amount at Stake</p>
+                                        <p className="text-xl font-bold text-danger">
+                                            {(dispute.project?.payment_amount / 1000000).toLocaleString()} ₳
+                                        </p>
+                                    </div>
+                                    <Button color="primary" variant="ghost" size="sm">
                                         View Details
                                     </Button>
                                 </div>
-                            </div>
-                        </CardBody>
-                    </Card>
-                ))}
+                            </CardBody>
+                        </Card>
+                    ))
+                )}
             </div>
         </div>
     );

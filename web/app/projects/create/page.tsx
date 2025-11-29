@@ -66,6 +66,17 @@ export default function CreateProjectPage() {
                 throw new Error(`Insufficient balance. You need ${total} ADA.`);
             }
 
+            // ---------------------------------------------------------
+            // MOCK CARDANO TRANSACTION (Escrow Lock)
+            // ---------------------------------------------------------
+            // const tx = await lucid.newTx()
+            //   .payToContract(escrowScript, { inline: datum }, { lovelace: BigInt(totalLovelace) })
+            //   .complete();
+            // const signedTx = await tx.sign().complete();
+            // const txHash = await signedTx.submit();
+            // await lucid.awaitTx(txHash);
+            // ---------------------------------------------------------
+
             // Deduct balance
             await supabase.from("users").update({
                 available_balance: (profile.available_balance || 0) - totalLovelace,

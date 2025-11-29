@@ -2,10 +2,7 @@
 INSERT INTO users (
   username, 
   wallet_address,
-  full_name, -- Note: full_name is NOT in the schema provided, checking if I missed it. 
-             -- Wait, looking at 001_initial_schema.sql, there is NO full_name column!
-             -- There is email, profile_image_url, bio.
-             -- I will remove full_name from insert.
+  full_name, 
   bio, 
   reputation_score, 
   total_balance, 
@@ -68,3 +65,26 @@ SELECT
   'open', 
   id 
 FROM users WHERE username = 'bob_client';
+
+-- Insert Mock Disputes
+INSERT INTO disputes (
+  project_id,
+  initiated_by_user_id,
+  reason,
+  evidence_links,
+  state,
+  ai_confidence_score,
+  ai_reasoning
+)
+SELECT
+  p.id,
+  u.id,
+  'Incomplete work submitted',
+  ARRAY['https://github.com/bob_client/defi-dash/issues/1'],
+  'pending',
+  0.85,
+  'Analysis of the repository shows only 40% of the required components are implemented.'
+FROM projects p
+JOIN users u ON u.username = 'bob_client'
+WHERE p.title = 'DeFi Dashboard UI'
+LIMIT 1;
