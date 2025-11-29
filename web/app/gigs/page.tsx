@@ -5,10 +5,16 @@ import { ProjectCard } from "@/components/project-card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Slider } from "@heroui/slider";
-import { SearchIcon } from "@/components/icons";
+import { SearchIcon, FilterIcon } from "@/components/icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
+import {
+    Popover,
+    PopoverTrigger,
+    PopoverContent,
+} from "@heroui/popover";
+import { Chip } from "@heroui/chip";
 
 export default function MarketplacePage() {
     const { user, userProfile } = useAuth();
@@ -99,6 +105,15 @@ export default function MarketplacePage() {
         return "The decentralized marketplace for Cardano developers. Secure payments, automated disputes, and on-chain reputation.";
     };
 
+    const clearAllFilters = () => {
+        setMinPrice(0);
+        setMaxPrice(10000);
+        setMinReputation(0);
+        setSkills("");
+    };
+
+    const hasActiveFilters = minPrice > 0 || maxPrice < 10000 || minReputation > 0 || skills !== "";
+
     return (
         <div className="flex flex-col gap-8 pb-10">
             {/* Hero Section */}
@@ -137,50 +152,105 @@ export default function MarketplacePage() {
                 </div>
             </section>
 
-            {/* Advanced Filters */}
-            <div className="flex flex-col md:flex-row gap-6 p-6 bg-default-50 dark:bg-default-100 rounded-xl border border-default-200">
-                <div className="flex-1 space-y-2">
-                    <label className="text-sm font-medium">Price Range (ADA)</label>
-                    <div className="flex gap-2 items-center">
-                        <Input
-                            type="number"
-                            placeholder="Min"
-                            value={minPrice.toString()}
-                            onValueChange={(v) => setMinPrice(Number(v))}
-                            size="sm"
-                        />
-                        <span>-</span>
-                        <Input
-                            type="number"
-                            placeholder="Max"
-                            value={maxPrice.toString()}
-                            onValueChange={(v) => setMaxPrice(Number(v))}
-                            size="sm"
-                        />
+            {/* Filters Section */}
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                    <Popover placement="bottom-start">
+                        <PopoverTrigger>
+                            <Button
+                                variant="flat"
+                                startContent={<FilterIcon />}
+                                className="font-medium"
+                            >
+                                Filters
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[340px] p-4">
+                            <div className="flex flex-col gap-4 w-full">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Price Range (ADA)</label>
+                                    <div className="flex gap-2 items-center">
+                                        <Input
+                                            type="number"
+                                            placeholder="Min"
+                                            value={minPrice.toString()}
+                                            onValueChange={(v) => setMinPrice(Number(v))}
+                                            size="sm"
+                                            label="Min"
+                                        />
+                                        <span>-</span>
+                                        <Input
+                                            type="number"
+                                            placeholder="Max"
+                                            value={maxPrice.toString()}
+                                            onValueChange={(v) => setMaxPrice(Number(v))}
+                                            size="sm"
+                                            label="Max"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Min Client Reputation</label>
+                                    <Slider
+                                        size="sm"
+                                        step={10}
+                                        maxValue={1000}
+                                        minValue={0}
+                                        defaultValue={0}
+                                        value={minReputation}
+                                        onChange={(v) => setMinReputation(Number(v))}
+                                        className="max-w-md"
+                                    />
+                                    <div className="text-small text-default-500 text-right">{minReputation}</div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Skills (Keywords)</label>
+                                    <Input
+                                        placeholder="e.g. React, Rust, Plutus"
+                                        value={skills}
+                                        onValueChange={setSkills}
+                                        size="sm"
+                                    />
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    {/* Active Filter Chips */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {minPrice > 0 && (
+                            <Chip onClose={() => setMinPrice(0)} variant="flat" color="secondary">
+                                Min Price: {minPrice} ADA
+                            </Chip>
+                        )}
+                        {maxPrice < 10000 && (
+                            <Chip onClose={() => setMaxPrice(10000)} variant="flat" color="secondary">
+                                Max Price: {maxPrice} ADA
+                            </Chip>
+                        )}
+                        {minReputation > 0 && (
+                            <Chip onClose={() => setMinReputation(0)} variant="flat" color="secondary">
+                                Reputation &gt; {minReputation}
+                            </Chip>
+                        )}
+                        {skills && (
+                            <Chip onClose={() => setSkills("")} variant="flat" color="secondary">
+                                Skills: {skills}
+                            </Chip>
+                        )}
+
+                        {hasActiveFilters && (
+                            <Button
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                onPress={clearAllFilters}
+                                className="ml-2"
+                            >
+                                Clear All
+                            </Button>
+                        )}
                     </div>
-                </div>
-                <div className="flex-1 space-y-2">
-                    <label className="text-sm font-medium">Min Client Reputation</label>
-                    <Slider
-                        size="sm"
-                        step={10}
-                        maxValue={1000}
-                        minValue={0}
-                        defaultValue={0}
-                        value={minReputation}
-                        onChange={(v) => setMinReputation(Number(v))}
-                        className="max-w-md"
-                    />
-                    <div className="text-small text-default-500 text-right">{minReputation}</div>
-                </div>
-                <div className="flex-1 space-y-2">
-                    <label className="text-sm font-medium">Skills (Keywords)</label>
-                    <Input
-                        placeholder="e.g. React, Rust, Plutus"
-                        value={skills}
-                        onValueChange={setSkills}
-                        size="sm"
-                    />
                 </div>
             </div>
 

@@ -195,54 +195,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-purple-950/20 to-neutral-950 p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/40 via-neutral-950 to-neutral-950 p-4 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-white/10 backdrop-blur-xl shadow-2xl">
+              {/* Logo Placeholder or Icon */}
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-400 rounded-lg" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent tracking-tight">
             {siteConfig.name}
           </h1>
-          <p className="text-neutral-400">
-            Decentralized Freelance Platform on Cardano
+          <p className="text-neutral-400 text-lg">
+            Welcome back to the future of work
           </p>
         </div>
 
-        <Card className="w-full border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              Welcome back
+        <Card className="w-full border-white/10 bg-neutral-900/40 backdrop-blur-xl shadow-2xl ring-1 ring-white/5">
+          <CardHeader className="space-y-1 text-center pb-2">
+            <CardTitle className="text-xl font-semibold tracking-tight text-white">
+              Sign in to your account
             </CardTitle>
-            <CardDescription className="text-neutral-400">
-              Sign in to your account to continue
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             {/* Wallet Connection Option */}
             <Button
               onClick={() => setShowWalletDialog(true)}
-              className="w-full border-purple-500/50 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500"
+              className="w-full h-12 border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 hover:border-purple-500/50 transition-all duration-300 group"
               variant="outline"
               disabled={connecting}
             >
               {connecting ? (
                 <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
+                  <LoaderCircle className="mr-2 h-5 w-5 animate-spin text-purple-400" />
+                  <span className="text-purple-100">Connecting...</span>
                 </>
               ) : (
                 <>
-                  <WalletIcon className="mr-2 h-4 w-4" />
-                  Connect Wallet
+                  <WalletIcon className="mr-2 h-5 w-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-purple-100 font-medium">Connect Wallet</span>
                 </>
               )}
             </Button>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-neutral-800" />
+                <span className="w-full border-t border-white/10" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-neutral-950 px-2 text-neutral-500">
+                <span className="bg-transparent px-2 text-neutral-500 font-medium tracking-wider">
                   Or continue with email
                 </span>
               </div>
@@ -253,7 +260,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="email"
-                  className="text-sm font-medium text-neutral-200"
+                  className="text-sm font-medium text-neutral-300"
                 >
                   Email
                 </Label>
@@ -264,17 +271,25 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="border-neutral-800 bg-neutral-900/50 focus:border-purple-500"
+                  className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-purple-500/50 transition-all text-white placeholder:text-neutral-600"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-medium text-neutral-200"
-                >
-                  Password
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-medium text-neutral-300"
+                  >
+                    Password
+                  </Label>
+                  <Link
+                    href="#"
+                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -282,13 +297,13 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="border-neutral-800 bg-neutral-900/50 focus:border-purple-500"
+                  className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-purple-500/50 transition-all text-white placeholder:text-neutral-600"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="w-full h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium shadow-lg shadow-purple-900/20 transition-all duration-300"
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
@@ -298,20 +313,20 @@ export default function LoginPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center text-sm text-neutral-400">
+        <div className="text-center text-sm text-neutral-500">
           Don't have an account?{" "}
           <Link
             href="/auth/signup"
-            className="text-purple-400 hover:text-purple-300 font-medium"
+            className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
           >
-            Sign up
+            Create an account
           </Link>
         </div>
       </div>
 
       {/* Wallet Connection Dialog */}
       <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
-        <DialogContent className="sm:max-w-[425px] border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
+        <DialogContent className="sm:max-w-[425px] border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">
               Connect Wallet
@@ -324,22 +339,23 @@ export default function LoginPage() {
             {wallets.map((wallet) => (
               <Button
                 key={wallet.name}
-                className="w-full justify-start border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800"
+                className="w-full justify-start h-14 border-white/5 bg-white/5 hover:bg-white/10 hover:border-purple-500/30 transition-all group"
                 variant="outline"
                 disabled={!wallet.enable || connecting}
                 onClick={() => handleWalletLogin(wallet)}
               >
-                <Image
-                  alt={wallet.name}
-                  height={24}
-                  src={wallet.icon}
-                  width={24}
-                  className="mr-3"
-                />
-                <span>{wallet.name}</span>
+                <div className="p-2 rounded-lg bg-white/5 mr-3 group-hover:bg-white/10 transition-colors">
+                  <Image
+                    alt={wallet.name}
+                    height={24}
+                    src={wallet.icon}
+                    width={24}
+                  />
+                </div>
+                <span className="text-lg text-neutral-200 group-hover:text-white transition-colors">{wallet.name}</span>
                 {!wallet.enable && (
-                  <span className="ml-auto text-xs text-neutral-500">
-                    (Not installed)
+                  <span className="ml-auto text-xs text-neutral-600 bg-neutral-900/50 px-2 py-1 rounded">
+                    Not installed
                   </span>
                 )}
               </Button>
