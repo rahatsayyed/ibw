@@ -29,11 +29,17 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { Logo } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-
+import { mkLucid } from "@/lib/lucid";
+import { useWallet } from "@/context/walletContext";
+import { useEffect } from "react";
 export const Navbar = () => {
   const { user, userProfile, signOut } = useAuth();
   const router = useRouter();
-
+  const [walletConnection, setWalletConnection] = useWallet();
+  useEffect(() => {
+    mkLucid(setWalletConnection);
+  }, []);
+  
   const handleLogout = async () => {
     await signOut();
     router.push("/");
