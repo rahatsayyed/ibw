@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
@@ -6,7 +7,8 @@ import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
+// import ClientNavbar from "@/components/ClientNavbar";
+import Navbar from "@/components/navbar";
 import WalletProvider from "@/context/walletProvider";
 import { Toaster } from "@/components/ui/sonner";
 

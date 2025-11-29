@@ -56,7 +56,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <AuroraBackground>
+      {/* <AuroraBackground>
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
           <TextGenerateEffect
             words="Experience the Future of Web Design"
@@ -76,14 +76,14 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </AuroraBackground>
+      </AuroraBackground> */}
 
       <section className="py-20 px-4 bg-white dark:bg-black">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-5xl font-bold text-center mb-12 text-neutral-800 dark:text-neutral-200">
             Features
           </h2>
-          <BentoGrid className="max-w-4xl mx-auto">
+          {/* <BentoGrid className="max-w-4xl mx-auto">
             {features.map((item, i) => (
               <BentoGridItem
                 key={i}
@@ -94,7 +94,7 @@ export default function Home() {
                 className={i === 3 || i === 6 ? "md:col-span-2" : ""}
               />
             ))}
-          </BentoGrid>
+          </BentoGrid> */}
         </div>
       </section>
     </div>
