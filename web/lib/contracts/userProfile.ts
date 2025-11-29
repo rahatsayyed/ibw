@@ -10,6 +10,7 @@ import {
   getAddressDetails,
   mintingPolicyToId,
   stakeCredentialOf,
+  applyDoubleCborEncoding,
 } from "@lucid-evolution/lucid";
 import { UserProfileDatum } from "@/types/contracts";
 import {
@@ -28,13 +29,13 @@ export const registerUser = async (
   if (!pkh || !sc) throw new Error("Invalid address");
 
   const mintingPolicy: MintingPolicy = {
-    type: "PlutusV2",
-    script: userprofile_user_profile_mint,
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_mint),
   };
 
   const spendingValidator: SpendingValidator = {
-    type: "PlutusV2",
-    script: userprofile_user_profile_spend,
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_spend),
   };
 
   const policyId = mintingPolicyToId(mintingPolicy);
@@ -126,6 +127,7 @@ export const registerUser = async (
       { kind: "inline", value: Data.to(userProfileDatum, UserProfileDatum) },
       { [unit]: 1n } // Sending the NFT to the script
     )
+    .addSignerKey(pkh)
     .complete();
 
   const signedTx = await tx.sign.withWallet().complete();
