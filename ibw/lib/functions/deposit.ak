@@ -3,10 +3,9 @@
 use aiken/collection/list
 use cardano/address.{Address}
 use cardano/assets.{PolicyId}
-use cardano/transaction.{InlineDatum, Input, Output, Transaction}
+use cardano/transaction.{Input, Output, Transaction}
 use cardano/tx
 use types/types.{UserProfileDatum}
-use types/wallet.{Wallet}
 
 /// Validates that the Profile NFT exists in the input UTxO.
 ///

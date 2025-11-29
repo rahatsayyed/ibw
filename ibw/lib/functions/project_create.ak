@@ -1,9 +1,8 @@
 use aiken/collection/list
-use cardano/address.{Address, Script}
+use cardano/address.{Address}
 use cardano/assets.{PolicyId}
 use cardano/transaction.{Transaction}
 use types/types.{UserProfileDatum}
-use types/wallet.{Wallet}
 
 pub fn validate_project_creation(
   tx: Transaction,

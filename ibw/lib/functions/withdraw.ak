@@ -124,7 +124,7 @@ pub fn verify_profile_nft_in_output(
   token_name: ByteArray,
   script_address: Address,
 ) -> Bool {
-  expect Some(output) =
+  expect Some(_output) =
     list.find(
       outputs,
       fn(o) {

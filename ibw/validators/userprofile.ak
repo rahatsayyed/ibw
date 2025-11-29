@@ -1,20 +1,25 @@
-use aiken/cbor
-use aiken/crypto
-use cardano/address.{Address, Script}
+use aiken/collection/list
+use cardano/address.{Script}
 use cardano/assets.{PolicyId}
 use cardano/script_context.{ScriptContext}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
 use functions/deposit
+use functions/project_accept_profile
+use functions/project_approval_profile
 use functions/project_create
+use functions/project_submit_profile
 use functions/user_registration
 use functions/withdraw
-use types/types.{UserProfileDatum}
+use types/types.{ProjectDatum, UserProfileDatum}
 
 // Redeemer for spend operations
 pub type UserProfileRedeemer {
   Deposit { amount: Int }
   Withdraw { amount: Int }
   ProjectCreate
+  ProjectAccept
+  ProjectSubmit
+  ProjectApproval
 }
 
 validator user_profile {
@@ -42,7 +47,7 @@ validator user_profile {
   ) {
     expect Some(input_datum) = datum
     expect Some(input) = find_input(tx.inputs, utxo)
-    expect Script(script_hash) = input.output.address.payment_credential
+    expect Script(_script_hash) = input.output.address.payment_credential
     // Get script address for NFT verification
     let script_address = input.output.address
     // Get profile NFT info from datum
@@ -112,6 +117,83 @@ validator user_profile {
           profile_nft_name,
           script_address,
         )
+      ProjectAccept ->
+        // Project Accept (Freelancer)
+        // ----------------------------
+        // Freelancer Profile UTxO updates:
+        // - active_projects_as_freelancer += 1
+        // - Profile NFT returned to same address
+        // - Output lovelace matches total_balance
+        project_accept_profile.validate_freelancer_accept_profile(
+          tx,
+          input_datum,
+          output_datum,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
+      ProjectSubmit ->
+        // Project Submit (Freelancer)
+        // ----------------------------
+        // Freelancer Profile unchanged
+        // - All fields remain the same
+        // - Profile NFT returned to same address
+        project_submit_profile.validate_freelancer_submit_profile(
+          tx,
+          input_datum,
+          output_datum,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
+      ProjectApproval -> {
+        // Project Approval
+        // -----------------
+        // Client approves, both profiles updated
+        // Determine if this is client or freelancer by checking profile NFT against project datum
+        
+        // Find the project input being consumed
+        let project_input_opt =
+          list.find(
+            tx.inputs,
+            fn(input) {
+              when input.output.datum is {
+                InlineDatum(_) -> True
+                _ -> False
+              }
+            },
+          )
+
+        expect Some(project_input) = project_input_opt
+        expect InlineDatum(d) = project_input.output.datum
+        expect project_datum: ProjectDatum = d
+
+        // Check if this profile is the client by comparing NFTs
+        let is_client_profile = input_datum.profile_nft == project_datum.client_nft
+
+        if is_client_profile {
+          // Client Profile updates
+          project_approval_profile.validate_client_approval_profile(
+            tx,
+            input_datum,
+            output_datum,
+            profile_nft_policy,
+            profile_nft_name,
+            script_address,
+          )
+        } else {
+          // Freelancer Profile updates
+          project_approval_profile.validate_freelancer_approval_profile(
+            tx,
+            input_datum,
+            output_datum,
+            project_datum.project_amount,
+            profile_nft_policy,
+            profile_nft_name,
+            script_address,
+          )
+        }
+      }
     }
     // Project Accept
     // --------------
