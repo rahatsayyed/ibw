@@ -1,0 +1,46 @@
+use aiken/collection/list
+use cardano/address.{Address}
+use cardano/assets.{PolicyId}
+use cardano/transaction.{Output}
+
+/// Helper: Verify Profile NFT returned to address
+pub fn verify_profile_nft_returned(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  token_name: ByteArray,
+  expected_address: Address,
+) -> Bool {
+  expect Some(output) =
+    list.find(
+      outputs,
+      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
+    )
+  output.address == expected_address
+}
+
+/// Helper: Verify output lovelace matches total_balance
+pub fn verify_output_lovelace_matches_datum(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  token_name: ByteArray,
+  total_balance: Int,
+) -> Bool {
+  expect Some(output) =
+    list.find(
+      outputs,
+      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
+    )
+  assets.lovelace_of(output.value) == total_balance
+}
+
+/// Helper: Find output containing a specific NFT
+pub fn find_output_with_nft(
+  outputs: List<Output>,
+  policy_id: PolicyId,
+  token_name: ByteArray,
+) -> Option<Output> {
+  list.find(
+    outputs,
+    fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
+  )
+}

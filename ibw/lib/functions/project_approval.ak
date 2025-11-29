@@ -90,8 +90,6 @@ pub fn validate_project_approval(
   let value_increase_check =
     assets.lovelace_of(freelancer_output.value) >= assets.lovelace_of(freelancer_input.output.value) + input_datum.project_amount
   
-  trace @"project_approval:value_increase": value_increase_check, assets.lovelace_of(freelancer_output.value), assets.lovelace_of(freelancer_input.output.value), input_datum.project_amount
-
   status_check? && client_nft_match? && signer_check? && value_increase_check?
 }
 

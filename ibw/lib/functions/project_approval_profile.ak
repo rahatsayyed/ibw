@@ -1,7 +1,8 @@
 use aiken/collection/list
 use cardano/address.{Address}
 use cardano/assets.{PolicyId}
-use cardano/transaction.{Output, Transaction}
+use cardano/transaction.{Transaction}
+use functions/common
 use types/types.{UserProfileDatum}
 
 /// Validates client profile updates during project approval
@@ -21,19 +22,15 @@ pub fn validate_client_approval_profile(
   
   let active_projects_check =
     output_datum.active_projects_as_client == input_datum.active_projects_as_client - 1
-  trace @"client_approval:active_projects": active_projects_check
 
   let collateral_check =
     output_datum.project_collateral == input_datum.project_collateral - 25_000_000
-  trace @"client_approval:collateral": collateral_check
 
   let completed_check =
     output_datum.total_client_completed == input_datum.total_client_completed + 1
-  trace @"client_approval:completed": completed_check
 
   let reputation_check =
     output_datum.reputation_score == input_datum.reputation_score + 5
-  trace @"client_approval:reputation": reputation_check
 
   // Verify other fields unchanged
   let other_fields_unchanged =
@@ -54,7 +51,7 @@ pub fn validate_client_approval_profile(
 
   // Verify Profile NFT returned to same address
   let nft_returned =
-    verify_profile_nft_returned(
+    common.verify_profile_nft_returned(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -63,7 +60,7 @@ pub fn validate_client_approval_profile(
 
   // Verify output lovelace matches datum total_balance
   let balance_matches =
-    verify_output_lovelace_matches_datum(
+    common.verify_output_lovelace_matches_datum(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -129,7 +126,7 @@ pub fn validate_freelancer_approval_profile(
 
   // Verify Profile NFT returned to same address
   let nft_returned =
-    verify_profile_nft_returned(
+    common.verify_profile_nft_returned(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -138,7 +135,7 @@ pub fn validate_freelancer_approval_profile(
 
   // Verify output lovelace matches datum total_balance
   let balance_matches =
-    verify_output_lovelace_matches_datum(
+    common.verify_output_lovelace_matches_datum(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -148,32 +145,3 @@ pub fn validate_freelancer_approval_profile(
   active_projects_check? && collateral_check? && available_balance_check? && completed_check? && reputation_check? && other_fields_unchanged? && nft_returned? && balance_matches?
 }
 
-/// Helper: Verify Profile NFT returned to address
-fn verify_profile_nft_returned(
-  outputs: List<Output>,
-  policy_id: PolicyId,
-  token_name: ByteArray,
-  expected_address: Address,
-) -> Bool {
-  expect Some(output) =
-    list.find(
-      outputs,
-      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
-    )
-  output.address == expected_address
-}
-
-/// Helper: Verify output lovelace matches total_balance
-fn verify_output_lovelace_matches_datum(
-  outputs: List<Output>,
-  policy_id: PolicyId,
-  token_name: ByteArray,
-  total_balance: Int,
-) -> Bool {
-  expect Some(output) =
-    list.find(
-      outputs,
-      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
-    )
-  assets.lovelace_of(output.value) == total_balance
-}

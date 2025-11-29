@@ -1,7 +1,8 @@
 use aiken/collection/list
 use cardano/address.{Address}
 use cardano/assets.{PolicyId}
-use cardano/transaction.{Input, Output, Transaction}
+use cardano/transaction.{Transaction}
+use functions/common
 use types/types.{UserProfileDatum}
 
 /// Validates freelancer profile updates during project accept
@@ -19,7 +20,6 @@ pub fn validate_freelancer_accept_profile(
   
   let active_projects_check =
     output_datum.active_projects_as_freelancer == input_datum.active_projects_as_freelancer + 1
-  trace @"profile_accept:active_projects": active_projects_check, input_datum.active_projects_as_freelancer, output_datum.active_projects_as_freelancer
 
   // Verify all other fields unchanged
   let other_fields_unchanged =
@@ -44,7 +44,7 @@ pub fn validate_freelancer_accept_profile(
 
   // Verify Profile NFT returned to same address
   let nft_returned =
-    verify_profile_nft_returned(
+    common.verify_profile_nft_returned(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -54,7 +54,7 @@ pub fn validate_freelancer_accept_profile(
 
   // Verify output lovelace matches datum total_balance
   let balance_matches =
-    verify_output_lovelace_matches_datum(
+    common.verify_output_lovelace_matches_datum(
       tx.outputs,
       profile_nft_policy,
       profile_nft_name,
@@ -65,32 +65,3 @@ pub fn validate_freelancer_accept_profile(
   active_projects_check? && other_fields_unchanged? && nft_returned? && balance_matches?
 }
 
-/// Helper: Verify Profile NFT returned to address
-fn verify_profile_nft_returned(
-  outputs: List<Output>,
-  policy_id: PolicyId,
-  token_name: ByteArray,
-  expected_address: Address,
-) -> Bool {
-  expect Some(output) =
-    list.find(
-      outputs,
-      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
-    )
-  output.address == expected_address
-}
-
-/// Helper: Verify output lovelace matches total_balance
-fn verify_output_lovelace_matches_datum(
-  outputs: List<Output>,
-  policy_id: PolicyId,
-  token_name: ByteArray,
-  total_balance: Int,
-) -> Bool {
-  expect Some(output) =
-    list.find(
-      outputs,
-      fn(o) { assets.quantity_of(o.value, policy_id, token_name) == 1 },
-    )
-  assets.lovelace_of(output.value) == total_balance
-}

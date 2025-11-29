@@ -2,6 +2,7 @@ use aiken/collection/list
 use cardano/address.{Address}
 use cardano/assets.{PolicyId}
 use cardano/transaction.{Transaction}
+use functions/common
 use types/types.{UserProfileDatum}
 
 pub fn validate_project_creation(
@@ -84,16 +85,10 @@ pub fn validate_project_creation(
   // Since we can't easily change `userprofile.ak`'s finding logic without refactoring it,
   // let's just re-find the output here to check its address.
   expect Some(output) =
-    list.find(
+    common.find_output_with_nft(
       tx.outputs,
-      fn(out) {
-        list.any(
-          out.value |> assets.flatten,
-          fn((pid, name, _)) {
-            pid == profile_nft_policy && name == profile_nft_name
-          },
-        )
-      },
+      profile_nft_policy,
+      profile_nft_name,
     )
 
   let address_check = output.address == script_address

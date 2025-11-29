@@ -55,8 +55,6 @@ pub fn validate_project_submit(
       Some(hash) -> hash != ""
       None -> False
     }
-  trace @"project_submit:status_update": status_update_check
-  trace @"project_submit:details_check": details_check
 
   // 8. Project UTxO MUST return to SCRIPT
   // Implicitly checked by project_output being found at script address
