@@ -20,7 +20,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Wallet as WalletIcon, LoaderCircle, CheckCircle, ArrowRight } from "lucide-react";
+import {
+  Wallet as WalletIcon,
+  LoaderCircle,
+  CheckCircle,
+  ArrowRight,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useWallet } from "@/context/walletContext";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +35,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 
 import { siteConfig } from "@/config/site";
+import { registerUser } from "@/lib/contracts/userProfile";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -148,8 +154,36 @@ export default function SignupPage() {
         return;
       }
 
+      // Register user on-chain first
+      let txHash = "";
+      if (lucid) {
+        toast.info(
+          "Please sign the transaction to register your profile on-chain."
+        );
+        try {
+          txHash = await registerUser(lucid, username);
+          toast.success(`On-chain registration submitted! Tx Hash: ${txHash}`);
+        } catch (chainError) {
+          console.error("On-chain registration failed:", chainError);
+          toast.error(
+            "On-chain registration failed. Account was not created. Please try again."
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
       // Create account with wallet address
-      await signUp(email, password, username, connectedAddress);
+      try {
+        await signUp(email, password, username, connectedAddress);
+      } catch (signUpError) {
+        console.error("Supabase signup failed:", signUpError);
+        toast.error(
+          "Account creation failed, but on-chain transaction was submitted. Please contact support."
+        );
+        setLoading(false);
+        return;
+      }
 
       // Mark wallet as verified
       const {
@@ -276,7 +310,8 @@ export default function SignupPage() {
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm">
                   <p className="flex items-center gap-2">
                     <WalletIcon className="h-4 w-4" />
-                    Connect your wallet to verify your identity and enable payments.
+                    Connect your wallet to verify your identity and enable
+                    payments.
                   </p>
                 </div>
 
@@ -295,7 +330,9 @@ export default function SignupPage() {
                     ) : (
                       <>
                         <WalletIcon className="mr-2 h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-blue-100 font-medium">Connect Wallet</span>
+                        <span className="text-blue-100 font-medium">
+                          Connect Wallet
+                        </span>
                       </>
                     )}
                   </Button>
@@ -393,7 +430,9 @@ export default function SignupPage() {
                     width={24}
                   />
                 </div>
-                <span className="text-lg text-neutral-200 group-hover:text-white transition-colors">{wallet.name}</span>
+                <span className="text-lg text-neutral-200 group-hover:text-white transition-colors">
+                  {wallet.name}
+                </span>
                 {!wallet.enable && (
                   <span className="ml-auto text-xs text-neutral-600 bg-neutral-900/50 px-2 py-1 rounded">
                     Not installed
