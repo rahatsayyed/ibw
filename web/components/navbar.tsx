@@ -89,7 +89,11 @@ export const Navbar = () => {
                 />
               </DropdownTrigger>
               <DropdownMenu aria-label="Profile Actions" variant="flat">
-                <DropdownItem key="profile" className="h-14 gap-2" textValue="Signed in as">
+                <DropdownItem
+                  key="profile"
+                  className="h-14 gap-2"
+                  textValue="Signed in as"
+                >
                   <p className="font-semibold">Signed in as</p>
                   <p className="font-semibold">
                     {userProfile?.username || user?.email}
@@ -100,13 +104,13 @@ export const Navbar = () => {
                 </DropdownItem>
                 <DropdownItem
                   key="my_projects"
-                  href="/marketplace?filter=my_projects"
+                  href="/gigs?filter=my_projects"
                 >
                   My Projects
                 </DropdownItem>
                 <DropdownItem
                   key="accepted_projects"
-                  href="/marketplace?filter=accepted_projects"
+                  href="/gigs?filter=accepted_projects"
                 >
                   Accepted Projects
                 </DropdownItem>
@@ -120,7 +124,13 @@ export const Navbar = () => {
               </DropdownMenu>
             </Dropdown>
           ) : (
-            <WalletConnector />
+            <Link
+              as={NextLink}
+              href="/auth/login"
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              Login
+            </Link>
           )}
         </NavbarItem>
       </NavbarContent>

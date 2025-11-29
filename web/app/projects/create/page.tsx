@@ -115,7 +115,7 @@ export default function CreateProjectPage() {
       if (error) throw error;
 
       toast.success("Project created successfully!");
-      router.push("/marketplace");
+      router.push("/gigs");
     } catch (error: any) {
       toast.error(error.message);
     } finally {

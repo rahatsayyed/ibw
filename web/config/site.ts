@@ -19,8 +19,8 @@ export const siteConfig = {
   ],
   navMenuItems: [
     {
-      label: "Marketplace",
-      href: "/marketplace",
+      label: "Gigs",
+      href: "/gigs",
     },
     {
       label: "Dashboard",

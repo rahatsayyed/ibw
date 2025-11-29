@@ -46,7 +46,7 @@ export default function MarketplacePage() {
             } else if (filterParam === "accepted_projects" && userId) {
                 query = query.eq("freelancer_id", userId);
             } else {
-                // Default Marketplace View
+                // Default Gigs View
                 query = query.eq("status", "open");
             }
 
