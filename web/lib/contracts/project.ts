@@ -23,6 +23,7 @@ import {
   UserProfileDatum,
   UserProfileRedeemer,
 } from "@/types/contracts";
+import { blockfrost } from "@/lib/utils";
 
 export const createProject = async (
   lucid: LucidEvolution,
@@ -105,12 +106,12 @@ export const createProject = async (
   // We can use the transaction hash + index of the input, but here we'll just use a random name or derived from title for simplicity in this context,
   // but ideally it should be unique. The validator checks uniqueness by ensuring only 1 is minted.
   // Let's use a timestamp + random suffix for uniqueness.
+  const now = await blockfrost.getLatestTime();
   const tokenName = fromText(
-    "PRJ" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 1000)
+    "PRJ" + now.toString().slice(-8) + Math.floor(Math.random() * 1000)
   );
   const unit = projectPolicyId + tokenName;
 
-  const now = BigInt(Date.now());
   const deadline = BigInt(projectData.deadline.getTime());
 
   const projectDatum: ProjectDatum = {
@@ -170,9 +171,7 @@ export const createProject = async (
               userProfileDatum.active_projects_as_client + 1n,
             project_collateral:
               userProfileDatum.project_collateral + 25_000_000n,
-            available_balance:
-              userProfileDatum.available_balance -
-              25_000_000n,
+            available_balance: userProfileDatum.available_balance - 25_000_000n,
           },
           UserProfileDatum
         ),

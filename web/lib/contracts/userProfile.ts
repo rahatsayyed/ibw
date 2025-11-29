@@ -1,19 +1,18 @@
 import {
   LucidEvolution,
   Data,
-  Constr,
   fromText,
   MintingPolicy,
   SpendingValidator,
   validatorToAddress,
   paymentCredentialOf,
-  getAddressDetails,
   mintingPolicyToId,
   stakeCredentialOf,
   applyDoubleCborEncoding,
   UTxO,
 } from "@lucid-evolution/lucid";
 import { UserProfileDatum, UserProfileRedeemer } from "@/types/contracts";
+import { blockfrost } from "@/lib/utils";
 import {
   userprofile_user_profile_mint,
   userprofile_user_profile_spend,
@@ -85,7 +84,7 @@ export const registerUser = async (
     registered_at: POSIXTime,
   */
 
-  const now = BigInt(Date.now());
+  const now = await blockfrost.getLatestTime();
 
   const userProfileDatum: UserProfileDatum = {
     user_address: {
@@ -158,7 +157,7 @@ export const depositFunds = async (
 
   // Find the user's Profile NFT UTxO at the script address
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
-console.log("profileContract", scriptAddress)
+  console.log("profileContract", scriptAddress);
   // Find the UTxO that belongs to this user by checking the datum
   let userProfileUtxo: UTxO | null = null;
   let currentDatum: UserProfileDatum | null = null;
@@ -206,7 +205,7 @@ console.log("profileContract", scriptAddress)
     .pay.ToContract(
       scriptAddress,
       { kind: "inline", value: Data.to(updatedDatum, UserProfileDatum) },
-      { lovelace: depositAmount,[unit]: 1n }
+      { lovelace: depositAmount, [unit]: 1n }
     )
     .attach.SpendingValidator(spendingValidator)
     .addSignerKey(pkh)
