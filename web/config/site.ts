@@ -1,61 +1,53 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Next.js + HeroUI",
-  description: "Make beautiful websites regardless of your design experience.",
+  name: "Talendro",
+  description: "Decentralized Freelance Marketplace on Cardano",
   navItems: [
     {
-      label: "Home",
-      href: "/",
-    },
-    {
-      label: "Docs",
-      href: "/docs",
-    },
-    {
-      label: "Pricing",
-      href: "/pricing",
-    },
-    {
-      label: "Blog",
-      href: "/blog",
-    },
-    {
-      label: "About",
-      href: "/about",
-    },
-  ],
-  navMenuItems: [
-    {
-      label: "Profile",
-      href: "/profile",
+      label: "Marketplace",
+      href: "/marketplace",
     },
     {
       label: "Dashboard",
       href: "/dashboard",
     },
     {
-      label: "Projects",
-      href: "/projects",
+      label: "Disputes",
+      href: "/disputes",
     },
     {
-      label: "Team",
-      href: "/team",
+      label: "Leaderboard",
+      href: "/leaderboard",
+    },
+  ],
+  navMenuItems: [
+    {
+      label: "Marketplace",
+      href: "/marketplace",
     },
     {
-      label: "Calendar",
-      href: "/calendar",
+      label: "Dashboard",
+      href: "/dashboard",
     },
     {
-      label: "Settings",
-      href: "/settings",
+      label: "Disputes",
+      href: "/disputes",
     },
     {
-      label: "Help & Feedback",
-      href: "/help-feedback",
+      label: "Leaderboard",
+      href: "/leaderboard",
     },
     {
-      label: "Logout",
+      label: "Profile",
+      href: "/profile/me",
+    },
+    {
+      label: "Create Project",
+      href: "/projects/create",
+    },
+    {
+      label: "Log Out",
       href: "/logout",
     },
   ],
