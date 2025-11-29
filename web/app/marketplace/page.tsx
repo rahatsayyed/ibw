@@ -1,72 +1,47 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/project-card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { SearchIcon } from "@/components/icons";
+import { supabase } from "@/lib/supabase";
 
 export default function MarketplacePage() {
-    // Mock Data
-    const projects = [
-        {
-            id: "1",
-            title: "DeFi Dashboard UI Implementation",
-            description: "Need a skilled frontend dev to implement a Figma design for a DeFi dashboard using React and Tailwind.",
-            payment: 1500,
-            collateral: 10,
-            deadline: "2023-12-31",
-            status: "Open" as const,
-            clientReputation: 450,
-        },
-        {
-            id: "2",
-            title: "Smart Contract Audit Script",
-            description: "Write a Python script to automate basic security checks for Aiken smart contracts.",
-            payment: 800,
-            collateral: 5,
-            deadline: "2023-11-15",
-            status: "Open" as const,
-            clientReputation: 320,
-        },
-        {
-            id: "3",
-            title: "NFT Collection Generator",
-            description: "Create a tool to generate 10k NFT images from layers with rarity settings.",
-            payment: 2500,
-            collateral: 10,
-            deadline: "2024-01-20",
-            status: "Accepted" as const,
-            clientReputation: 580,
-        },
-        {
-            id: "4",
-            title: "Cardano Wallet Integration",
-            description: "Integrate Nami and Eternl wallet connection for a dApp.",
-            payment: 500,
-            collateral: 5,
-            deadline: "2023-11-30",
-            status: "Open" as const,
-            clientReputation: 150,
-        },
-        {
-            id: "5",
-            title: "DAO Voting System",
-            description: "Build a governance voting system using on-chain snapshots.",
-            payment: 3000,
-            collateral: 10,
-            deadline: "2024-02-15",
-            status: "Open" as const,
-            clientReputation: 600,
-        },
-        {
-            id: "6",
-            title: "Token Vesting Portal",
-            description: "Frontend for claiming vested tokens with schedule visualization.",
-            payment: 1200,
-            collateral: 5,
-            deadline: "2023-12-10",
-            status: "Submitted" as const,
-            clientReputation: 410,
-        },
-    ];
+    const [projects, setProjects] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
+
+    const fetchProjects = async () => {
+        try {
+            let query = supabase
+                .from("projects")
+                .select("*, client:users!client_id(reputation)")
+                .eq("status", "Open")
+                .order("created_at", { ascending: false });
+
+            if (search) {
+                query = query.ilike("title", `%${search}%`);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            setProjects(data || []);
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = () => {
+        setLoading(true);
+        fetchProjects();
+    };
 
     return (
         <div className="flex flex-col gap-8 pb-10">
@@ -91,8 +66,15 @@ export default function MarketplacePage() {
                         size="sm"
                         startContent={<SearchIcon size={18} />}
                         type="search"
+                        value={search}
+                        onValueChange={setSearch}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     />
-                    <Button color="primary" className="h-12 px-8 font-bold shadow-lg shadow-primary/40">
+                    <Button
+                        color="primary"
+                        className="h-12 px-8 font-bold shadow-lg shadow-primary/40"
+                        onPress={handleSearch}
+                    >
                         Search
                     </Button>
                 </div>
@@ -108,11 +90,26 @@ export default function MarketplacePage() {
             </div>
 
             {/* Project Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                    <ProjectCard key={project.id} {...project} />
-                ))}
-            </div>
+            {loading ? (
+                <div className="text-center py-10">Loading projects...</div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                        <ProjectCard
+                            key={project.id}
+                            {...project}
+                            payment={project.payment_amount}
+                            collateral={project.collateral_rate}
+                            clientReputation={project.client?.reputation || 0}
+                        />
+                    ))}
+                    {projects.length === 0 && (
+                        <div className="col-span-full text-center py-10 text-default-500">
+                            No projects found.
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
