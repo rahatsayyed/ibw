@@ -158,7 +158,7 @@ export const depositFunds = async (
 
   // Find the user's Profile NFT UTxO at the script address
   const scriptUtxos = await lucid.utxosAt(scriptAddress);
-
+console.log("profileContract", scriptAddress)
   // Find the UTxO that belongs to this user by checking the datum
   let userProfileUtxo: UTxO | null = null;
   let currentDatum: UserProfileDatum | null = null;

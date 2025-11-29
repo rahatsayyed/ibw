@@ -158,6 +158,7 @@ export const createProject = async (
       Data.to("ProjectCreate", UserProfileRedeemer)
     )
     // We need to update `active_projects_as_client`.
+
     .pay.ToContract(
       profileScriptAddress,
       {
@@ -171,7 +172,6 @@ export const createProject = async (
               userProfileDatum.project_collateral + 25_000_000n,
             available_balance:
               userProfileDatum.available_balance -
-              projectData.payment_amount -
               25_000_000n,
           },
           UserProfileDatum
@@ -280,6 +280,10 @@ export const acceptProject = async (
     },
     status: "Accepted",
   };
+  // ProjectCollateral
+  const projectCollateral =
+    (currentProjectDatum.project_amount * 100n) /
+    currentProjectDatum.collateral_rate;
 
   // 4. Build Transaction
   const tx = await lucid
@@ -319,6 +323,10 @@ export const acceptProject = async (
             ...freelancerProfileDatum,
             active_projects_as_freelancer:
               freelancerProfileDatum.active_projects_as_freelancer + 1n,
+            project_collateral:
+              freelancerProfileDatum.project_collateral + projectCollateral,
+            available_balance:
+              freelancerProfileDatum.available_balance - projectCollateral,
           },
           UserProfileDatum
         ),

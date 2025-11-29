@@ -111,8 +111,8 @@ export default function DashboardPage() {
       }
 
       // Wait for transaction confirmation
-      toast.info("Waiting for transaction confirmation...");
-      await lucid.awaitTx(txHash);
+      // toast.info("Waiting for transaction confirmation...");
+      // await lucid.awaitTx(txHash);
 
       // Update local database to reflect on-chain state
       const newBalance =

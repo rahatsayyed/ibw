@@ -110,8 +110,8 @@ export default function CreateProjectPage() {
       });
 
       toast.success(`Transaction submitted: ${txHash.slice(0, 10)}...`);
-      toast.info("Waiting for confirmation...");
-      await lucid.awaitTx(txHash);
+      // toast.info("Waiting for confirmation...");
+      // await lucid.awaitTx(txHash);
 
       // Deduct balance
       await supabase
