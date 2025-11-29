@@ -1,83 +1,70 @@
--- Create Users Table
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  username TEXT UNIQUE NOT NULL,
-  full_name TEXT,
-  avatar_url TEXT,
-  bio TEXT,
-  wallet_address TEXT UNIQUE,
-  wallet_verified BOOLEAN DEFAULT FALSE,
-  total_balance NUMERIC DEFAULT 0,
-  available_balance NUMERIC DEFAULT 0,
-  locked_balance NUMERIC DEFAULT 0,
-  reputation INTEGER DEFAULT 0,
-  projects_completed INTEGER DEFAULT 0,
-  projects_as_client INTEGER DEFAULT 0,
-  projects_as_freelancer INTEGER DEFAULT 0,
-  disputes_raised INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create Projects Table
-CREATE TABLE IF NOT EXISTS projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  criteria TEXT NOT NULL,
-  repo_url TEXT NOT NULL,
-  payment_amount NUMERIC NOT NULL,
-  collateral_rate NUMERIC NOT NULL,
-  min_completion_percentage INTEGER DEFAULT 80,
-  deadline TIMESTAMPTZ NOT NULL,
-  status TEXT DEFAULT 'Open', -- Open, Accepted, Submitted, Completed, Disputed, Cancelled
-  client_id UUID REFERENCES users(id),
-  freelancer_id UUID REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create Disputes Table
-CREATE TABLE IF NOT EXISTS disputes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES projects(id),
-  initiator_id UUID REFERENCES users(id),
-  reason TEXT NOT NULL,
-  evidence_links TEXT[],
-  status TEXT DEFAULT 'Pending', -- Pending, AI Analysis, Human Review, Resolved
-  amount_at_stake NUMERIC NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Insert Mock Users
-INSERT INTO users (username, full_name, bio, reputation, total_balance, available_balance, projects_completed, avatar_url)
+INSERT INTO users (
+  username, 
+  wallet_address,
+  full_name, -- Note: full_name is NOT in the schema provided, checking if I missed it. 
+             -- Wait, looking at 001_initial_schema.sql, there is NO full_name column!
+             -- There is email, profile_image_url, bio.
+             -- I will remove full_name from insert.
+  bio, 
+  reputation_score, 
+  total_balance, 
+  available_balance, 
+  total_projects_completed, 
+  profile_image_url
+)
 VALUES 
-('alice_dev', 'Alice Developer', 'Full-stack developer specializing in Cardano.', 950, 5000, 4500, 42, 'https://i.pravatar.cc/150?u=a042581f4e29026024d'),
-('bob_client', 'Bob The Builder', 'Building the next generation of dApps.', 450, 10000, 8000, 15, 'https://i.pravatar.cc/150?u=a042581f4e29026704d'),
-('charlie_audit', 'Charlie Auditor', 'Smart contract security expert.', 820, 3000, 3000, 28, 'https://i.pravatar.cc/150?u=a04258114e29026302d');
+('alice_dev', 'addr_test1alice', 'Full-stack developer specializing in Cardano.', 950, 5000000000, 4500000000, 42, 'https://i.pravatar.cc/150?u=a042581f4e29026024d'),
+('bob_client', 'addr_test1bob', 'Building the next generation of dApps.', 450, 10000000000, 8000000000, 15, 'https://i.pravatar.cc/150?u=a042581f4e29026704d'),
+('charlie_audit', 'addr_test1charlie', 'Smart contract security expert.', 820, 3000000000, 3000000000, 28, 'https://i.pravatar.cc/150?u=a04258114e29026302d');
 
 -- Insert Mock Projects
-INSERT INTO projects (title, description, criteria, repo_url, payment_amount, collateral_rate, deadline, status, client_id)
+INSERT INTO projects (
+  title, 
+  description, 
+  success_criteria, 
+  github_repo_url, 
+  payment_amount, 
+  collateral_rate, 
+  platform_fee,
+  deadline, 
+  status, 
+  client_id
+)
 SELECT 
   'DeFi Dashboard UI', 
   'Need a skilled frontend dev to implement a Figma design for a DeFi dashboard.', 
   'Pixel perfect implementation.', 
   'https://github.com/bob_client/defi-dash', 
-  1500, 
+  1500000000, -- 1500 ADA
   10, 
+  30000000, -- 30 ADA fee
   NOW() + INTERVAL '30 days', 
-  'Open', 
+  'open', 
   id 
 FROM users WHERE username = 'bob_client';
 
-INSERT INTO projects (title, description, criteria, repo_url, payment_amount, collateral_rate, deadline, status, client_id)
+INSERT INTO projects (
+  title, 
+  description, 
+  success_criteria, 
+  github_repo_url, 
+  payment_amount, 
+  collateral_rate, 
+  platform_fee,
+  deadline, 
+  status, 
+  client_id
+)
 SELECT 
   'Smart Contract Audit', 
   'Audit our Aiken smart contracts.', 
   'Comprehensive report required.', 
   'https://github.com/bob_client/protocol', 
-  2500, 
+  2500000000, -- 2500 ADA
   5, 
+  50000000, -- 50 ADA fee
   NOW() + INTERVAL '15 days', 
-  'Open', 
+  'open', 
   id 
 FROM users WHERE username = 'bob_client';

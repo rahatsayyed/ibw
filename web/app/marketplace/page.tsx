@@ -20,8 +20,8 @@ export default function MarketplacePage() {
         try {
             let query = supabase
                 .from("projects")
-                .select("*, client:users!client_id(reputation)")
-                .eq("status", "Open")
+                .select("*, client:users!client_id(reputation_score)")
+                .eq("status", "open")
                 .order("created_at", { ascending: false });
 
             if (search) {
@@ -98,9 +98,9 @@ export default function MarketplacePage() {
                         <ProjectCard
                             key={project.id}
                             {...project}
-                            payment={project.payment_amount}
+                            payment={project.payment_amount / 1000000}
                             collateral={project.collateral_rate}
-                            clientReputation={project.client?.reputation || 0}
+                            clientReputation={project.client?.reputation_score || 0}
                         />
                     ))}
                     {projects.length === 0 && (

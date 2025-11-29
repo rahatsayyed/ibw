@@ -1,86 +1,118 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
-import { Avatar } from "@heroui/avatar";
-import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
+import { Chip } from "@heroui/chip";
 import { Divider } from "@heroui/divider";
+import { Avatar } from "@heroui/avatar";
+import { Tabs, Tab } from "@heroui/tabs";
+import { GithubIcon } from "@/components/icons";
 import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { ProjectCard } from "@/components/project-card";
 
 export default function ProfilePage() {
     const params = useParams();
     const username = params.username;
 
-    // Mock Data
-    const user = {
-        username: username || "alice_dev",
-        name: "Alice Dev",
-        bio: "Full-stack developer specializing in Cardano and React. Building dApps since 2021.",
-        avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-        reputation: 950,
-        joined: "Sep 2023",
-        skills: ["React", "Next.js", "Tailwind", "Aiken", "Lucid"],
-        stats: {
-            completed: 42,
-            disputes: 0,
-            earnings: "45,000 ₳",
+    const [profile, setProfile] = useState<any>(null);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchProfile();
+    }, [username]);
+
+    const fetchProfile = async () => {
+        try {
+            // Fetch user profile
+            const { data: userData, error: userError } = await supabase
+                .from("users")
+                .select("*")
+                .eq("username", username)
+                .single();
+
+            if (userError) throw userError;
+            setProfile(userData);
+
+            // Fetch user projects (as client or freelancer)
+            const { data: projectsData, error: projectsError } = await supabase
+                .from("projects")
+                .select("*, client:users!client_id(reputation_score)")
+                .or(`client_id.eq.${userData.id},freelancer_id.eq.${userData.id}`)
+                .order("created_at", { ascending: false });
+
+            if (projectsError) throw projectsError;
+            setProjects(projectsData || []);
+
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
+    if (loading) return <div className="p-10 text-center">Loading profile...</div>;
+    if (!profile) return <div className="p-10 text-center">User not found</div>;
+
     return (
-        <div className="max-w-4xl mx-auto pb-10">
-            <Card className="glass-card overflow-visible">
-                <div className="h-32 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-t-xl"></div>
-                <CardBody className="px-8 pb-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start -mt-12 mb-6">
-                        <div className="flex flex-col gap-4">
-                            <Avatar
-                                src={user.avatar}
-                                className="w-24 h-24 text-large border-4 border-background"
-                            />
-                            <div>
-                                <h1 className="text-2xl font-bold">{user.name}</h1>
-                                <p className="text-default-500">@{user.username}</p>
-                            </div>
+        <div className="max-w-5xl mx-auto pb-10">
+            {/* Profile Header */}
+            <Card className="glass-card mb-8">
+                <CardBody className="flex flex-col md:flex-row gap-6 items-center md:items-start p-8">
+                    <Avatar
+                        src={profile.profile_image_url}
+                        className="w-32 h-32 text-large"
+                        isBordered
+                        color="primary"
+                    />
+                    <div className="flex-grow text-center md:text-left space-y-2">
+                        <div className="flex flex-col md:flex-row items-center gap-3">
+                            <h1 className="text-3xl font-bold">{profile.username}</h1>
+                            {profile.wallet_verified && (
+                                <Chip color="success" variant="flat" size="sm">Verified Wallet</Chip>
+                            )}
                         </div>
-                        <div className="mt-14 md:mt-0 flex gap-2">
-                            <Button color="primary">Hire Me</Button>
-                            <Button variant="bordered">Message</Button>
+                        <p className="text-default-500 max-w-xl">
+                            {profile.bio || "No bio provided."}
+                        </p>
+                        <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+                            <Chip variant="flat" color="secondary">Reputation: {profile.reputation_score}</Chip>
+                            <Chip variant="flat" color="primary">Projects: {profile.total_projects_completed}</Chip>
+                            <Chip variant="flat" color="warning">Balance: {(profile.total_balance / 1000000).toLocaleString()} ₳</Chip>
                         </div>
                     </div>
-
-                    <p className="text-default-500 mb-6 max-w-2xl">
-                        {user.bio}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mb-8">
-                        {user.skills.map(skill => (
-                            <Chip key={skill} variant="flat" size="sm">{skill}</Chip>
-                        ))}
-                    </div>
-
-                    <Divider className="my-6" />
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div>
-                            <p className="text-2xl font-bold text-secondary">{user.reputation}</p>
-                            <p className="text-tiny text-default-500 uppercase">Reputation</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{user.stats.completed}</p>
-                            <p className="text-tiny text-default-500 uppercase">Projects</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-success">{user.stats.earnings}</p>
-                            <p className="text-tiny text-default-500 uppercase">Earnings</p>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold text-danger">{user.stats.disputes}</p>
-                            <p className="text-tiny text-default-500 uppercase">Disputes</p>
-                        </div>
+                    <div className="flex flex-col gap-2">
+                        <Button color="primary" variant="shadow">Contact</Button>
+                        <Button variant="bordered" startContent={<GithubIcon />}>GitHub</Button>
                     </div>
                 </CardBody>
             </Card>
+
+            {/* Projects Tabs */}
+            <div className="flex w-full flex-col">
+                <Tabs aria-label="User Projects" color="primary" variant="underlined">
+                    <Tab key="all" title="All Projects">
+                        <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {projects.map((project) => (
+                                <ProjectCard
+                                    key={project.id}
+                                    {...project}
+                                    payment={project.payment_amount / 1000000}
+                                    collateral={project.collateral_rate}
+                                    clientReputation={project.client?.reputation_score || 0}
+                                />
+                            ))}
+                            {projects.length === 0 && (
+                                <div className="col-span-full text-center py-10 text-default-500">
+                                    No projects found.
+                                </div>
+                            )}
+                        </div>
+                    </Tab>
+                </Tabs>
+            </div>
         </div>
     );
 }

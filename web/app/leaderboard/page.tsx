@@ -1,90 +1,85 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import { User } from "@heroui/user";
 import { Chip } from "@heroui/chip";
+import { supabase } from "@/lib/supabase";
 
 export default function LeaderboardPage() {
-    const freelancers = [
-        {
-            rank: 1,
-            name: "Alice Dev",
-            handle: "@alice_dev",
-            reputation: 950,
-            completed: 42,
-            earnings: "45,000 ₳",
-            avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-        },
-        {
-            rank: 2,
-            name: "Bob Builder",
-            handle: "@bob_builds",
-            reputation: 880,
-            completed: 35,
-            earnings: "32,500 ₳",
-            avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-        },
-        {
-            rank: 3,
-            name: "Charlie Code",
-            handle: "@charlie_c",
-            reputation: 820,
-            completed: 28,
-            earnings: "28,000 ₳",
-            avatar: "https://i.pravatar.cc/150?u=a04258114e29026302d",
-        },
-    ];
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchLeaderboard();
+    }, []);
+
+    const fetchLeaderboard = async () => {
+        try {
+            const { data, error } = await supabase
+                .from("users")
+                .select("*")
+                .order("reputation_score", { ascending: false })
+                .limit(20);
+
+            if (error) throw error;
+            setUsers(data || []);
+        } catch (error) {
+            console.error("Error fetching leaderboard:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="max-w-5xl mx-auto pb-10">
             <div className="mb-8 text-center">
-                <h1 className="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                    Hall of Fame
-                </h1>
+                <h1 className="text-3xl font-bold mb-2">Top Freelancers</h1>
                 <p className="text-default-500">
-                    Top performing users on the Talendro platform.
+                    Recognizing the most trusted and skilled contributors in the ecosystem.
                 </p>
             </div>
 
-            <div className="space-y-8">
-                <div>
-                    <h2 className="text-2xl font-bold mb-4">Top Freelancers</h2>
-                    <Table aria-label="Top Freelancers Table" className="glass-card">
-                        <TableHeader>
-                            <TableColumn>RANK</TableColumn>
-                            <TableColumn>USER</TableColumn>
-                            <TableColumn>REPUTATION</TableColumn>
-                            <TableColumn>COMPLETED PROJECTS</TableColumn>
-                            <TableColumn>TOTAL EARNINGS</TableColumn>
-                        </TableHeader>
-                        <TableBody>
-                            {freelancers.map((user) => (
-                                <TableRow key={user.rank}>
-                                    <TableCell>
-                                        <span className={`text-xl font-bold ${user.rank === 1 ? "text-warning" : user.rank === 2 ? "text-default-400" : "text-amber-700"}`}>
-                                            #{user.rank}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <User
-                                            name={user.name}
-                                            description={user.handle}
-                                            avatarProps={{ src: user.avatar }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip color="secondary" variant="flat" size="sm" className="font-bold">
-                                            {user.reputation}
-                                        </Chip>
-                                    </TableCell>
-                                    <TableCell>{user.completed}</TableCell>
-                                    <TableCell className="font-bold text-success">{user.earnings}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
+            <Table aria-label="Leaderboard table">
+                <TableHeader>
+                    <TableColumn>RANK</TableColumn>
+                    <TableColumn>USER</TableColumn>
+                    <TableColumn>REPUTATION</TableColumn>
+                    <TableColumn>PROJECTS</TableColumn>
+                    <TableColumn>TOTAL BALANCE</TableColumn>
+                </TableHeader>
+                <TableBody isLoading={loading} emptyContent={"No users found."}>
+                    {users.map((user, index) => (
+                        <TableRow key={user.id}>
+                            <TableCell>
+                                <div className={`font-bold text-xl ${index < 3 ? "text-warning" : "text-default-500"}`}>
+                                    #{index + 1}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <User
+                                    name={user.username}
+                                    description={user.wallet_address ? `${user.wallet_address.slice(0, 6)}...${user.wallet_address.slice(-4)}` : "No Wallet"}
+                                    avatarProps={{
+                                        src: user.profile_image_url
+                                    }}
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <Chip color="secondary" variant="flat" className="font-bold">
+                                    {user.reputation_score}
+                                </Chip>
+                            </TableCell>
+                            <TableCell>
+                                <div className="font-semibold">{user.total_projects_completed}</div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="font-bold text-success">{(user.total_balance / 1000000).toLocaleString()} ₳</div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 }

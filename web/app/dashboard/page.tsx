@@ -47,19 +47,19 @@ export default function DashboardPage() {
         }
 
         const val = Number(amount);
-        if (actionType === "withdraw" && val > (profile?.available_balance || 0)) {
+        if (actionType === "withdraw" && val > (profile?.available_balance || 0) / 1000000) {
             toast.error("Insufficient available balance");
             return;
         }
 
         try {
             const newBalance = actionType === "deposit"
-                ? (Number(profile.total_balance) + val)
-                : (Number(profile.total_balance) - val);
+                ? (Number(profile.total_balance) + val * 1000000)
+                : (Number(profile.total_balance) - val * 1000000);
 
             const newAvailable = actionType === "deposit"
-                ? (Number(profile.available_balance) + val)
-                : (Number(profile.available_balance) - val);
+                ? (Number(profile.available_balance) + val * 1000000)
+                : (Number(profile.available_balance) - val * 1000000);
 
             const { error } = await supabase
                 .from("users")
@@ -88,10 +88,10 @@ export default function DashboardPage() {
     if (loading) return <div className="p-10 text-center">Loading dashboard...</div>;
 
     const stats = [
-        { label: "Total Balance", value: `${profile?.total_balance || 0} ₳`, color: "text-primary" },
-        { label: "Available", value: `${profile?.available_balance || 0} ₳`, color: "text-success" },
-        { label: "Locked", value: `${profile?.locked_balance || 0} ₳`, color: "text-warning" },
-        { label: "Reputation", value: profile?.reputation || 0, color: "text-secondary" },
+        { label: "Total Balance", value: `${(profile?.total_balance || 0) / 1000000} ₳`, color: "text-primary" },
+        { label: "Available", value: `${(profile?.available_balance || 0) / 1000000} ₳`, color: "text-success" },
+        { label: "Locked", value: `${(profile?.locked_balance || 0) / 1000000} ₳`, color: "text-warning" },
+        { label: "Reputation", value: profile?.reputation_score || 0, color: "text-secondary" },
     ];
 
     return (

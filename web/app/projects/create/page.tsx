@@ -58,15 +58,18 @@ export default function CreateProjectPage() {
                 .eq("id", user.id)
                 .single();
 
-            const { total } = calculateTotalCost();
-            if (!profile || (profile.available_balance || 0) < total) {
+            const { total, payment, fee, reserve } = calculateTotalCost();
+            // Convert total to Lovelace for comparison
+            const totalLovelace = total * 1000000;
+
+            if (!profile || (profile.available_balance || 0) < totalLovelace) {
                 throw new Error(`Insufficient balance. You need ${total} ADA.`);
             }
 
             // Deduct balance
             await supabase.from("users").update({
-                available_balance: (profile.available_balance || 0) - total,
-                locked_balance: (profile.locked_balance || 0) + 25 // Reserve
+                available_balance: (profile.available_balance || 0) - totalLovelace,
+                locked_balance: (profile.locked_balance || 0) + (reserve * 1000000) // Reserve
             }).eq("id", user.id);
 
             // Create Project
@@ -74,13 +77,14 @@ export default function CreateProjectPage() {
                 client_id: user.id,
                 title: formData.title,
                 description: formData.description,
-                criteria: formData.criteria,
-                repo_url: formData.repo_url,
-                payment_amount: Number(formData.payment_amount),
+                success_criteria: formData.criteria,
+                github_repo_url: formData.repo_url,
+                payment_amount: Number(formData.payment_amount) * 1000000,
                 collateral_rate: Number(formData.collateral_rate),
-                min_completion_percentage: formData.min_completion_percentage,
+                platform_fee: fee * 1000000,
+                minimum_completion_percentage: formData.min_completion_percentage,
                 deadline: new Date(formData.deadline).toISOString(),
-                status: "Open"
+                status: "open"
             });
 
             if (error) throw error;

@@ -57,8 +57,8 @@ export default function ProjectDetailsPage() {
 
         setAccepting(true);
         try {
-            // Calculate collateral amount
-            const collateralAmount = (project.payment_amount * project.collateral_rate) / 100;
+            // Calculate collateral amount (in Lovelace)
+            const collateralAmount = (Number(project.payment_amount) * project.collateral_rate) / 100;
 
             // Check freelancer balance
             const { data: profile } = await supabase
@@ -68,7 +68,7 @@ export default function ProjectDetailsPage() {
                 .single();
 
             if ((profile?.available_balance || 0) < collateralAmount) {
-                throw new Error(`Insufficient balance for collateral. You need ${collateralAmount} ADA.`);
+                throw new Error(`Insufficient balance for collateral. You need ${collateralAmount / 1000000} ADA.`);
             }
 
             // Lock collateral
@@ -81,8 +81,9 @@ export default function ProjectDetailsPage() {
             const { error } = await supabase
                 .from("projects")
                 .update({
-                    status: "Accepted",
-                    freelancer_id: user.id
+                    status: "accepted",
+                    freelancer_id: user.id,
+                    accepted_at: new Date().toISOString()
                 })
                 .eq("id", id);
 
@@ -100,7 +101,8 @@ export default function ProjectDetailsPage() {
     if (loading) return <div className="p-10 text-center">Loading project details...</div>;
     if (!project) return <div className="p-10 text-center">Project not found</div>;
 
-    const collateralAmount = (project.payment_amount * project.collateral_rate) / 100;
+    const collateralAmountADA = (Number(project.payment_amount) * project.collateral_rate) / 100 / 1000000;
+    const paymentADA = Number(project.payment_amount) / 1000000;
 
     return (
         <div className="max-w-5xl mx-auto pb-10">
@@ -109,17 +111,17 @@ export default function ProjectDetailsPage() {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <h1 className="text-3xl font-bold">{project.title}</h1>
-                        <Chip color={project.status === "Open" ? "success" : "primary"} variant="flat">
+                        <Chip color={project.status === "open" ? "success" : "primary"} variant="flat">
                             {project.status}
                         </Chip>
                     </div>
                     <div className="flex items-center gap-2 text-default-500">
                         <span>Posted by</span>
                         <User
-                            name={project.client?.full_name || project.client?.username}
+                            name={project.client?.username}
                             description={`@${project.client?.username}`}
                             avatarProps={{
-                                src: project.client?.avatar_url
+                                src: project.client?.profile_image_url
                             }}
                             className="scale-90 origin-left"
                         />
@@ -130,12 +132,12 @@ export default function ProjectDetailsPage() {
                         variant="bordered"
                         startContent={<GithubIcon />}
                         as="a"
-                        href={project.repo_url}
+                        href={project.github_repo_url}
                         target="_blank"
                     >
                         View Repo
                     </Button>
-                    {project.status === "Open" && (
+                    {project.status === "open" && (
                         <Button
                             color="primary"
                             className="font-bold shadow-lg shadow-primary/40"
@@ -170,7 +172,7 @@ export default function ProjectDetailsPage() {
                         <Divider className="my-2" />
                         <CardBody>
                             <p className="text-default-500 whitespace-pre-line">
-                                {project.criteria}
+                                {project.success_criteria}
                             </p>
                         </CardBody>
                     </Card>
@@ -186,11 +188,11 @@ export default function ProjectDetailsPage() {
                         <CardBody className="gap-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-default-500">Payment</span>
-                                <span className="text-2xl font-bold text-primary">{project.payment_amount} ₳</span>
+                                <span className="text-2xl font-bold text-primary">{paymentADA} ₳</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-default-500">Collateral Required</span>
-                                <span className="font-semibold text-warning">{project.collateral_rate}% ({collateralAmount} ₳)</span>
+                                <span className="font-semibold text-warning">{project.collateral_rate}% ({collateralAmountADA} ₳)</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-default-500">Deadline</span>
@@ -199,7 +201,7 @@ export default function ProjectDetailsPage() {
                         </CardBody>
                     </Card>
 
-                    {project.status === "Open" && (
+                    {project.status === "open" && (
                         <Card className="glass-card p-4 bg-primary/5 border-primary/20">
                             <CardHeader>
                                 <h3 className="text-lg font-bold text-primary">Freelancer Action</h3>
@@ -207,7 +209,7 @@ export default function ProjectDetailsPage() {
                             <Divider className="my-2" />
                             <CardBody>
                                 <p className="text-small text-default-500 mb-4">
-                                    To accept this project, you must lock <strong>{collateralAmount} ₳</strong> as collateral. This ensures commitment to the deadline.
+                                    To accept this project, you must lock <strong>{collateralAmountADA} ₳</strong> as collateral. This ensures commitment to the deadline.
                                 </p>
                                 <Button
                                     color="primary"
