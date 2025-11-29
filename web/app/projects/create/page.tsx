@@ -12,18 +12,22 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { DepositModal } from "@/components/deposit-modal";
+import { useWallet } from "@/context/walletContext";
+import { createProject } from "@/lib/contracts/project";
 
 export default function CreateProjectPage() {
   const { user, userProfile, isAuthenticated } = useAuth();
+  const [walletConnection] = useWallet();
+  const { lucid } = walletConnection;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    criteria: "",
-    repo_url: "",
-    payment_amount: "",
-    collateral_rate: "10",
+    title: "preset title",
+    description: "default title for test",
+    criteria: "no criteria for test",
+    repo_url: "i will skip it",
+    payment_amount: "10",
+    collateral_rate: "5",
     min_completion_percentage: 80,
     deadline: "",
   });
@@ -86,16 +90,28 @@ export default function CreateProjectPage() {
         return;
       }
 
-      // ---------------------------------------------------------
-      // MOCK CARDANO TRANSACTION (Escrow Lock)
-      // ---------------------------------------------------------
-      // const tx = await lucid.newTx()
-      //   .payToContract(escrowScript, { inline: datum }, { lovelace: BigInt(totalLovelace) })
-      //   .complete();
-      // const signedTx = await tx.sign().complete();
-      // const txHash = await signedTx.submit();
-      // await lucid.awaitTx(txHash);
-      // ---------------------------------------------------------
+      if (!lucid) {
+        toast.error("Wallet not connected");
+        setLoading(false);
+        return;
+      }
+
+      toast.info("Building project transaction...");
+      const { txHash, projectNftName } = await createProject(lucid, {
+        title: formData.title,
+        description: formData.description,
+        criteria: formData.criteria,
+        repo_url: formData.repo_url,
+        payment_amount: BigInt(Number(formData.payment_amount) * 1000000),
+        collateral_rate: BigInt(formData.collateral_rate),
+        min_completion_percentage: BigInt(formData.min_completion_percentage),
+        deadline: new Date(formData.deadline),
+        metadata_url: "", // Placeholder for now
+      });
+
+      toast.success(`Transaction submitted: ${txHash.slice(0, 10)}...`);
+      toast.info("Waiting for confirmation...");
+      await lucid.awaitTx(txHash);
 
       // Deduct balance
       await supabase
@@ -119,6 +135,7 @@ export default function CreateProjectPage() {
         minimum_completion_percentage: formData.min_completion_percentage,
         deadline: new Date(formData.deadline).toISOString(),
         status: "open",
+        project_nft_asset_name: projectNftName,
       });
 
       if (error) throw error;

@@ -12,12 +12,16 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DepositModal } from "@/components/deposit-modal";
+import { useWallet } from "@/context/walletContext";
+import { acceptProject } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
   const id = params.id;
   const router = useRouter();
   const { user, userProfile, isAuthenticated } = useAuth();
+  const [walletConnection] = useWallet();
+  const { lucid } = walletConnection;
 
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -89,16 +93,22 @@ export default function ProjectDetailsPage() {
         return;
       }
 
-      // ---------------------------------------------------------
-      // MOCK CARDANO TRANSACTION (Collateral Lock)
-      // ---------------------------------------------------------
-      // const tx = await lucid.newTx()
-      //   .payToContract(escrowScript, { inline: datum }, { lovelace: BigInt(collateralAmount) })
-      //   .complete();
-      // const signedTx = await tx.sign().complete();
-      // const txHash = await signedTx.submit();
-      // await lucid.awaitTx(txHash);
-      // ---------------------------------------------------------
+      if (!lucid) {
+        toast.error("Wallet not connected");
+        setAccepting(false);
+        return;
+      }
+
+      toast.info("Building accept transaction...");
+      const txHash = await acceptProject(
+        lucid,
+        project.project_nft_asset_name,
+        BigInt(collateralAmount)
+      );
+
+      toast.success(`Transaction submitted: ${txHash.slice(0, 10)}...`);
+      toast.info("Waiting for confirmation...");
+      await lucid.awaitTx(txHash);
 
       // Lock collateral
       await supabase
