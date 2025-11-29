@@ -5,3 +5,5 @@
 - for complex types we will use logical-mechanism's types like for address we will use `Wallet` type for time `moment` etc.
 - line #36 in logical-mechanism shows the usage of logical-mechanism in code
 - do not hallucinate: if something that is not possible by available knowledge write a comment where code should be as `// TODO: TASK`
+- for offchain changes read [offchain-example](Context/example/offchain.txt) file to understand how to comeplte the task
+- DO NOT READ [plutus.ts](web/config/scripts/plutus.ts) and [plutus.json](ibw/plutus.json) they are huge files the format for keys in the plutus.ts is {validator/filename}_{contractName}_{handler i.e mint/spend}

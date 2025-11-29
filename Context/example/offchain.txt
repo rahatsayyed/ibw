@@ -1,0 +1,927 @@
+================================================
+FILE: client/app/client.tsx
+================================================
+'use client'
+
+import dynamic from 'next/dynamic'
+const HomePage = dynamic(() => import('./Home'), { ssr: false })
+
+export default function Client() {
+  return <HomePage />
+}
+
+
+
+================================================
+FILE: client/app/error.tsx
+================================================
+'use client'
+
+import { useEffect } from 'react'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error
+  reset: () => void
+}) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    /* eslint-disable no-console */
+    console.error(error)
+  }, [error])
+
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button
+        onClick={
+          // Attempt to recover by trying to re-render the segment
+          () => reset()
+        }
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+
+
+
+================================================
+FILE: client/app/Home.tsx
+================================================
+'use client'
+
+import React, { useEffect, useState } from 'react'
+
+import TokenCard from '@/components/tokenCard'
+import { KARBONSTOREADDR, POLICYID } from '@/config'
+import { useWallet } from '@/context/walletContext'
+import { datumDecoder } from '@/lib/utils'
+import { KarbonStoreDatum } from '@/types/cardano'
+
+export default function HomePage() {
+  const [walletConnection] = useWallet()
+  const { lucid } = walletConnection
+  const [balance, setBalance] = useState<
+    { unit: string; quantity: number; datum: KarbonStoreDatum }[]
+  >([])
+
+  useEffect(() => {
+    async function fetchutxos() {
+      if (!lucid) return
+      const utxos = await lucid.utxosAt(KARBONSTOREADDR)
+
+      utxos.map(async (utxo) => {
+        const datum = await datumDecoder(lucid, utxo)
+
+        Object.entries(utxo.assets).map(([assetKey, quantity]) => {
+          if (assetKey.startsWith(POLICYID)) {
+            setBalance((prev) => [
+              ...prev,
+              { unit: assetKey, quantity: Number(quantity), datum: datum },
+            ])
+          }
+        })
+      })
+    }
+    fetchutxos()
+  }, [lucid])
+
+  return (
+    <div className='flex gap-4 flex-wrap'>
+      {balance &&
+        balance.map((token) => (
+          <TokenCard
+            key={token.unit}
+            datum={token.datum}
+            qty={token.quantity}
+            token={token.unit}
+            type='Buy'
+          />
+        ))}
+    </div>
+  )
+}
+
+
+
+================================================
+FILE: client/app/layout.tsx
+================================================
+import '@/styles/globals.css'
+import { Metadata, Viewport } from 'next'
+import clsx from 'clsx'
+
+import { Providers } from './providers'
+
+import { siteConfig } from '@/config/site'
+import { fontSans } from '@/config/fonts'
+import { Navbar } from '@/components/navbar'
+import WalletProvider from '@/context/walletProvider'
+
+export const metadata: Metadata = {
+  title: {
+    default: siteConfig.name,
+    template: `%s - ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  icons: {
+    icon: '/favicon.ico',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html suppressHydrationWarning lang='en'>
+      <head />
+      <body
+        className={clsx(
+          'min-h-screen bg-background font-sans antialiased',
+          fontSans.variable
+        )}
+      >
+        <Providers themeProps={{ attribute: 'class', defaultTheme: 'dark' }}>
+          <WalletProvider>
+            {/* <EmulatorConnector /> */}
+            <div className='relative flex flex-col h-screen'>
+              <Navbar />
+              <main className='container mx-auto max-w-7xl pt-16 px-6 flex-grow'>
+                {children}
+              </main>
+            </div>
+          </WalletProvider>
+        </Providers>
+      </body>
+    </html>
+  )
+}
+
+
+
+================================================
+FILE: client/app/page.tsx
+================================================
+import React from 'react'
+
+import Client from './client'
+
+export default function Page() {
+  return <Client />
+}
+
+
+
+================================================
+FILE: client/app/providers.tsx
+================================================
+'use client'
+
+import type { ThemeProviderProps } from 'next-themes'
+
+import * as React from 'react'
+import { HeroUIProvider } from '@heroui/system'
+import { useRouter } from 'next/navigation'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+
+export interface ProvidersProps {
+  children: React.ReactNode
+  themeProps?: ThemeProviderProps
+}
+
+declare module '@react-types/shared' {
+  interface RouterConfig {
+    routerOptions: NonNullable<
+      Parameters<ReturnType<typeof useRouter>['push']>[1]
+    >
+  }
+}
+
+export function Providers({ children, themeProps }: ProvidersProps) {
+  const router = useRouter()
+
+  return (
+    <HeroUIProvider navigate={router.push}>
+      <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>
+    </HeroUIProvider>
+  )
+}
+
+
+
+================================================
+FILE: client/app/profile/client.tsx
+================================================
+'use client'
+
+import dynamic from 'next/dynamic'
+const Profile = dynamic(() => import('./profile'), { ssr: false })
+
+export default function ProfileClient() {
+  return <Profile />
+}
+
+
+
+================================================
+FILE: client/app/profile/page.tsx
+================================================
+import React from 'react'
+
+import ProfileClient from './client'
+
+export default function Page() {
+  return <ProfileClient />
+}
+
+
+
+================================================
+FILE: client/app/profile/profile.tsx
+================================================
+'use client'
+import React, { useEffect, useState } from 'react'
+
+import TokenCard from '@/components/tokenCard'
+import { POLICYID } from '@/config'
+import { useWallet } from '@/context/walletContext'
+
+export default function Profile() {
+  const [walletConnection] = useWallet()
+  const { wallet, lucid, address } = walletConnection
+  const [karbonTokens, setKarbonTokens] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    async function tokens() {
+      if (!lucid || !address) return
+      const utxos = await lucid.wallet().getUtxos()
+      // const utxos = await emulator.getUtxos(address);
+      const aggregateTokenQuantities = () => {
+        const quantities: Record<string, number> = {}
+
+        utxos.forEach((utxo) => {
+          if (utxo.assets) {
+            Object.entries(utxo.assets).forEach(([assetKey, quantity]) => {
+              if (assetKey.startsWith(POLICYID)) {
+                if (quantities[assetKey as keyof typeof quantities]) {
+                  quantities[assetKey as keyof typeof quantities] +=
+                    Number(quantity) // Add quantity if the token exists
+                } else {
+                  quantities[assetKey as keyof typeof quantities] =
+                    Number(quantity) // Initialize the token with its quantity
+                }
+              }
+            })
+          }
+        })
+        setKarbonTokens(quantities)
+      }
+
+      aggregateTokenQuantities()
+    }
+    tokens()
+  }, [address])
+
+  useEffect(() => {
+    setKarbonTokens({})
+  }, [address, wallet])
+
+  if (!address)
+    return <div className='mx-auto w-full'>Connect Your Wallet First</div>
+
+  return (
+    <div className='flex gap-4 flex-wrap'>
+      {Object.entries(karbonTokens).map(([token, qty], index) => (
+        <>
+          <TokenCard key={index} qty={qty} token={token} type='Sell' />
+        </>
+      ))}
+    </div>
+  )
+}
+
+
+
+================================================
+FILE: client/components/transactions/buy.ts
+================================================
+import { Data, LucidEvolution } from '@lucid-evolution/lucid'
+
+import { KARBONSTOREADDR, ROYALTY, ROYALTYADDR } from '@/config'
+import { KarbonStoreValidator } from '@/config/scripts/scripts'
+import { vkhToAddress } from '@/lib/utils'
+import { KarbonStoreDatum, KarbonStoreRedeemer } from '@/types/cardano'
+
+export async function Buy(
+  lucid: LucidEvolution,
+  address: string,
+  datum: KarbonStoreDatum,
+  token: string,
+  qty: number
+) {
+  const owner = vkhToAddress(datum.owner)
+
+  const redeemer: KarbonStoreRedeemer = 'Buy'
+
+  const utxos = await lucid.utxosAtWithUnit(KARBONSTOREADDR, token)
+
+  const ownerPay = calulatePayout(Number(datum.amount)).seller
+  const royaltyPay = calulatePayout(Number(datum.amount)).marketplace
+  const assetQty = Number(utxos[0].assets[token])
+  const tx = await lucid
+    .newTx()
+    .collectFrom(utxos, Data.to(redeemer, KarbonStoreRedeemer))
+    .pay.ToAddress(owner, { lovelace: ownerPay })
+    .pay.ToAddress(ROYALTYADDR, { lovelace: royaltyPay })
+    .pay.ToAddress(address, { [token]: BigInt(qty) })
+    .pay.ToContract(
+      KARBONSTOREADDR,
+      { kind: 'inline', value: Data.to(datum, KarbonStoreDatum) },
+      { lovelace: 3_000_000n, [token]: BigInt(assetQty - qty) }
+    )
+    .attach.SpendingValidator(KarbonStoreValidator)
+    .complete()
+
+  const signed = await tx.sign.withWallet().complete()
+  const txHash = await signed.submit()
+
+  console.log('txHash: ', txHash)
+}
+
+function calulatePayout(amount: number) {
+  let marketplace = (amount * ROYALTY) / 100
+  let seller = amount - marketplace
+
+  return { marketplace: BigInt(marketplace + 10), seller: BigInt(seller + 10) }
+}
+
+
+
+================================================
+FILE: client/components/transactions/sell.ts
+================================================
+import {
+  Data,
+  LucidEvolution,
+  paymentCredentialOf,
+} from '@lucid-evolution/lucid'
+
+import { KARBONSTOREADDR } from '@/config'
+import { toLovelace } from '@/lib/utils'
+import { KarbonStoreDatum } from '@/types/cardano'
+
+export async function Sell(
+  lucid: LucidEvolution,
+  address: string,
+  price: number,
+  token: string,
+  qty: number
+) {
+  const datum: KarbonStoreDatum = {
+    owner: paymentCredentialOf(address).hash,
+    amount: toLovelace(price),
+  }
+  const tx = await lucid
+    .newTx()
+    .pay.ToAddressWithData(
+      KARBONSTOREADDR,
+      { kind: 'inline', value: Data.to(datum, KarbonStoreDatum) },
+      { lovelace: 3_000_000n, [token]: BigInt(qty) }
+    )
+    .complete()
+
+  const signed = await tx.sign.withWallet().complete()
+  const txHash = await signed.submit()
+
+  console.log('txHash: ', txHash)
+}
+
+
+
+================================================
+FILE: client/config/emulator.ts
+================================================
+import { generateEmulatorAccount, Emulator } from '@lucid-evolution/lucid'
+
+import { POLICYID } from '.'
+
+export const accountA = generateEmulatorAccount({
+  lovelace: 10_000_000_000n,
+  [POLICYID + '00a5f7ce4ba8ea5eccca8ae3f622aad9cadc1570ab931f95e3f62f9e']: 100n,
+})
+export const accountB = generateEmulatorAccount({ lovelace: 10_000_000_000n })
+export const accountC = generateEmulatorAccount({ lovelace: 10_000_000_000n })
+export const accountD = generateEmulatorAccount({ lovelace: 10_000_000_000n })
+
+export const emulator = new Emulator([accountA, accountB, accountC, accountD])
+
+
+
+================================================
+FILE: client/config/fonts.ts
+================================================
+import { Fira_Code as FontMono, Inter as FontSans } from 'next/font/google'
+
+export const fontSans = FontSans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+})
+
+export const fontMono = FontMono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+})
+
+
+
+================================================
+FILE: client/config/index.ts
+================================================
+import {
+  Blockfrost,
+  Network,
+  Provider,
+  validatorToAddress,
+} from '@lucid-evolution/lucid'
+
+import { KarbonStoreValidator } from './scripts/scripts'
+export const BF_URL = process.env.NEXT_PUBLIC_BF_URL!
+export const BF_PID = process.env.NEXT_PUBLIC_BF_PID!
+const NETWORKx = process.env.NEXT_PUBLIC_CARDANO_NETWORK as Network
+
+export const ROYALTY = 3
+export const ROYALTYADDR =
+  'addr_test1qpcggzpxkmeq959e5xk79d6mtm9f6vnwd2w8z97qwx45wpy52dt4zw07q2cx8ly3l4vrwrtudyj55kwagwcj77z04ydswdysjy'
+export const NETWORK: Network = NETWORKx
+export const PROVIDER: Provider = new Blockfrost(BF_URL, BF_PID)
+// export const provider: Provider = new Koios("/koios");
+
+export const KARBONSTOREADDR = validatorToAddress(NETWORK, KarbonStoreValidator)
+export const POLICYID =
+  // "a38a6084e71db8dc7c7a2f63707cd083b5e0e67aebc38cb7bada208c";
+  '75f7fed150c1020caa4a1badb9370dc6e07d0724d9ab36d4fb5c65e2'
+
+
+
+================================================
+FILE: client/config/site.ts
+================================================
+export type SiteConfig = typeof siteConfig
+
+export const siteConfig = {
+  name: 'Karbon Store',
+  description: 'Marketplace for karbon credit tokens.',
+  navItems: [
+    {
+      label: 'Home',
+      href: '/',
+    },
+    {
+      label: 'Profile',
+      href: '/profile',
+    },
+    {
+      label: 'Pricing',
+      href: '/pricing',
+    },
+    {
+      label: 'Blog',
+      href: '/blog',
+    },
+    {
+      label: 'About',
+      href: '/about',
+    },
+  ],
+  navMenuItems: [
+    {
+      label: 'Home',
+      href: '/',
+    },
+    {
+      label: 'Profile',
+      href: '/profile',
+    },
+    {
+      label: 'Dashboard',
+      href: '/dashboard',
+    },
+    {
+      label: 'Projects',
+      href: '/projects',
+    },
+    {
+      label: 'Team',
+      href: '/team',
+    },
+    {
+      label: 'Calendar',
+      href: '/calendar',
+    },
+    {
+      label: 'Settings',
+      href: '/settings',
+    },
+    {
+      label: 'Help & Feedback',
+      href: '/help-feedback',
+    },
+    {
+      label: 'Logout',
+      href: '/logout',
+    },
+  ],
+  links: {
+    github: 'https://github.com/KonmaORG/karbon-marketplace',
+  },
+}
+
+
+
+================================================
+FILE: client/config/scripts/scripts.ts
+================================================
+import { applyDoubleCborEncoding, Validator } from '@lucid-evolution/lucid'
+
+import { karbonstore_karbonstore_spend } from './plutus'
+
+const identificationNFT_Mint = applyDoubleCborEncoding(
+  karbonstore_karbonstore_spend
+)
+
+export const KarbonStoreValidator: Validator = {
+  type: 'PlutusV3',
+  script: identificationNFT_Mint,
+}
+
+
+
+================================================
+FILE: client/context/walletContext.ts
+================================================
+import { createContext, Dispatch, SetStateAction, useContext } from 'react'
+import { Address, LucidEvolution } from '@lucid-evolution/lucid'
+
+import { Wallet } from '@/types/cardano'
+
+export type WalletConnection = {
+  lucid?: LucidEvolution
+  wallet?: Wallet
+  address?: Address
+  balance?: number
+}
+
+export const WalletContext = createContext<
+  [WalletConnection, Dispatch<SetStateAction<WalletConnection>>]
+>([{}, () => {}])
+export const useWallet = () => useContext(WalletContext)
+
+
+
+================================================
+FILE: client/context/walletProvider.tsx
+================================================
+// Wallet Provider to pass the wallet context
+'use client'
+
+import { useState } from 'react'
+
+import { WalletConnection, WalletContext } from './walletContext'
+
+export default function WalletProvider(props: { children: React.ReactNode }) {
+  return (
+    <WalletContext.Provider value={useState<WalletConnection>({})}>
+      {props.children}
+    </WalletContext.Provider>
+  )
+}
+
+
+
+================================================
+FILE: client/lib/lucid.ts
+================================================
+import { Lucid } from '@lucid-evolution/lucid'
+
+import { NETWORK, PROVIDER } from '@/config'
+import { WalletConnection } from '@/context/walletContext'
+
+export const mkLucid = async (
+  setWalletConnection: (value: React.SetStateAction<WalletConnection>) => void
+): Promise<void> => {
+  try {
+    const lucidInstance = await Lucid(PROVIDER, NETWORK)
+
+    setWalletConnection((prev) => ({
+      ...prev,
+      lucid: lucidInstance,
+    }))
+  } catch (error) {
+    console.error('Error initializing Lucid:', error)
+  }
+}
+
+
+
+================================================
+FILE: client/lib/utils.ts
+================================================
+import {
+  credentialToAddress,
+  Data,
+  keyHashToCredential,
+  LucidEvolution,
+  UTxO,
+} from '@lucid-evolution/lucid'
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+import { KarbonStoreDatum } from '@/types/cardano'
+import { BF_PID, BF_URL, NETWORK } from '@/config'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export function handleError(error: any) {
+  // const { info, message } = error;
+
+  function toJSON(error: any) {
+    try {
+      const errorString = JSON.stringify(error)
+      const errorJSON = JSON.parse(errorString)
+
+      return errorJSON
+    } catch {
+      return {}
+    }
+  }
+
+  const { cause } = toJSON(error)
+  const { failure } = cause ?? {}
+
+  const failureCause = failure?.cause
+  // const failureInfo = failureCause?.info;
+  // const failureMessage = failureCause?.message;
+
+  // toast(`${failureInfo ?? failureMessage ?? info ?? message ?? error}`, {
+  // type: "error",
+  // });
+  console.error(failureCause ?? { error })
+}
+
+export function toLovelace(ada: number) {
+  return BigInt(ada * 1_000_000)
+}
+
+export const blockfrost = {
+  getMetadata: async (asset: string) => {
+    const url = `${BF_URL}/assets/${asset}`
+
+    try {
+      const assetResponse = await fetch(url, {
+        method: 'GET',
+        headers: {
+          project_id: BF_PID,
+        },
+      })
+
+      if (!assetResponse.ok) {
+        throw new Error(`Error: ${assetResponse.statusText}`)
+      }
+
+      const result = await assetResponse.json()
+
+      // const response = await fetch(`${BF_URL}/txs/${initialTx}/metadata`, {
+      //   method: "GET",
+      //   headers: {
+      //     project_id: BF_PID,
+      //   },
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(`Error: ${response.statusText}`);
+      // }
+      // const result = await response.json();
+      return result.onchain_metadata
+    } catch (err: any) {
+      return err.message
+    }
+  },
+
+  getAddress: async (address: string) => {
+    const url = `${BF_URL}/addresses/${address}`
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          project_id: BF_PID,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+
+      return result
+    } catch (err: any) {
+      return err.message
+    }
+  },
+}
+
+export type MetadataType = {
+  name: string
+  image: string
+  mediaType?: string
+  description?: string
+}
+
+export type CardanoAsset = {
+  asset: string
+  policy_id: string
+  asset_name: string
+  fingerprint: string
+  quantity: string
+  initial_mint_tx_hash: string
+  mint_or_burn_count: number
+  onchain_metadata: MetadataType
+  onchain_metadata_standard: string
+  onchain_metadata_extra: null | any
+  metadata: null | any
+}
+
+export async function datumDecoder(lucid: LucidEvolution, utxo: UTxO) {
+  const data = await lucid.datumOf(utxo)
+  const datum = Data.castFrom(data, KarbonStoreDatum)
+
+  return datum
+}
+
+export function vkhToAddress(vkh: string) {
+  const credential = keyHashToCredential(vkh)
+  const address = credentialToAddress(NETWORK, credential)
+
+  return address
+}
+
+
+
+================================================
+FILE: client/styles/globals.css
+================================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 140 60% 96%; /* Light greenish background */
+    --foreground: 140 20% 20%; /* Dark green for text */
+    --card: 140 50% 97%; /* Slightly darker than background */
+    --card-foreground: 140 25% 25%; /* Rich green text for cards */
+    --popover: 140 50% 95%;
+    --popover-foreground: 140 30% 30%;
+    --primary: 145 45% 40%; /* Forest green for primary elements */
+    --primary-foreground: 140 60% 98%; /* Light for contrast */
+    --secondary: 120 30% 85%; /* Soft pale green */
+    --secondary-foreground: 140 25% 25%;
+    --muted: 120 25% 85%; /* Muted green tones */
+    --muted-foreground: 120 15% 50%;
+    --accent: 160 40% 70%; /* Teal for accent colors */
+    --accent-foreground: 140 15% 20%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 140 20% 80%; /* Soft border */
+    --input: 140 20% 80%;
+    --ring: 140 45% 40%; /* Darker ring for focus */
+    --chart-1: 120 60% 45%; /* Vibrant green for charts */
+    --chart-2: 90 40% 40%; /* Olive green */
+    --chart-3: 160 40% 60%; /* Teal for charts */
+    --chart-4: 60 70% 50%; /* Yellowish green */
+    --chart-5: 30 80% 55%; /* Earthy orange */
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 140 20% 10%; /* Dark greenish background */
+    --foreground: 140 60% 85%; /* Light green for text */
+    --card: 140 25% 15%; /* Darker cards */
+    --card-foreground: 140 60% 85%;
+    --popover: 140 25% 15%;
+    --popover-foreground: 140 60% 85%;
+    --primary: 140 45% 70%; /* Vibrant green for primary */
+    --primary-foreground: 140 20% 10%;
+    --secondary: 140 20% 20%; /* Muted dark green */
+    --secondary-foreground: 140 60% 85%;
+    --muted: 140 15% 15%;
+    --muted-foreground: 140 60% 70%;
+    --accent: 160 45% 40%;
+    --accent-foreground: 140 60% 85%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 140 20% 20%;
+    --input: 140 20% 20%;
+    --ring: 140 45% 40%;
+    --chart-1: 120 60% 50%;
+    --chart-2: 90 40% 45%;
+    --chart-3: 160 40% 60%;
+    --chart-4: 60 70% 50%;
+    --chart-5: 30 80% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Remove spinners for Chrome, Safari, Edge, Opera */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Remove spinners for Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+
+
+================================================
+FILE: client/types/cardano.ts
+================================================
+import { Constr, Data, WalletApi } from '@lucid-evolution/lucid'
+
+/**
+ * Wallet type definition
+ */
+export type Wallet = {
+  name: string
+  icon: string
+  enable(): Promise<WalletApi>
+}
+
+export const KarbonStoreDatumSchema = Data.Object({
+  owner: Data.Bytes(),
+  amount: Data.Integer(),
+})
+export type KarbonStoreDatum = Data.Static<typeof KarbonStoreDatumSchema>
+export const KarbonStoreDatum =
+  KarbonStoreDatumSchema as unknown as KarbonStoreDatum
+
+export type KarbonStoreRedeemerAction = 'Buy' | 'Withdraw'
+export const KarbonStoreRedeemerAction = {
+  Buy: {
+    Title: 'Buy',
+    Schema: Data.Literal('Buy'),
+    Constr: new Constr(0, []),
+  },
+  Withdraw: {
+    Title: 'Withdraw',
+    Schema: Data.Literal('Withdraw'),
+    Constr: new Constr(1, []),
+  },
+}
+export const KarbonStoreRedeemerSchema = Data.Enum([
+  KarbonStoreRedeemerAction.Buy.Schema,
+  KarbonStoreRedeemerAction.Withdraw.Schema,
+])
+
+export type KarbonStoreRedeemer = Data.Static<typeof KarbonStoreRedeemerSchema>
+export const KarbonStoreRedeemer =
+  KarbonStoreRedeemerSchema as unknown as KarbonStoreRedeemer
+
+
+
+================================================
+FILE: client/types/index.ts
+================================================
+import { SVGProps } from 'react'
+
+export type IconSvgProps = SVGProps<SVGSVGElement> & {
+  size?: number
+}
+
+
