@@ -4,3 +4,4 @@
 - remember to refer back to examples and lib for usage and not to hallucinate
 - for complex types we will use logical-mechanism's types like for address we will use `Wallet` type for time `moment` etc.
 - line #36 in logical-mechanism shows the usage of logical-mechanism in code
+- do not hallucinate: if something that is not possible by available knowledge write a comment where code should be as `// TODO: TASK`

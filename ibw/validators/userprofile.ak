@@ -108,9 +108,9 @@ validator user_profile {
     //    - active_projects_as_freelancer += 1
     //    - project_collateral += (project_amount * collateral_rate / 100)
     //    - total_balance unchanged (or +collateral if shortfall)
-    // 8. Both Profile NFTs returned to respective owners
+    // 8. Profile NFTs returned to respective owners
     // 10. Validate freelancer has enough balance for collateral
-    // 11. Check freelancer's reputation (optional: minimum threshold)
+    // 11. Check freelancer's reputation (optional: minimum threshold) {SKIP for now and make comment}
     // Project Submit
     // --------------
     // 9. Freelancer Profile NFT returned unchanged
