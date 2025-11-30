@@ -86,6 +86,7 @@ pub type ProjectRedeemer {
   ProjectDispute
   ProjectReDispute
   ProjectFinalize
+  ProjectResolve
 }
 
 pub type ArbitratorMintRedeemer {
@@ -98,4 +99,5 @@ pub type ArbitratorRedeemer {
   AIResolve
   ReDispute
   Finalize
+  ArbitratorResolve
 }

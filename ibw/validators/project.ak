@@ -11,7 +11,7 @@ use functions/project_approval
 use functions/project_submit
 use types/types.{
   Accepted, Completed, Disputed, Open, ProjectAccept, ProjectApproval, ProjectDatum, ProjectDispute,
-  ProjectRedeemer, ProjectSubmit, ProjectReDispute, ProjectFinalize, Submitted, UserProfileDatum,
+  ProjectRedeemer, ProjectSubmit, ProjectReDispute, ProjectFinalize, ProjectResolve, Submitted, UserProfileDatum,
 }
 
 pub type ProjectMintRedeemer {
@@ -287,6 +287,35 @@ validator project_contract(profile_nft: PolicyId) {
         // We need the Dispute Policy ID.
         // But we don't have it passed here.
         // However, the Project Datum has `dispute_nft` field!
+        expect Some(dispute_nft_class) = input_datum.dispute_nft
+        
+        let dispute_auth_check =
+          list.any(
+            self.inputs,
+            fn(input) {
+              list.any(
+                input.output.value |> assets.flatten,
+                fn((pid, tn, _)) {
+                  pid == dispute_nft_class.policy_id && tn == dispute_nft_class.asset_name
+                },
+              )
+            },
+          )
+
+        status_check? && dispute_auth_check?
+      }
+      ProjectResolve -> {
+        // Project Resolve (Human)
+        // -----------------------
+        // Same logic as Finalize: Disputed -> Completed, authorized by Dispute NFT burn.
+        
+        expect Some(own_output) = own_output_opt
+        expect InlineDatum(d) = own_output.datum
+        expect output_datum: ProjectDatum = d
+
+        let status_check =
+          input_datum.status == Disputed && output_datum.status == Completed
+
         expect Some(dispute_nft_class) = input_datum.dispute_nft
         
         let dispute_auth_check =

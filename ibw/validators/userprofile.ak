@@ -5,6 +5,7 @@ use cardano/script_context.{ScriptContext}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
 use functions/deposit
 use functions/dispute/profile_dispute
+use functions/dispute/profile_resolve
 use functions/project_accept_profile
 use functions/project_approval_profile
 use functions/project_create
@@ -23,6 +24,7 @@ pub type UserProfileRedeemer {
   ProjectApproval
   ProjectDispute
   Finalize
+  ProfileResolve { project_input_index: Int, dispute_input_index: Int }
 }
 
 validator user_profile {
@@ -268,6 +270,17 @@ validator user_profile {
         
         active_decremented? && collateral_released?
       }
+      ProfileResolve { project_input_index, dispute_input_index } ->
+        profile_resolve.validate_profile_resolve(
+          tx,
+          input_datum,
+          output_datum,
+          project_input_index,
+          dispute_input_index,
+          profile_nft_policy,
+          profile_nft_name,
+          script_address,
+        )
     }
   }
 

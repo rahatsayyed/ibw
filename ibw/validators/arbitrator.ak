@@ -9,10 +9,11 @@ use cardano/transaction.{OutputReference, Transaction}
 use functions/dispute/ai_resolve
 use functions/dispute/dispute_raise
 use functions/dispute/finalize
+use functions/dispute/human_resolve
 use functions/dispute/re_dispute
 use types/types.{
   AIResolve, ArbitratorMintRedeemer, ArbitratorRedeemer, DisputeProject,
-  Finalize, HumanArbitration, NoRedispute, ReDispute,
+  Finalize, HumanArbitration, NoRedispute, ReDispute, ArbitratorResolve,
 }
 
 // easier to find the user-utxo with profile_nft and project_utxo with project_nft
@@ -118,6 +119,23 @@ validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
         // 4. Dispute NFT in inputs
         // 5. Dispute NFT burned (not in outputs)
         finalize.validate_finalize(
+          self,
+          {
+             expect Some(input) = list.find(self.inputs, fn(i) { i.output_reference == utxo })
+             let input_assets = input.output.value |> assets.flatten
+             expect Some((pid, _, _)) = list.find(input_assets, fn((p, _, _)) { p != assets.ada_policy_id })
+             pid
+          },
+          project_nft,
+          profile_nft,
+        )
+      ArbitratorResolve ->
+        // Human Resolve
+        // -------------
+        // 1. state == HumanReview
+        // 2. Signed by Arbitrator
+        // 3. Dispute NFT burned
+        human_resolve.validate_human_resolve(
           self,
           {
              expect Some(input) = list.find(self.inputs, fn(i) { i.output_reference == utxo })
