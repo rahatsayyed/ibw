@@ -1,10 +1,10 @@
-# Decentralized Freelance Platform (IBW Hackathon Submission)
+# Verico (IBW Hackathon Submission)
 
 **Deployment:** [ibw.vercel.app](https://ibw.vercel.app)
 
 ## Overview
 
-This project is a decentralized freelance and project management platform built for the **India Blockchain Week (IBW) Hackathon**. It leverages the Cardano blockchain to create a trustless environment where clients and freelancers can collaborate securely. The platform integrates advanced features like AI-driven dispute resolution and a robust staking/slashing mechanism to ensure fair play.
+**Verico** is a decentralized freelance and project management platform built for the **India Blockchain Week (IBW) Hackathon**. It leverages the Cardano blockchain to create a trustless environment where clients and freelancers can collaborate securely. The platform integrates advanced features like AI-driven dispute resolution and a robust staking/slashing mechanism to ensure fair play.
 
 ## Key Features
 
