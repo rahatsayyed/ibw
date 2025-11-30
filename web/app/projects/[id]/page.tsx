@@ -18,6 +18,7 @@ import {
   raiseDispute,
   resolveDisputeAI,
   finalizeDispute,
+  reDispute,
 } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
@@ -34,6 +35,7 @@ export default function ProjectDetailsPage() {
   const [disputing, setDisputing] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [reDisputing, setReDisputing] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
@@ -252,6 +254,38 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleReDispute = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to re-dispute");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setReDisputing(true);
+    try {
+      const reason = prompt("Enter reason for re-dispute:");
+      if (!reason) {
+        setReDisputing(false);
+        return;
+      }
+
+      toast.info("Submitting re-dispute...");
+      const txHash = await reDispute(lucid, project.project_nft_asset_name, reason);
+      toast.success(`Re-dispute submitted: ${txHash.slice(0, 10)}...`);
+
+      // Update DB - technically status is still 'disputed' but maybe we want to track 'human_review'
+      // For now, just refresh
+      fetchProject();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to re-dispute");
+    } finally {
+      setReDisputing(false);
+    }
+  };
+
   if (loading)
     return <div className="p-10 text-center">Loading project details...</div>;
   if (!project)
@@ -342,6 +376,18 @@ export default function ProjectDetailsPage() {
               onPress={handleFinalize}
             >
               Finalize Dispute
+            </Button>
+          )}
+
+          {project.status === "disputed" && (
+            <Button
+              color="warning"
+              variant="flat"
+              className="font-bold"
+              isLoading={reDisputing}
+              onPress={handleReDispute}
+            >
+              Re-Dispute (Human Review)
             </Button>
           )}
         </div>
