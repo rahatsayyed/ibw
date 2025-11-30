@@ -1,7 +1,7 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "BlockHire",
+  name: "Verico",
   description: "Decentralized Freelance Marketplace on Cardano",
   navItems: [
     {
