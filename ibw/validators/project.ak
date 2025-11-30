@@ -5,11 +5,13 @@ use cardano/assets.{PolicyId}
 use cardano/script_context.{ScriptContext}
 use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
 use cardano/value
+use functions/dispute/project_dispute
 use functions/project_accept
 use functions/project_approval
 use functions/project_submit
 use types/types.{
-  Accepted, Open, ProjectDatum, Submitted, UserProfileDatum,
+  Accepted, Open, ProjectAccept, ProjectApproval, ProjectDatum, ProjectDispute,
+  ProjectRedeemer, ProjectSubmit, Submitted, UserProfileDatum,
 }
 
 pub type ProjectMintRedeemer {
@@ -112,7 +114,7 @@ validator project_contract(profile_nft: PolicyId) {
   // ===============================
   spend(
     datum: Option<ProjectDatum>,
-    _redeemer: Data,
+    redeemer: ProjectRedeemer,
     utxo: OutputReference,
     self: Transaction,
   ) {
@@ -162,8 +164,8 @@ validator project_contract(profile_nft: PolicyId) {
         },
       )
 
-    when input_datum.status is {
-      Open -> {
+    when redeemer is {
+      ProjectAccept -> {
         // Project Accept
         expect Some(own_output) = own_output_opt
         expect InlineDatum(d) = own_output.datum
@@ -178,7 +180,7 @@ validator project_contract(profile_nft: PolicyId) {
           profile_nft,
         )
       }
-      Accepted -> {
+      ProjectSubmit -> {
         // Project Submit
         expect Some(own_output) = own_output_opt
         expect InlineDatum(d) = own_output.datum
@@ -193,7 +195,7 @@ validator project_contract(profile_nft: PolicyId) {
           profile_nft,
         )
       }
-      Submitted ->
+      ProjectApproval ->
         // Project Approval
         // Note: Approval might consume the UTxO (no output with Project NFT).
         // If so, `own_output_opt` would be None.
@@ -203,7 +205,20 @@ validator project_contract(profile_nft: PolicyId) {
           input_datum,
           profile_nft,
         )
-      _ -> fail @"Invalid status for spending"
+      ProjectDispute -> {
+        // Project Dispute
+        expect Some(own_output) = own_output_opt
+        expect InlineDatum(d) = own_output.datum
+        expect output_datum: ProjectDatum = d
+
+        project_dispute.validate_project_dispute(
+          self,
+          input_datum,
+          output_datum,
+          profile_nft,
+        )
+      }
+      _ -> todo @"other redeemers"
     }
   }
 

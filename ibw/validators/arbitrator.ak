@@ -4,28 +4,39 @@ use cardano/certificate.{Certificate}
 use cardano/governance.{ProposalProcedure, Voter}
 use cardano/script_context.{ScriptContext}
 use cardano/transaction.{OutputReference, Transaction}
+use functions/dispute/dispute_raise
+use types/types.{ArbitratorMintRedeemer, DisputeProject, HumanArbitration, NoRedispute}
 
 // easier to find the user-utxo with profile_nft and project_utxo with project_nft
 validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
   // MINTING POLICY VALIDATIONS
   // ===========================
   
-  mint(_redeemer: Data, _policy_id: PolicyId, _self: Transaction) {
-    // Project Dispute
-    // ---------------
-    // 8. Create Dispute UTxO with DisputeDatum
-    // 9. Mint exactly ONE Dispute NFT
-    // 14. Validate dispute reason not empty
-    
-    // No Re-dispute (Finalize)
-    // ------------------------
-    // 13. Burn Dispute NFT
-    
-    // Human Arbitration
-    // -----------------
-    // 14. Burn Dispute NFT
-    
-    todo @"mint logic goes here"
+  mint(redeemer: ArbitratorMintRedeemer, policy_id: PolicyId, self: Transaction) {
+    when redeemer is {
+      DisputeProject ->
+        // Project Dispute
+        // ---------------
+        // 8. Create Dispute UTxO with DisputeDatum
+        // 9. Mint exactly ONE Dispute NFT
+        // 14. Validate dispute reason not empty
+        dispute_raise.validate_dispute_raise(
+          self,
+          policy_id,
+          project_nft,
+          profile_nft,
+        )
+      NoRedispute ->
+        // No Re-dispute (Finalize)
+        // ------------------------
+        // 13. Burn Dispute NFT
+        todo @"burn logic"
+      HumanArbitration ->
+        // Human Arbitration
+        // -----------------
+        // 14. Burn Dispute NFT
+        todo @"burn logic"
+    }
   }
 
   // SPENDING VALIDATOR VALIDATIONS

@@ -78,3 +78,18 @@ pub type DisputeDatum {
   final_completion_percentage: Option<Int>,
   resolved_at: Option<Moment>,
 }
+
+pub type ProjectRedeemer {
+  ProjectAccept
+  ProjectSubmit
+  ProjectApproval
+  ProjectDispute
+  ProjectReDispute
+  ProjectFinalize
+}
+
+pub type ArbitratorMintRedeemer {
+  DisputeProject
+  NoRedispute
+  HumanArbitration
+}
