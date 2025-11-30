@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DepositModal } from "@/components/deposit-modal";
+import { ResolutionModal } from "@/components/resolution-modal";
 import { useWallet } from "@/context/walletContext";
 import {
   acceptProject,
@@ -20,6 +21,7 @@ import {
   finalizeDispute,
   reDispute,
   resolveDisputeHuman,
+  submitProject,
 } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
@@ -38,9 +40,13 @@ export default function ProjectDetailsPage() {
   const [finalizing, setFinalizing] = useState(false);
   const [reDisputing, setReDisputing] = useState(false);
   const [humanResolving, setHumanResolving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
+
+  const [resolutionModalOpen, setResolutionModalOpen] = useState(false);
+  const [resolutionType, setResolutionType] = useState<"AI" | "Human">("AI");
 
   useEffect(() => {
     fetchProject();
@@ -70,7 +76,6 @@ export default function ProjectDetailsPage() {
       return;
     }
 
-    // Get user ID from either supabase user or userProfile
     const userId = user?.id || userProfile?.id;
     if (!userId) {
       toast.error("User ID not found");
@@ -84,11 +89,9 @@ export default function ProjectDetailsPage() {
 
     setAccepting(true);
     try {
-      // Calculate collateral amount (in Lovelace)
       const collateralAmount =
         (Number(project.payment_amount) * project.collateral_rate) / 100;
 
-      // Check freelancer balance
       const { data: profile } = await supabase
         .from("users")
         .select("available_balance, locked_balance")
@@ -119,10 +122,7 @@ export default function ProjectDetailsPage() {
       );
 
       toast.success(`Transaction submitted: ${txHash.slice(0, 10)}...`);
-      // toast.info("Waiting for confirmation...");
-      // await lucid.awaitTx(txHash);
 
-      // Lock collateral
       await supabase
         .from("users")
         .update({
@@ -132,13 +132,13 @@ export default function ProjectDetailsPage() {
         })
         .eq("id", userId);
 
-      // Update project
       const { error } = await supabase
         .from("projects")
         .update({
           status: "accepted",
           freelancer_id: userId,
           accepted_at: new Date().toISOString(),
+          accepted_by: userId,
         })
         .eq("id", id);
 
@@ -153,6 +153,50 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleSubmitProject = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to submit project");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+
+    const submissionDetails = prompt("Enter submission details (e.g., GitHub PR link):");
+    if (!submissionDetails) return;
+
+    setSubmitting(true);
+    try {
+      toast.info("Submitting project...");
+      const txHash = await submitProject(
+        lucid,
+        project.project_nft_asset_name,
+        submissionDetails
+      );
+      toast.success(`Project submitted: ${txHash.slice(0, 10)}...`);
+
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+          submission_link: submissionDetails,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Project status updated to submitted");
+      fetchProject();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to submit project");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleRaiseDispute = async () => {
     if (!isAuthenticated) return;
     if (!lucid) return;
@@ -163,7 +207,6 @@ export default function ProjectDetailsPage() {
       const txHash = await raiseDispute(lucid, project.project_nft_asset_name);
       toast.success(`Dispute raised: ${txHash.slice(0, 10)}...`);
 
-      // Update project status in DB
       const { error } = await supabase
         .from("projects")
         .update({
@@ -184,7 +227,7 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleAIResolve = async () => {
+  const handleAIResolveClick = () => {
     if (!isAuthenticated) {
       toast.error("Please login to resolve disputes");
       return;
@@ -193,36 +236,68 @@ export default function ProjectDetailsPage() {
       toast.error("Wallet not connected");
       return;
     }
-    setResolving(true);
-    try {
-      // Hardcoded resolution for simulation
-      const resolution = {
-        decision: "Client" as const,
-        completionPercentage: 0,
-        confidence: 95,
-        analysisHash: "simulated_analysis_hash",
-      };
+    setResolutionType("AI");
+    setResolutionModalOpen(true);
+  };
 
-      toast.info("Resolving dispute with AI...");
-      const txHash = await resolveDisputeAI(
-        lucid,
-        project.project_nft_asset_name,
-        resolution
-      );
-      toast.success(`Dispute resolved by AI (Simulated): ${txHash.slice(0, 10)}...`);
+  const handleHumanResolveClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to resolve dispute");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setResolutionType("Human");
+    setResolutionModalOpen(true);
+  };
 
-      // Update DB - In a real app, this might be listened to from chain,
-      // but for now we update to reflect the change.
-      // Note: The project status technically remains 'disputed' on-chain until finalized,
-      // but the dispute state changes to AIResolved.
-      // We might want to add a 'ai_resolved' status to DB or just keep it as disputed.
-      // For visual feedback, let's just toast.
-      fetchProject(); // Re-fetch to update UI if needed
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to resolve dispute");
-    } finally {
-      setResolving(false);
+  const handleResolution = async (decision: "Client" | "Freelancer" | "Split") => {
+    if (resolutionType === "AI") {
+      setResolving(true);
+      try {
+        const resolution = {
+          decision: decision,
+          completionPercentage: decision === "Freelancer" ? 100 : decision === "Client" ? 0 : 50,
+          confidence: 95,
+          analysisHash: "simulated_analysis_hash",
+        };
+
+        toast.info(`Resolving dispute with AI (${decision})...`);
+        const txHash = await resolveDisputeAI(
+          lucid!,
+          project.project_nft_asset_name,
+          resolution
+        );
+        toast.success(`Dispute resolved by AI: ${txHash.slice(0, 10)}...`);
+        fetchProject();
+        setResolutionModalOpen(false);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(error.message || "Failed to resolve dispute");
+      } finally {
+        setResolving(false);
+      }
+    } else {
+      setHumanResolving(true);
+      try {
+        const resolution = {
+          decision: decision,
+          completionPercentage: decision === "Freelancer" ? 100 : decision === "Client" ? 0 : 50,
+        };
+
+        toast.info(`Submitting human resolution (${decision})...`);
+        const txHash = await resolveDisputeHuman(lucid!, project.project_nft_asset_name, resolution);
+        toast.success(`Human resolution submitted: ${txHash.slice(0, 10)}...`);
+        fetchProject();
+        setResolutionModalOpen(false);
+      } catch (error: any) {
+        console.error(error);
+        toast.error(error.message || "Failed to resolve dispute");
+      } finally {
+        setHumanResolving(false);
+      }
     }
   };
 
@@ -241,7 +316,6 @@ export default function ProjectDetailsPage() {
       const txHash = await finalizeDispute(lucid, project.project_nft_asset_name);
       toast.success(`Dispute finalized: ${txHash.slice(0, 10)}...`);
 
-      // Update DB
       await supabase
         .from("projects")
         .update({ status: "completed" })
@@ -277,44 +351,12 @@ export default function ProjectDetailsPage() {
       const txHash = await reDispute(lucid, project.project_nft_asset_name, reason);
       toast.success(`Re-dispute submitted: ${txHash.slice(0, 10)}...`);
 
-      // Update DB - technically status is still 'disputed' but maybe we want to track 'human_review'
-      // For now, just refresh
       fetchProject();
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to re-dispute");
     } finally {
       setReDisputing(false);
-    }
-  };
-
-  const handleHumanResolve = async () => {
-    if (!isAuthenticated) {
-      toast.error("Please login to resolve dispute");
-      return;
-    }
-    if (!lucid) {
-      toast.error("Wallet not connected");
-      return;
-    }
-    setHumanResolving(true);
-    try {
-      // Hardcoded resolution for simulation
-      const resolution = {
-        decision: "Client" as const,
-        completionPercentage: 0,
-      };
-
-      toast.info("Submitting human resolution...");
-      const txHash = await resolveDisputeHuman(lucid, project.project_nft_asset_name, resolution);
-      toast.success(`Human resolution submitted: ${txHash.slice(0, 10)}...`);
-
-      fetchProject();
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to resolve dispute");
-    } finally {
-      setHumanResolving(false);
     }
   };
 
@@ -329,7 +371,6 @@ export default function ProjectDetailsPage() {
 
   return (
     <div className="max-w-5xl mx-auto pb-10">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -373,6 +414,18 @@ export default function ProjectDetailsPage() {
               Accept Project
             </Button>
           )}
+
+          {project.status === "accepted" && user?.id === project.freelancer_id && (
+            <Button
+              color="success"
+              className="font-bold shadow-lg shadow-success/40"
+              isLoading={submitting}
+              onPress={handleSubmitProject}
+            >
+              Submit Project
+            </Button>
+          )}
+
           {project.status === "submitted" &&
             (user?.id === project.client_id ||
               user?.id === project.freelancer_id) && (
@@ -393,7 +446,7 @@ export default function ProjectDetailsPage() {
               variant="flat"
               className="font-bold"
               isLoading={resolving}
-              onPress={handleAIResolve}
+              onPress={handleAIResolveClick}
             >
               Simulate AI Resolve
             </Button>
@@ -429,7 +482,7 @@ export default function ProjectDetailsPage() {
               variant="flat"
               className="font-bold"
               isLoading={humanResolving}
-              onPress={handleHumanResolve}
+              onPress={handleHumanResolveClick}
             >
               Simulate Human Resolve
             </Button>
@@ -438,7 +491,6 @@ export default function ProjectDetailsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="glass-card p-4">
             <CardHeader>
@@ -465,7 +517,6 @@ export default function ProjectDetailsPage() {
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="lg:col-span-1 space-y-6">
           <Card className="glass-card p-4">
             <CardHeader>
@@ -525,6 +576,13 @@ export default function ProjectDetailsPage() {
         missingAmount={missingAmount}
         onSuccess={handleAcceptProject}
       />
-    </div >
+      <ResolutionModal
+        isOpen={resolutionModalOpen}
+        onClose={() => setResolutionModalOpen(false)}
+        onResolve={handleResolution}
+        type={resolutionType}
+        loading={resolving || humanResolving}
+      />
+    </div>
   );
 }

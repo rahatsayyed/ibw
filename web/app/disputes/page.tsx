@@ -78,7 +78,13 @@ export default function DisputesPage() {
                                             {(dispute.project?.payment_amount / 1000000).toLocaleString()} ₳
                                         </p>
                                     </div>
-                                    <Button color="primary" variant="ghost" size="sm">
+                                    <Button
+                                        color="primary"
+                                        variant="ghost"
+                                        size="sm"
+                                        as="a"
+                                        href={`/projects/${dispute.project_id}`}
+                                    >
                                         View Details
                                     </Button>
                                 </div>
