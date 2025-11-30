@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DepositModal } from "@/components/deposit-modal";
 import { useWallet } from "@/context/walletContext";
-import { acceptProject } from "@/lib/contracts/project";
+import { acceptProject, raiseDispute } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -26,6 +26,7 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [disputing, setDisputing] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
@@ -141,6 +142,37 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleRaiseDispute = async () => {
+    if (!isAuthenticated) return;
+    if (!lucid) return;
+
+    setDisputing(true);
+    try {
+      toast.info("Raising dispute...");
+      const txHash = await raiseDispute(lucid, project.project_nft_asset_name);
+      toast.success(`Dispute raised: ${txHash.slice(0, 10)}...`);
+
+      // Update project status in DB
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          status: "disputed",
+          disputed_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Project status updated to disputed");
+      fetchProject();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to raise dispute");
+    } finally {
+      setDisputing(false);
+    }
+  };
+
   if (loading)
     return <div className="p-10 text-center">Loading project details...</div>;
   if (!project)
@@ -196,6 +228,19 @@ export default function ProjectDetailsPage() {
               Accept Project
             </Button>
           )}
+          {project.status === "submitted" &&
+            (user?.id === project.client_id ||
+              user?.id === project.freelancer_id) && (
+              <Button
+                color="danger"
+                variant="flat"
+                className="font-bold"
+                isLoading={disputing}
+                onPress={handleRaiseDispute}
+              >
+                Raise Dispute
+              </Button>
+            )}
         </div>
       </div>
 
@@ -287,6 +332,6 @@ export default function ProjectDetailsPage() {
         missingAmount={missingAmount}
         onSuccess={handleAcceptProject}
       />
-    </div>
+    </div >
   );
 }

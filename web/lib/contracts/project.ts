@@ -17,6 +17,8 @@ import {
   project_project_contract_spend,
   userprofile_user_profile_mint,
   userprofile_user_profile_spend,
+  arbitrator_arbitrator_mint,
+  arbitrator_arbitrator_spend,
 } from "@/config/scripts/plutus";
 import {
   ProjectDatum,
@@ -24,6 +26,9 @@ import {
   ProjectRedeemer,
   UserProfileDatum,
   UserProfileRedeemer,
+  DisputeDatum,
+  DisputeState,
+  ArbitratorMintRedeemer,
 } from "@/types/contracts";
 import { blockfrost } from "@/lib/cardano";
 import { supabase } from "@/lib/supabase";
@@ -336,7 +341,7 @@ export const acceptProject = async (
   const tx = await lucid
     .newTx()
     // Consume Project UTxO
-    .collectFrom([projectUtxo], Data.to("Accept", ProjectRedeemer))
+    .collectFrom([projectUtxo], Data.to("ProjectAccept", ProjectRedeemer))
     // Pay back to Project Script with updated datum and collateral
     .pay.ToContract(
       projectScriptAddress,
@@ -482,7 +487,7 @@ export const submitProject = async (
   const tx = await lucid
     .newTx()
     // Consume Project UTxO
-    .collectFrom([projectUtxo], Data.to("Submit", ProjectRedeemer))
+    .collectFrom([projectUtxo], Data.to("ProjectSubmit", ProjectRedeemer))
     // Pay back to Project Script with updated datum
     .pay.ToContract(
       projectScriptAddress,
@@ -662,7 +667,7 @@ export const approveProject = async (
   const tx = await lucid
     .newTx()
     // Consume Project UTxO (Redeemer: Approve)
-    .collectFrom([projectUtxo], Data.to("Approve", ProjectRedeemer))
+    .collectFrom([projectUtxo], Data.to("ProjectApproval", ProjectRedeemer))
     // Consume Client Profile UTxO
     .collectFrom(
       [clientProfileUtxo],
@@ -694,6 +699,248 @@ export const approveProject = async (
       }
     )
     .readFrom([projectSpendRefUtxo, profileSpendRefUtxo]) // Use reference scripts
+    .addSignerKey(pkh)
+    .complete();
+
+  const signedTx = await tx.sign.withWallet().complete();
+  const txHash = await signedTx.submit();
+
+  return txHash;
+};
+
+export const raiseDispute = async (
+  lucid: LucidEvolution,
+  projectNftAssetName: string
+): Promise<string> => {
+  const address = await lucid.wallet().address();
+  const pkh = paymentCredentialOf(address)?.hash;
+
+  if (!pkh) throw new Error("Invalid address");
+
+  const network = lucid.config().network;
+  if (!network) throw new Error("Network not configured");
+
+  // 1. Get Caller's Profile NFT
+  const profileMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_mint),
+  };
+  const profilePolicyId = mintingPolicyToId(profileMintingPolicy);
+
+  const profileSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: applyDoubleCborEncoding(userprofile_user_profile_spend),
+  };
+  const profileScriptAddress = validatorToAddress(
+    network,
+    profileSpendingValidator
+  );
+
+  const profileUtxos = await lucid.utxosAt(profileScriptAddress);
+  const callerProfileUtxo = profileUtxos.find((utxo) => {
+    try {
+      const datum = Data.from(utxo.datum!, UserProfileDatum);
+      return datum.user_address.pkh === pkh;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (!callerProfileUtxo) throw new Error("Caller profile not found");
+
+  const callerProfileDatum = Data.from(
+    callerProfileUtxo.datum!,
+    UserProfileDatum
+  );
+
+  // 2. Get Project UTxO
+  const projectSpendingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_spend),
+    [profilePolicyId]
+  );
+  const projectSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: projectSpendingScript,
+  };
+  const projectScriptAddress = validatorToAddress(
+    network,
+    projectSpendingValidator
+  );
+
+  const projectMintingScript = applyParamsToScript(
+    applyDoubleCborEncoding(project_project_contract_mint),
+    [profilePolicyId]
+  );
+  const projectMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: projectMintingScript,
+  };
+  const projectPolicyId = mintingPolicyToId(projectMintingPolicy);
+
+  const projectUtxos = await lucid.utxosAt(projectScriptAddress);
+  const projectUtxo = projectUtxos.find((utxo) =>
+    Object.keys(utxo.assets).some(
+      (unit) =>
+        unit.startsWith(projectPolicyId) && unit.endsWith(projectNftAssetName)
+    )
+  );
+
+  if (!projectUtxo) throw new Error("Project not found");
+
+  const currentProjectDatum = Data.from(projectUtxo.datum!, ProjectDatum);
+
+  // 3. Identify Client and Freelancer Profiles
+  const clientNftUnit =
+    currentProjectDatum.client_nft.policy_id +
+    currentProjectDatum.client_nft.asset_name;
+
+  if (!currentProjectDatum.freelancer_nft) {
+    throw new Error("Project has no freelancer assigned");
+  }
+  const freelancerNftUnit =
+    currentProjectDatum.freelancer_nft.policy_id +
+    currentProjectDatum.freelancer_nft.asset_name;
+
+  const clientProfileUtxo = profileUtxos.find((utxo) =>
+    Object.keys(utxo.assets).includes(clientNftUnit)
+  );
+  const freelancerProfileUtxo = profileUtxos.find((utxo) =>
+    Object.keys(utxo.assets).includes(freelancerNftUnit)
+  );
+
+  if (!clientProfileUtxo || !freelancerProfileUtxo) {
+    throw new Error("Client or Freelancer profile not found");
+  }
+
+  const clientProfileDatum = Data.from(
+    clientProfileUtxo.datum!,
+    UserProfileDatum
+  );
+  const freelancerProfileDatum = Data.from(
+    freelancerProfileUtxo.datum!,
+    UserProfileDatum
+  );
+
+  // 4. Prepare Arbitrator Script
+  const arbitratorMintingScript = applyParamsToScript(
+    applyDoubleCborEncoding(arbitrator_arbitrator_mint),
+    [profilePolicyId, projectPolicyId]
+  );
+  const arbitratorMintingPolicy: MintingPolicy = {
+    type: "PlutusV3",
+    script: arbitratorMintingScript,
+  };
+  const arbitratorPolicyId = mintingPolicyToId(arbitratorMintingPolicy);
+
+  const arbitratorSpendingScript = applyParamsToScript(
+    applyDoubleCborEncoding(arbitrator_arbitrator_spend),
+    [profilePolicyId, projectPolicyId]
+  );
+  const arbitratorSpendingValidator: SpendingValidator = {
+    type: "PlutusV3",
+    script: arbitratorSpendingScript,
+  };
+  const arbitratorScriptAddress = validatorToAddress(
+    network,
+    arbitratorSpendingValidator
+  );
+
+  // 5. Generate Dispute NFT
+  const now = await blockfrost.getLatestTime();
+  const disputeTokenName = fromText(
+    "DISPUTE" + now.toString().slice(-8) + Math.floor(Math.random() * 1000)
+  );
+  const disputeNftUnit = arbitratorPolicyId + disputeTokenName;
+
+  // 6. Construct Datums
+  const disputeDatum: DisputeDatum = {
+    ai_agent_id: null,
+    ai_decision: null,
+    completion_percentage: null,
+    ai_confidence: null,
+    ai_analysis_hash: null,
+    re_dispute_deadline: null,
+    state: "Pending",
+    re_dispute_requested: false,
+    re_dispute_reason_hash: null,
+    arbitrator_nft: null,
+    final_decision: null,
+    final_completion_percentage: null,
+    resolved_at: null,
+  };
+
+  const updatedProjectDatum: ProjectDatum = {
+    ...currentProjectDatum,
+    status: "Disputed",
+    dispute_nft: {
+      policy_id: arbitratorPolicyId,
+      asset_name: disputeTokenName,
+    },
+  };
+
+  const updatedClientDatum: UserProfileDatum = {
+    ...clientProfileDatum,
+    total_disputed: clientProfileDatum.total_disputed + 1n,
+  };
+
+  const updatedFreelancerDatum: UserProfileDatum = {
+    ...freelancerProfileDatum,
+    total_disputed: freelancerProfileDatum.total_disputed + 1n,
+  };
+
+  // 7. Fetch Reference Scripts
+  const projectSpendRefUtxo = await getReferenceScriptUtxo(lucid, "project");
+  const profileSpendRefUtxo = await getReferenceScriptUtxo(
+    lucid,
+    "user_profile"
+  );
+
+  // 8. Build Transaction
+  const tx = await lucid
+    .newTx()
+    // Mint Dispute NFT
+    .mintAssets(
+      { [disputeNftUnit]: 1n },
+      Data.to("DisputeProject", ArbitratorMintRedeemer)
+    )
+    .attach.MintingPolicy(arbitratorMintingPolicy)
+    // Pay Dispute UTxO to Arbitrator Script
+    .pay.ToContract(
+      arbitratorScriptAddress,
+      { kind: "inline", value: Data.to(disputeDatum, DisputeDatum) },
+      { [disputeNftUnit]: 1n, lovelace: 5_000_000n } // Min ADA + Dispute NFT
+    )
+    // Spend Project UTxO
+    .collectFrom([projectUtxo], Data.to("ProjectDispute", ProjectRedeemer))
+    .pay.ToContract(
+      projectScriptAddress,
+      { kind: "inline", value: Data.to(updatedProjectDatum, ProjectDatum) },
+      projectUtxo.assets // Keep same assets
+    )
+    // Spend Client Profile
+    .collectFrom(
+      [clientProfileUtxo],
+      Data.to("ProjectDispute", UserProfileRedeemer)
+    )
+    .pay.ToContract(
+      profileScriptAddress,
+      { kind: "inline", value: Data.to(updatedClientDatum, UserProfileDatum) },
+      clientProfileUtxo.assets
+    )
+    // Spend Freelancer Profile
+    .collectFrom(
+      [freelancerProfileUtxo],
+      Data.to("ProjectDispute", UserProfileRedeemer)
+    )
+    .pay.ToContract(
+      profileScriptAddress,
+      {
+        kind: "inline",
+        value: Data.to(updatedFreelancerDatum, UserProfileDatum),
+      },
+      freelancerProfileUtxo.assets
+    )
+    .readFrom([projectSpendRefUtxo, profileSpendRefUtxo])
     .addSignerKey(pkh)
     .complete();
 

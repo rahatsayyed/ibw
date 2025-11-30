@@ -69,6 +69,7 @@ export const UserProfileRedeemerSchema = Data.Enum([
   Data.Literal("ProjectAccept"),
   Data.Literal("ProjectSubmit"),
   Data.Literal("ProjectApproval"),
+  Data.Literal("ProjectDispute"),
 ]);
 
 export type UserProfileRedeemer = Data.Static<typeof UserProfileRedeemerSchema>;
@@ -111,12 +112,12 @@ export const ProjectDatum = ProjectDatumSchema as unknown as ProjectDatum;
 
 // ================ProjectRedeemer================
 export const ProjectRedeemerSchema = Data.Enum([
-  Data.Literal("Accept"),
-  Data.Literal("Submit"),
-  Data.Literal("Approve"),
-  Data.Literal("Dispute"),
-  Data.Literal("Finalize"),
-  Data.Literal("Arbitrate"),
+  Data.Literal("ProjectAccept"),
+  Data.Literal("ProjectSubmit"),
+  Data.Literal("ProjectApproval"),
+  Data.Literal("ProjectDispute"),
+  Data.Literal("ProjectReDispute"),
+  Data.Literal("ProjectFinalize"),
 ]);
 export type ProjectRedeemer = Data.Static<typeof ProjectRedeemerSchema>;
 export const ProjectRedeemer =
@@ -130,3 +131,44 @@ export const ProjectMintRedeemerSchema = Data.Enum([
 export type ProjectMintRedeemer = Data.Static<typeof ProjectMintRedeemerSchema>;
 export const ProjectMintRedeemer =
   ProjectMintRedeemerSchema as unknown as ProjectMintRedeemer;
+
+// ================DisputeState================
+export const DisputeStateSchema = Data.Enum([
+  Data.Literal("Pending"),
+  Data.Literal("AIResolved"),
+  Data.Literal("HumanReview"),
+  Data.Literal("Resolved"),
+]);
+export type DisputeState = Data.Static<typeof DisputeStateSchema>;
+export const DisputeState = DisputeStateSchema as unknown as DisputeState;
+
+// ================DisputeDatum================
+export const DisputeDatumSchema = Data.Object({
+  ai_agent_id: Data.Nullable(Data.Bytes()),
+  ai_decision: Data.Nullable(Data.Bytes()),
+  completion_percentage: Data.Nullable(Data.Integer()),
+  ai_confidence: Data.Nullable(Data.Integer()),
+  ai_analysis_hash: Data.Nullable(Data.Bytes()),
+  re_dispute_deadline: Data.Nullable(MomentSchema),
+  state: DisputeStateSchema,
+  re_dispute_requested: Data.Boolean(),
+  re_dispute_reason_hash: Data.Nullable(Data.Bytes()),
+  arbitrator_nft: Data.Nullable(AssetClassSchema),
+  final_decision: Data.Nullable(Data.Bytes()),
+  final_completion_percentage: Data.Nullable(Data.Integer()),
+  resolved_at: Data.Nullable(MomentSchema),
+});
+export type DisputeDatum = Data.Static<typeof DisputeDatumSchema>;
+export const DisputeDatum = DisputeDatumSchema as unknown as DisputeDatum;
+
+// ================ArbitratorMintRedeemer================
+export const ArbitratorMintRedeemerSchema = Data.Enum([
+  Data.Literal("DisputeProject"),
+  Data.Literal("NoRedispute"),
+  Data.Literal("HumanArbitration"),
+]);
+export type ArbitratorMintRedeemer = Data.Static<
+  typeof ArbitratorMintRedeemerSchema
+>;
+export const ArbitratorMintRedeemer =
+  ArbitratorMintRedeemerSchema as unknown as ArbitratorMintRedeemer;
