@@ -16,6 +16,7 @@ import {
   applyParamsToScript,
   Data,
   mintingPolicyToId,
+  validatorToScriptHash,
 } from "@lucid-evolution/lucid";
 import { supabase } from "@/lib/supabase";
 
@@ -417,6 +418,26 @@ export default function AdminScriptsPage() {
         },
       ];
 
+      // Helper to find script output index
+      const findScriptOutputIndex = (builder: any): number => {
+        try {
+          // Try to access txComplete (Lucid Evolution pattern)
+          const txComplete = builder.txComplete;
+          if (!txComplete) return 0; // Fallback
+
+          const outputs = txComplete.body().outputs();
+          for (let i = 0; i < outputs.len(); i++) {
+            const output = outputs.get(i);
+            if (output.script_ref()) {
+              return i;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not determine output index, defaulting to 0", e);
+        }
+        return 0;
+      };
+
       // Transaction 1: Deploy user_profile_spend
       addLog(`\n1️⃣ Deploying ${scripts[0].name}...`);
       const [newWalletUTxOs1, derivedOutputs1, txSignBuilder1] = await lucid
@@ -432,6 +453,20 @@ export default function AdminScriptsPage() {
       const signedTx1 = await txSignBuilder1.sign.withWallet().complete();
       const txHash1 = await signedTx1.submit();
       addLog(`  ✅ TX submitted: ${txHash1.slice(0, 20)}...`);
+
+      // Store Tx1 immediately
+      const outputIndex1 = findScriptOutputIndex(txSignBuilder1);
+      const scriptHash1 = validatorToScriptHash(scripts[0].script);
+      await supabase.from("reference_scripts").upsert(
+        {
+          script_name: scripts[0].name,
+          tx_hash: txHash1,
+          output_index: outputIndex1,
+          script_hash: scriptHash1,
+        },
+        { onConflict: "script_name" }
+      );
+      addLog(`  💾 Saved ${scripts[0].name} (idx: ${outputIndex1})`);
 
       // Update wallet UTxOs
       lucid.overrideUTxOs(newWalletUTxOs1);
@@ -452,6 +487,20 @@ export default function AdminScriptsPage() {
       const txHash2 = await signedTx2.submit();
       addLog(`  ✅ TX submitted: ${txHash2.slice(0, 20)}...`);
 
+      // Store Tx2 immediately
+      const outputIndex2 = findScriptOutputIndex(txSignBuilder2);
+      const scriptHash2 = validatorToScriptHash(scripts[1].script);
+      await supabase.from("reference_scripts").upsert(
+        {
+          script_name: scripts[1].name,
+          tx_hash: txHash2,
+          output_index: outputIndex2,
+          script_hash: scriptHash2,
+        },
+        { onConflict: "script_name" }
+      );
+      addLog(`  💾 Saved ${scripts[1].name} (idx: ${outputIndex2})`);
+
       lucid.overrideUTxOs(newWalletUTxOs2);
 
       // Transaction 3: Deploy arbitrator_spend
@@ -470,46 +519,25 @@ export default function AdminScriptsPage() {
       const txHash3 = await signedTx3.submit();
       addLog(`  ✅ TX submitted: ${txHash3.slice(0, 20)}...`);
 
+      // Store Tx3 immediately
+      const outputIndex3 = findScriptOutputIndex(txSignBuilder3);
+      const scriptHash3 = validatorToScriptHash(scripts[2].script);
+      await supabase.from("reference_scripts").upsert(
+        {
+          script_name: scripts[2].name,
+          tx_hash: txHash3,
+          output_index: outputIndex3,
+          script_hash: scriptHash3,
+        },
+        { onConflict: "script_name" }
+      );
+      addLog(`  💾 Saved ${scripts[2].name} (idx: ${outputIndex3})`);
+
       lucid.overrideUTxOs(newWalletUTxOs3);
 
-      addLog("\n⏳ Waiting for all transactions to confirm...");
+      addLog("\n🎉 All reference scripts submitted and saved!");
+      addLog("⏳ Transactions are processing on-chain...");
 
-      // Wait for all transactions to confirm
-      await Promise.all([
-        lucid.awaitTx(txHash1),
-        lucid.awaitTx(txHash2),
-        lucid.awaitTx(txHash3),
-      ]);
-
-      addLog("✅ All transactions confirmed!");
-
-      // Save all to database
-      addLog("\n💾 Saving to database...");
-      const txHashes = [txHash1, txHash2, txHash3];
-
-      for (let i = 0; i < scripts.length; i++) {
-        const utxos = await lucid.utxosAt(address);
-        const scriptUtxo = utxos.find(
-          (u: any) => u.txHash === txHashes[i] && u.scriptRef
-        );
-
-        if (scriptUtxo) {
-          await supabase.from("reference_scripts").upsert(
-            {
-              script_name: scripts[i].name,
-              tx_hash: scriptUtxo.txHash,
-              output_index: scriptUtxo.outputIndex,
-              script_hash: scriptUtxo.scriptRef?.script,
-            },
-            { onConflict: "script_name" }
-          );
-          addLog(`  ✅ Saved ${scripts[i].name}`);
-        } else {
-          addLog(`  ⚠️ Could not find UTxO for ${scripts[i].name}`);
-        }
-      }
-
-      addLog("\n🎉 All reference scripts deployed and saved successfully!");
     } catch (e: any) {
       console.error(e);
       addLog(`\n❌ Error: ${e.message}`);
