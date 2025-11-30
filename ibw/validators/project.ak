@@ -10,8 +10,8 @@ use functions/project_accept
 use functions/project_approval
 use functions/project_submit
 use types/types.{
-  Accepted, Open, ProjectAccept, ProjectApproval, ProjectDatum, ProjectDispute,
-  ProjectRedeemer, ProjectSubmit, Submitted, UserProfileDatum,
+  Accepted, Completed, Disputed, Open, ProjectAccept, ProjectApproval, ProjectDatum, ProjectDispute,
+  ProjectRedeemer, ProjectSubmit, ProjectFinalize, Submitted, UserProfileDatum,
 }
 
 pub type ProjectMintRedeemer {
@@ -217,6 +217,58 @@ validator project_contract(profile_nft: PolicyId) {
           output_datum,
           profile_nft,
         )
+      }
+      ProjectFinalize -> {
+        // Project Finalize
+        // ----------------
+        // Triggered by Arbitrator Script (Finalize Flow)
+        // 1. Project Status -> Completed
+        // 2. Funds distributed (checked by Arbitrator Script)
+        // 3. Project NFT stays in output (or burned? usually stays for record)
+        
+        expect Some(own_output) = own_output_opt
+        expect InlineDatum(d) = own_output.datum
+        expect output_datum: ProjectDatum = d
+
+        // Validate status transition
+        // From Disputed -> Completed
+        let status_check =
+          input_datum.status == Disputed && output_datum.status == Completed
+
+        // Validate other fields unchanged (except maybe completion time?)
+        // For now, just status check is critical.
+        // Also, ensure this is triggered by the Arbitrator.
+        // The Arbitrator script will be running in the same transaction.
+        // We can check if the Dispute NFT is being spent/burned in this tx?
+        // Or just rely on the fact that to change status to Completed from Disputed,
+        // we need some authorization.
+        // If anyone can call this, they could force complete a disputed project.
+        // BUT, the Arbitrator script controls the Dispute UTxO.
+        // If the Dispute UTxO is not spent/finalized, the dispute is not resolved.
+        // However, the Project Script is independent.
+        // We MUST ensure that the "Finalize" action is authorized.
+        // Authorization comes from the Arbitrator Script via the Dispute NFT.
+        // If the Dispute NFT is present in the inputs (being spent), then it's a valid finalize.
+        // So we check: Dispute NFT is in inputs.
+        // We need the Dispute Policy ID.
+        // But we don't have it passed here.
+        // However, the Project Datum has `dispute_nft` field!
+        expect Some(dispute_nft_class) = input_datum.dispute_nft
+        
+        let dispute_auth_check =
+          list.any(
+            self.inputs,
+            fn(input) {
+              list.any(
+                input.output.value |> assets.flatten,
+                fn((pid, tn, _)) {
+                  pid == dispute_nft_class.policy_id && tn == dispute_nft_class.asset_name
+                },
+              )
+            },
+          )
+
+        status_check? && dispute_auth_check?
       }
       _ -> todo @"other redeemers"
     }

@@ -8,6 +8,7 @@ use cardano/script_context.{ScriptContext}
 use cardano/transaction.{OutputReference, Transaction}
 use functions/dispute/ai_resolve
 use functions/dispute/dispute_raise
+use functions/dispute/finalize
 use types/types.{
   AIResolve, ArbitratorMintRedeemer, ArbitratorRedeemer, DisputeProject,
   Finalize, HumanArbitration, NoRedispute, ReDispute,
@@ -91,13 +92,26 @@ validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
 
       ReDispute ->
         // Re-dispute
-        // ----------
         todo @"re-dispute logic"
-
       Finalize ->
         // Finalize
         // --------
-        todo @"finalize logic"
+        // 1. state == AIResolved
+        // 2. current_time > re_dispute_deadline
+        // 3. re_dispute_requested == False
+        // 4. Dispute NFT in inputs
+        // 5. Dispute NFT burned (not in outputs)
+        finalize.validate_finalize(
+          self,
+          {
+             expect Some(input) = list.find(self.inputs, fn(i) { i.output_reference == utxo })
+             let input_assets = input.output.value |> assets.flatten
+             expect Some((pid, _, _)) = list.find(input_assets, fn((p, _, _)) { p != assets.ada_policy_id })
+             pid
+          },
+          project_nft,
+          profile_nft,
+        )
     }
   }
 
