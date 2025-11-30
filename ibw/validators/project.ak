@@ -11,7 +11,7 @@ use functions/project_approval
 use functions/project_submit
 use types/types.{
   Accepted, Completed, Disputed, Open, ProjectAccept, ProjectApproval, ProjectDatum, ProjectDispute,
-  ProjectRedeemer, ProjectSubmit, ProjectFinalize, Submitted, UserProfileDatum,
+  ProjectRedeemer, ProjectSubmit, ProjectReDispute, ProjectFinalize, Submitted, UserProfileDatum,
 }
 
 pub type ProjectMintRedeemer {
@@ -218,6 +218,40 @@ validator project_contract(profile_nft: PolicyId) {
           profile_nft,
         )
       }
+      ProjectReDispute -> {
+        // Project Re-Dispute
+        // ------------------
+        // Triggered by Arbitrator Script (Re-Dispute Flow)
+        // 1. Project Status stays Disputed
+        // 2. No other changes to Project Datum
+        // 3. Authorization: Dispute NFT in inputs (being spent/updated)
+        
+        expect Some(own_output) = own_output_opt
+        expect InlineDatum(d) = own_output.datum
+        expect output_datum: ProjectDatum = d
+
+        // Validate status unchanged
+        let status_check =
+          input_datum.status == Disputed && output_datum.status == Disputed
+
+        // Validate authorization via Dispute NFT
+        expect Some(dispute_nft_class) = input_datum.dispute_nft
+        
+        let dispute_auth_check =
+          list.any(
+            self.inputs,
+            fn(input) {
+              list.any(
+                input.output.value |> assets.flatten,
+                fn((pid, tn, _)) {
+                  pid == dispute_nft_class.policy_id && tn == dispute_nft_class.asset_name
+                },
+              )
+            },
+          )
+
+        status_check? && dispute_auth_check?
+      }
       ProjectFinalize -> {
         // Project Finalize
         // ----------------
@@ -270,7 +304,6 @@ validator project_contract(profile_nft: PolicyId) {
 
         status_check? && dispute_auth_check?
       }
-      _ -> todo @"other redeemers"
     }
   }
 

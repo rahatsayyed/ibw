@@ -9,6 +9,7 @@ use cardano/transaction.{OutputReference, Transaction}
 use functions/dispute/ai_resolve
 use functions/dispute/dispute_raise
 use functions/dispute/finalize
+use functions/dispute/re_dispute
 use types/types.{
   AIResolve, ArbitratorMintRedeemer, ArbitratorRedeemer, DisputeProject,
   Finalize, HumanArbitration, NoRedispute, ReDispute,
@@ -92,7 +93,22 @@ validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
 
       ReDispute ->
         // Re-dispute
-        todo @"re-dispute logic"
+        // ----------
+        // 1. state == AIResolved -> HumanReview
+        // 2. current_time <= re_dispute_deadline
+        // 3. re_dispute_requested == True
+        // 4. re_dispute_reason_hash is Some
+        re_dispute.validate_re_dispute(
+          self,
+          {
+             expect Some(input) = list.find(self.inputs, fn(i) { i.output_reference == utxo })
+             let input_assets = input.output.value |> assets.flatten
+             expect Some((pid, _, _)) = list.find(input_assets, fn((p, _, _)) { p != assets.ada_policy_id })
+             pid
+          },
+          project_nft,
+          profile_nft,
+        )
       Finalize ->
         // Finalize
         // --------
