@@ -326,6 +326,7 @@ export default function CreateProjectPage() {
         onClose={() => setShowDepositModal(false)}
         missingAmount={missingAmount}
         onSuccess={handleSubmit}
+        lucid={lucid}
       />
     </div>
   );

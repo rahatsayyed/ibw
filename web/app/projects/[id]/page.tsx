@@ -575,6 +575,7 @@ export default function ProjectDetailsPage() {
         onClose={() => setShowDepositModal(false)}
         missingAmount={missingAmount}
         onSuccess={handleAcceptProject}
+        lucid={lucid}
       />
       <ResolutionModal
         isOpen={resolutionModalOpen}

@@ -14,11 +14,14 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
+import { LucidEvolution } from "@lucid-evolution/lucid";
+
 interface DepositModalProps {
     isOpen: boolean;
     onClose: () => void;
     missingAmount: number;
     onSuccess: () => void;
+    lucid?: LucidEvolution;
 }
 
 export function DepositModal({
@@ -26,6 +29,7 @@ export function DepositModal({
     onClose,
     missingAmount,
     onSuccess,
+    lucid,
 }: DepositModalProps) {
     const { user, userProfile } = useAuth();
     const [amount, setAmount] = useState(missingAmount.toString());
@@ -63,6 +67,26 @@ export function DepositModal({
             const userId = user?.id || userProfile?.id;
             if (!userId) throw new Error("User not found");
 
+            // 1. Perform On-Chain Deposit (Self-Transfer for Chaining)
+            if (lucid) {
+                const address = await lucid.wallet().address();
+                const depositLovelace = BigInt(val * 1000000);
+
+                const [newWalletUTxOs, derivedOutputs, txSignBuilder] = await lucid
+                    .newTx()
+                    .pay.ToAddress(address, { lovelace: depositLovelace })
+                    .chain();
+
+                const signedTx = await txSignBuilder.sign.withWallet().complete();
+                const txHash = await signedTx.submit();
+
+                toast.success(`Deposit transaction submitted: ${txHash.slice(0, 10)}...`);
+
+                // Chain the UTxOs for the next transaction
+                lucid.overrideUTxOs(newWalletUTxOs);
+            }
+
+            // 2. Update Database Balance
             // Get current balance first to ensure atomicity (in a real app)
             const { data: profile, error: fetchError } = await supabase
                 .from("users")
