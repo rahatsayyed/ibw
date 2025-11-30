@@ -161,6 +161,16 @@ export const DisputeDatumSchema = Data.Object({
 export type DisputeDatum = Data.Static<typeof DisputeDatumSchema>;
 export const DisputeDatum = DisputeDatumSchema as unknown as DisputeDatum;
 
+// ================ArbitratorRedeemer================
+export const ArbitratorRedeemerSchema = Data.Enum([
+  Data.Literal("AIResolve"),
+  Data.Literal("ReDispute"),
+  Data.Literal("Finalize"),
+]);
+export type ArbitratorRedeemer = Data.Static<typeof ArbitratorRedeemerSchema>;
+export const ArbitratorRedeemer =
+  ArbitratorRedeemerSchema as unknown as ArbitratorRedeemer;
+
 // ================ArbitratorMintRedeemer================
 export const ArbitratorMintRedeemerSchema = Data.Enum([
   Data.Literal("DisputeProject"),

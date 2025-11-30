@@ -29,6 +29,7 @@ import {
   DisputeDatum,
   DisputeState,
   ArbitratorMintRedeemer,
+  ArbitratorRedeemer,
 } from "@/types/contracts";
 import { blockfrost } from "@/lib/cardano";
 import { supabase } from "@/lib/supabase";
@@ -948,4 +949,111 @@ export const raiseDispute = async (
   const txHash = await signedTx.submit();
 
   return txHash;
+};
+
+export const resolveDisputeAI = async (
+    lucid: LucidEvolution,
+    disputeNftAssetName: string,
+    resolution: {
+        decision: "Client" | "Freelancer" | "Split"; // Simplified for now, mapped to bytes
+        completionPercentage: number;
+        confidence: number;
+        analysisHash: string;
+    }
+): Promise<string> => {
+    const address = await lucid.wallet().address();
+    const pkh = paymentCredentialOf(address)?.hash;
+
+    if (!pkh) throw new Error("Invalid address");
+
+    const network = lucid.config().network;
+    if (!network) throw new Error("Network not configured");
+
+    // 1. Get Arbitrator Script Address
+    const profileMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: applyDoubleCborEncoding(userprofile_user_profile_mint),
+    };
+    const profilePolicyId = mintingPolicyToId(profileMintingPolicy);
+
+    const projectMintingScript = applyParamsToScript(
+        applyDoubleCborEncoding(project_project_contract_mint),
+        [profilePolicyId]
+    );
+    const projectMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: projectMintingScript,
+    };
+    const projectPolicyId = mintingPolicyToId(projectMintingPolicy);
+
+    const arbitratorSpendingScript = applyParamsToScript(
+        applyDoubleCborEncoding(arbitrator_arbitrator_spend),
+        [profilePolicyId, projectPolicyId]
+    );
+    const arbitratorSpendingValidator: SpendingValidator = {
+        type: "PlutusV3",
+        script: arbitratorSpendingScript,
+    };
+    const arbitratorScriptAddress = validatorToAddress(
+        network,
+        arbitratorSpendingValidator
+    );
+
+    const arbitratorMintingScript = applyParamsToScript(
+        applyDoubleCborEncoding(arbitrator_arbitrator_mint),
+        [profilePolicyId, projectPolicyId]
+    );
+    const arbitratorMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: arbitratorMintingScript,
+    };
+    const arbitratorPolicyId = mintingPolicyToId(arbitratorMintingPolicy);
+
+    // 2. Find Dispute UTxO
+    const disputeNftUnit = arbitratorPolicyId + disputeNftAssetName;
+    const arbitratorUtxos = await lucid.utxosAt(arbitratorScriptAddress);
+    const disputeUtxo = arbitratorUtxos.find((utxo) =>
+        Object.keys(utxo.assets).includes(disputeNftUnit)
+    );
+
+    if (!disputeUtxo) throw new Error("Dispute UTxO not found");
+
+    const currentDisputeDatum = Data.from(disputeUtxo.datum!, DisputeDatum);
+
+    if (currentDisputeDatum.state !== "Pending") {
+        throw new Error("Dispute is not in Pending state");
+    }
+
+    // 3. Construct Updated Datum
+    const now = await blockfrost.getLatestTime();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+    const reDisputeDeadline = BigInt(now + oneWeek);
+
+    const updatedDisputeDatum: DisputeDatum = {
+        ...currentDisputeDatum,
+        state: "AIResolved",
+        ai_agent_id: pkh, // The signer is the AI agent
+        ai_decision: fromText(resolution.decision),
+        completion_percentage: BigInt(resolution.completionPercentage),
+        ai_confidence: BigInt(resolution.confidence),
+        ai_analysis_hash: fromText(resolution.analysisHash), // Assuming hash is passed as text/hex
+        re_dispute_deadline: reDisputeDeadline,
+    };
+
+    // 4. Build Transaction
+    const tx = await lucid
+        .newTx()
+        .collectFrom([disputeUtxo], Data.to("AIResolve", ArbitratorRedeemer))
+        .pay.ToContract(
+            arbitratorScriptAddress,
+            { kind: "inline", value: Data.to(updatedDisputeDatum, DisputeDatum) },
+            disputeUtxo.assets
+        )
+        .addSignerKey(pkh) // Sign as AI Agent
+        .complete();
+
+    const signedTx = await tx.sign.withWallet().complete();
+    const txHash = await signedTx.submit();
+
+    return txHash;
 };

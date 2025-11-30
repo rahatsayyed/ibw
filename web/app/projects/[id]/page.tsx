@@ -13,7 +13,11 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { DepositModal } from "@/components/deposit-modal";
 import { useWallet } from "@/context/walletContext";
-import { acceptProject, raiseDispute } from "@/lib/contracts/project";
+import {
+  acceptProject,
+  raiseDispute,
+  resolveDisputeAI,
+} from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -27,6 +31,7 @@ export default function ProjectDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [disputing, setDisputing] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
@@ -173,6 +178,48 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleAIResolve = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to resolve disputes");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setResolving(true);
+    try {
+      // Hardcoded resolution for simulation
+      const resolution = {
+        decision: "Client" as const,
+        completionPercentage: 0,
+        confidence: 95,
+        analysisHash: "simulated_analysis_hash",
+      };
+
+      toast.info("Resolving dispute with AI...");
+      const txHash = await resolveDisputeAI(
+        lucid,
+        project.project_nft_asset_name,
+        resolution
+      );
+      toast.success(`Dispute resolved by AI (Simulated): ${txHash.slice(0, 10)}...`);
+
+      // Update DB - In a real app, this might be listened to from chain,
+      // but for now we update to reflect the change.
+      // Note: The project status technically remains 'disputed' on-chain until finalized,
+      // but the dispute state changes to AIResolved.
+      // We might want to add a 'ai_resolved' status to DB or just keep it as disputed.
+      // For visual feedback, let's just toast.
+      fetchProject(); // Re-fetch to update UI if needed
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to resolve dispute");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   if (loading)
     return <div className="p-10 text-center">Loading project details...</div>;
   if (!project)
@@ -241,6 +288,18 @@ export default function ProjectDetailsPage() {
                 Raise Dispute
               </Button>
             )}
+
+          {project.status === "disputed" && (
+            <Button
+              color="secondary"
+              variant="flat"
+              className="font-bold"
+              isLoading={resolving}
+              onPress={handleAIResolve}
+            >
+              Simulate AI Resolve
+            </Button>
+          )}
         </div>
       </div>
 
