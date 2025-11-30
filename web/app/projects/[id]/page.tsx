@@ -17,6 +17,7 @@ import {
   acceptProject,
   raiseDispute,
   resolveDisputeAI,
+  finalizeDispute,
 } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
@@ -32,6 +33,7 @@ export default function ProjectDetailsPage() {
   const [accepting, setAccepting] = useState(false);
   const [disputing, setDisputing] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
@@ -220,6 +222,36 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleFinalize = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to finalize dispute");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setFinalizing(true);
+    try {
+      toast.info("Finalizing dispute...");
+      const txHash = await finalizeDispute(lucid, project.project_nft_asset_name);
+      toast.success(`Dispute finalized: ${txHash.slice(0, 10)}...`);
+
+      // Update DB
+      await supabase
+        .from("projects")
+        .update({ status: "completed" })
+        .eq("id", project.id);
+
+      fetchProject();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to finalize dispute");
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   if (loading)
     return <div className="p-10 text-center">Loading project details...</div>;
   if (!project)
@@ -298,6 +330,18 @@ export default function ProjectDetailsPage() {
               onPress={handleAIResolve}
             >
               Simulate AI Resolve
+            </Button>
+          )}
+
+          {project.status === "disputed" && (
+            <Button
+              color="success"
+              variant="flat"
+              className="font-bold"
+              isLoading={finalizing}
+              onPress={handleFinalize}
+            >
+              Finalize Dispute
             </Button>
           )}
         </div>

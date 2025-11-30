@@ -1057,3 +1057,200 @@ export const resolveDisputeAI = async (
 
     return txHash;
 };
+
+export const finalizeDispute = async (
+    lucid: LucidEvolution,
+    projectNftAssetName: string
+): Promise<string> => {
+    const address = await lucid.wallet().address();
+    const pkh = paymentCredentialOf(address)?.hash;
+
+    if (!pkh) throw new Error("Invalid address");
+
+    const network = lucid.config().network;
+    if (!network) throw new Error("Network not configured");
+
+    // 1. Get Script Addresses
+    const profileMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: applyDoubleCborEncoding(userprofile_user_profile_mint),
+    };
+    const profilePolicyId = mintingPolicyToId(profileMintingPolicy);
+
+    const projectMintingScript = applyParamsToScript(
+        applyDoubleCborEncoding(project_project_contract_mint),
+        [profilePolicyId]
+    );
+    const projectMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: projectMintingScript,
+    };
+    const projectPolicyId = mintingPolicyToId(projectMintingPolicy);
+    const projectScriptAddress = validatorToAddress(network, {
+        type: "PlutusV3",
+        script: applyParamsToScript(
+            applyDoubleCborEncoding(project_project_contract_spend),
+            [profilePolicyId]
+        ),
+    });
+
+    const arbitratorSpendingScript = applyParamsToScript(
+        applyDoubleCborEncoding(arbitrator_arbitrator_spend),
+        [profilePolicyId, projectPolicyId]
+    );
+    const arbitratorSpendingValidator: SpendingValidator = {
+        type: "PlutusV3",
+        script: arbitratorSpendingScript,
+    };
+    const arbitratorScriptAddress = validatorToAddress(
+        network,
+        arbitratorSpendingValidator
+    );
+
+    const arbitratorMintingScript = applyParamsToScript(
+        applyDoubleCborEncoding(arbitrator_arbitrator_mint),
+        [profilePolicyId, projectPolicyId]
+    );
+    const arbitratorMintingPolicy: MintingPolicy = {
+        type: "PlutusV3",
+        script: arbitratorMintingScript,
+    };
+    const arbitratorPolicyId = mintingPolicyToId(arbitratorMintingPolicy);
+
+    // 2. Find Project UTxO
+    const projectNftUnit = projectPolicyId + projectNftAssetName;
+    const projectUtxos = await lucid.utxosAt(projectScriptAddress);
+    const projectUtxo = projectUtxos.find((utxo) =>
+        Object.keys(utxo.assets).includes(projectNftUnit)
+    );
+
+    if (!projectUtxo) throw new Error("Project UTxO not found");
+
+    const projectDatum = Data.from(projectUtxo.datum!, ProjectDatum);
+
+    if (projectDatum.status !== "Disputed") {
+        throw new Error("Project is not in Disputed state");
+    }
+
+    // 3. Find Dispute UTxO
+    if (!projectDatum.dispute_nft) throw new Error("No Dispute NFT linked");
+    const disputeNftUnit = projectDatum.dispute_nft.policy_id + projectDatum.dispute_nft.asset_name;
+
+    const arbitratorUtxos = await lucid.utxosAt(arbitratorScriptAddress);
+    const disputeUtxo = arbitratorUtxos.find((utxo) =>
+        Object.keys(utxo.assets).includes(disputeNftUnit)
+    );
+
+    if (!disputeUtxo) throw new Error("Dispute UTxO not found");
+
+    const disputeDatum = Data.from(disputeUtxo.datum!, DisputeDatum);
+
+    if (disputeDatum.state !== "AIResolved") {
+        throw new Error("Dispute is not AIResolved");
+    }
+
+    // Check deadline
+    const now = await blockfrost.getLatestTime();
+    if (!disputeDatum.re_dispute_deadline || BigInt(now) <= disputeDatum.re_dispute_deadline) {
+        throw new Error("Re-dispute deadline has not passed");
+    }
+
+    // 4. Find Profile UTxOs
+    const clientNftUnit = projectDatum.client_nft.policy_id + projectDatum.client_nft.asset_name;
+    const freelancerNftUnit = projectDatum.freelancer_nft!.policy_id + projectDatum.freelancer_nft!.asset_name;
+
+    const profileScriptAddress = validatorToAddress(network, {
+        type: "PlutusV3",
+        script: applyDoubleCborEncoding(userprofile_user_profile_spend),
+    });
+
+    const profileUtxos = await lucid.utxosAt(profileScriptAddress);
+    const clientProfileUtxo = profileUtxos.find((utxo) =>
+        Object.keys(utxo.assets).includes(clientNftUnit)
+    );
+    const freelancerProfileUtxo = profileUtxos.find((utxo) =>
+        Object.keys(utxo.assets).includes(freelancerNftUnit)
+    );
+
+    if (!clientProfileUtxo || !freelancerProfileUtxo) throw new Error("Profile UTxOs not found");
+
+    const clientDatum = Data.from(clientProfileUtxo.datum!, UserProfileDatum);
+    const freelancerDatum = Data.from(freelancerProfileUtxo.datum!, UserProfileDatum);
+
+    // 5. Prepare Updates
+    // Project: Completed
+    const updatedProjectDatum: ProjectDatum = {
+        ...projectDatum,
+        status: "Completed",
+    };
+
+    // Profiles: Decrement active projects and collateral
+    const updatedClientDatum: UserProfileDatum = {
+        ...clientDatum,
+        active_projects_as_client: clientDatum.active_projects_as_client - 1n,
+        project_collateral: clientDatum.project_collateral - 25_000_000n,
+        // Add logic for reputation update based on decision if needed
+    };
+
+    const updatedFreelancerDatum: UserProfileDatum = {
+        ...freelancerDatum,
+        active_projects_as_freelancer: freelancerDatum.active_projects_as_freelancer - 1n,
+        project_collateral: freelancerDatum.project_collateral - 25_000_000n,
+    };
+
+    // 6. Fund Distribution
+    const decision = disputeDatum.ai_decision ? new TextDecoder().decode(fromHex(disputeDatum.ai_decision)) : "Split";
+
+    let clientPayout = 0n;
+    let freelancerPayout = 0n;
+
+    const totalProjectValue = projectUtxo.assets["lovelace"];
+
+    if (decision === "Client") {
+        clientPayout = totalProjectValue;
+    } else if (decision === "Freelancer") {
+        freelancerPayout = totalProjectValue;
+    } else {
+        clientPayout = totalProjectValue / 2n;
+        freelancerPayout = totalProjectValue / 2n;
+    }
+
+    // 7. Build Transaction
+    const tx = lucid
+        .newTx()
+        .collectFrom([disputeUtxo], Data.to("Finalize", ArbitratorRedeemer))
+        .collectFrom([projectUtxo], Data.to("ProjectFinalize", ProjectRedeemer))
+        .collectFrom([clientProfileUtxo], Data.to("Finalize", UserProfileRedeemer))
+        .collectFrom([freelancerProfileUtxo], Data.to("Finalize", UserProfileRedeemer))
+        .mintAssets({ [disputeNftUnit]: -1n }, Data.to("NoRedispute", ArbitratorMintRedeemer))
+        .attach.MintingPolicy(arbitratorMintingPolicy)
+        .pay.ToContract(
+            projectScriptAddress,
+            { kind: "inline", value: Data.to(updatedProjectDatum, ProjectDatum) },
+            { [projectNftUnit]: 1n }
+        )
+        .pay.ToContract(
+            profileScriptAddress,
+            { kind: "inline", value: Data.to(updatedClientDatum, UserProfileDatum) },
+            clientProfileUtxo.assets
+        )
+        .pay.ToContract(
+            profileScriptAddress,
+            { kind: "inline", value: Data.to(updatedFreelancerDatum, UserProfileDatum) },
+            freelancerProfileUtxo.assets
+        );
+
+    if (clientPayout > 0n) {
+        tx.pay.ToAddress(clientDatum.user_address.address, { lovelace: clientPayout });
+    }
+    if (freelancerPayout > 0n) {
+        tx.pay.ToAddress(freelancerDatum.user_address.address, { lovelace: freelancerPayout });
+    }
+
+    tx.validFrom(now);
+
+    const signedTx = await tx.complete();
+    const txHash = await signedTx.sign.withWallet().submit();
+
+    return txHash;
+};
