@@ -93,3 +93,9 @@ pub type ArbitratorMintRedeemer {
   NoRedispute
   HumanArbitration
 }
+
+pub type ArbitratorRedeemer {
+  AIResolve
+  ReDispute
+  Finalize
+}
