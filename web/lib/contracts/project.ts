@@ -34,6 +34,7 @@ import {
 } from "@/types/contracts";
 import { blockfrost } from "@/lib/cardano";
 import { supabase } from "@/lib/supabase";
+import { hashString } from "@/lib/utils";
 
 const getReferenceScriptUtxo = async (
   lucid: LucidEvolution,
@@ -163,9 +164,9 @@ export const createProject = async (
     project_amount: projectData.payment_amount,
     collateral_rate: projectData.collateral_rate,
     minimum_completion_percentage: projectData.min_completion_percentage,
-    description_hash: fromText(projectData.description.slice(0, 32)), // Mock hash
-    success_criteria_hash: fromText(projectData.criteria.slice(0, 32)), // Mock hash
-    github_repo_hash: fromText(projectData.repo_url.slice(0, 32)), // Mock hash
+    description_hash: hashString(projectData.description),
+    success_criteria_hash: hashString(projectData.criteria),
+    github_repo_hash: hashString(projectData.repo_url),
     metadata_url: fromText(projectData.metadata_url),
     status: "Open",
     created_at: { start: BigInt(now), end: BigInt(now) },
@@ -474,7 +475,7 @@ export const submitProject = async (
   const updatedProjectDatum: ProjectDatum = {
     ...currentProjectDatum,
     status: "Submitted",
-    submission_details_hash: fromText(submissionDetails), // In real app, this might be IPFS hash
+    submission_details_hash: hashString(submissionDetails), // In real app, this might be IPFS hash
     submission_time: { start: now, end: now },
   };
 
@@ -1037,7 +1038,7 @@ export const resolveDisputeAI = async (
     ai_decision: fromText(resolution.decision),
     completion_percentage: BigInt(resolution.completionPercentage),
     ai_confidence: BigInt(resolution.confidence),
-    ai_analysis_hash: fromText(resolution.analysisHash), // Assuming hash is passed as text/hex
+    ai_analysis_hash: hashString(resolution.analysisHash), // Assuming hash is passed as text/hex
     re_dispute_deadline: { start: reDisputeDeadline, end: reDisputeDeadline },
   };
 
@@ -1348,7 +1349,7 @@ export const reDispute = async (
     ...disputeDatum,
     state: "HumanReview",
     re_dispute_requested: true,
-    re_dispute_reason_hash: fromText(reason),
+    re_dispute_reason_hash: hashString(reason),
   };
 
   // 5. Build Transaction
