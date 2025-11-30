@@ -11,7 +11,7 @@ use cardano/transaction.{
 }
 use functions/dispute/finalize
 use types/moment.{Moment}
-use types/types.{AIResolved, DisputeDatum, Pending}
+use types/types.{AIResolved, AssetClass, DisputeDatum, Open, Pending, ProjectDatum, ProjectStatus}
 
 // Mock Data
 const mock_policy_id: PolicyId = #"00000000000000000000000000000000000000000000000000000001"
@@ -49,7 +49,7 @@ test validate_finalize_success() {
   let input_value = assets.from_asset(mock_policy_id, "", 1)
   
   // Input: Dispute UTxO
-  let input =
+  let dispute_input =
     Input {
       output_reference: OutputReference {
         transaction_id: #"0000000000000000000000000000000000000000000000000000000000000000",
@@ -66,15 +66,84 @@ test validate_finalize_success() {
       },
     }
 
+  // Project Input
+  let client_nft_class = AssetClass { policy_id: mock_profile_nft, asset_name: "Client" }
+  let project_datum = ProjectDatum {
+      project_id: "id",
+      project_nft: AssetClass { policy_id: mock_project_nft, asset_name: "" },
+      client_nft: client_nft_class,
+      freelancer_nft: None,
+      project_amount: 100,
+      collateral_rate: 0,
+      minimum_completion_percentage: 0,
+      description_hash: "",
+      success_criteria_hash: "",
+      github_repo_hash: "",
+      metadata_url: "",
+      status: Open,
+      created_at: Moment { start: 0, end: 0 },
+      completion_deadline: Moment { start: 0, end: 0 },
+      submission_details_hash: None,
+      submission_time: None,
+      dispute_nft: None,
+  }
+
+  let project_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"00",
+        output_index: 1,
+      },
+      output: Output {
+        address: Address {
+          payment_credential: Script(mock_project_nft),
+          stake_credential: None,
+        },
+        value: assets.from_asset(mock_project_nft, "", 1),
+        datum: InlineDatum(project_datum),
+        reference_script: None,
+      },
+    }
+
+  // Client Profile Input
+  let client_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"00",
+        output_index: 2,
+      },
+      output: Output {
+        address: Address {
+          payment_credential: VerificationKey(#"11"),
+          stake_credential: None,
+        },
+        value: assets.from_lovelace(1000) |> assets.add(mock_profile_nft, "Client", 1),
+        datum: InlineDatum(Void),
+        reference_script: None,
+      },
+    }
+
+  // Client Profile Output (Payout)
+  let client_output =
+    Output {
+        address: Address {
+          payment_credential: VerificationKey(#"11"),
+          stake_credential: None,
+        },
+        value: assets.from_lovelace(1100) |> assets.add(mock_profile_nft, "Client", 1),
+        datum: InlineDatum(Void),
+        reference_script: None,
+    }
+
   // Transaction with validity range AFTER deadline
   // Deadline end is 1000. So range starting at 1001 is valid.
   let valid_range = interval.after(1001)
 
   let tx =
     Transaction {
-      inputs: [input],
+      inputs: [dispute_input, project_input, client_input],
       reference_inputs: [],
-      outputs: [], // Dispute NFT burned, so no output with it
+      outputs: [client_output], // Dispute NFT burned, so no output with it
       fee: 0,
       mint: assets.zero, // Should be burning, but we mock check in finalize.ak
       certificates: [],

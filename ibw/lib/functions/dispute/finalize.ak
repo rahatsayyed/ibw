@@ -4,13 +4,14 @@ use aiken/option
 use cardano/address.{Script}
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, Transaction}
+use functions/common
 use types/moment.{Moment}
-use types/types.{AIResolved, DisputeDatum}
+use types/types.{AIResolved, AssetClass, DisputeDatum, ProjectDatum, UserProfileDatum}
 
 pub fn validate_finalize(
   tx: Transaction,
   policy_id: PolicyId,
-  _project_nft: PolicyId,
+  project_nft: PolicyId,
   _profile_nft: PolicyId,
 ) -> Bool {
   // 1. Find Dispute UTxO in inputs (State must be AIResolved)
@@ -59,21 +60,32 @@ pub fn validate_finalize(
     )
 
   // 4. Fund Distribution & Penalties
-  // This requires access to the Project UTxO to know the amounts.
-  // And we need to know who won.
-  expect Some(decision) = dispute_in_datum.ai_decision
-  expect Some(completion) = dispute_in_datum.completion_percentage
+  // Find Project Input
+  expect Some(project_input) =
+    list.find(
+      tx.inputs,
+      fn(input) {
+        list.any(
+          input.output.value |> assets.flatten,
+          fn((pid, _, _)) { pid == project_nft },
+        )
+      },
+    )
+  expect InlineDatum(p_datum) = project_input.output.datum
+  expect project_datum: ProjectDatum = p_datum
 
-  // Logic placeholders for now as we need to find Project UTxO and calculate.
-  // For this step, we'll focus on the Dispute UTxO validations.
-  // The Project Validator will handle the Project UTxO spending and distribution checks?
-  // Or should we do it here?
-  // Usually, the script that holds the funds (Project Script) enforces the distribution.
-  // The Arbitrator Script (Dispute Script) enforces that the decision is final.
-  // So here we primarily ensure:
-  // - State is correct (AIResolved, no re-dispute)
-  // - Time is correct (deadline passed)
-  // - Dispute NFT is burned (cleanup)
+  expect Some(decision) = dispute_in_datum.ai_decision
   
-  check_deadline? && dispute_nft_burned?
+  let payout_check = 
+    if decision == "Client" {
+        let client_nft = project_datum.client_nft
+        common.verify_payout(tx, client_nft, project_datum.project_amount)
+    } else if decision == "Freelancer" {
+        expect Some(freelancer_nft) = project_datum.freelancer_nft
+        common.verify_payout(tx, freelancer_nft, project_datum.project_amount)
+    } else {
+        False
+    }
+  
+  check_deadline? && dispute_nft_burned? && payout_check?
 }

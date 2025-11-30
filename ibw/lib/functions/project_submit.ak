@@ -1,6 +1,7 @@
 use aiken/collection/list
 use cardano/assets.{PolicyId}
 use cardano/transaction.{Datum, InlineDatum, Input, Output, Transaction, ValidityRange}
+use types/moment
 use types/types.{Accepted, ProjectDatum, Submitted, UserProfileDatum}
 
 pub fn validate_project_submit(
@@ -66,12 +67,13 @@ pub fn validate_project_submit(
   trace @"project_submit:ada_preserved": project_ada_preserved, assets.lovelace_of(project_input.output.value), assets.lovelace_of(project_output.value)
 
   // 10. current_time <= completion_deadline (not expired)
-  // TODO: Implement deadline check using tx.validity_range
+  let deadline_check =
+    moment.is_contained(input_datum.completion_deadline, tx.validity_range)
 
   // 11. Validate submission_details_hash not empty
   // Checked above.
 
-  status_check? && freelancer_nft_match? && signer_check? && status_update_check? && details_check? && project_ada_preserved?
+  status_check? && freelancer_nft_match? && signer_check? && status_update_check? && details_check? && project_ada_preserved? && deadline_check?
 }
 
 fn inline_datum(d: Datum) -> UserProfileDatum {

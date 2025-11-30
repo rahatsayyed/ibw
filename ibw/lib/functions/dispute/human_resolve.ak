@@ -2,12 +2,13 @@ use aiken/collection/list
 
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, Transaction}
-use types/types.{DisputeDatum, HumanReview}
+use functions/common
+use types/types.{AssetClass, DisputeDatum, HumanReview, ProjectDatum}
 
 pub fn validate_human_resolve(
   tx: Transaction,
   policy_id: PolicyId,
-  _project_nft: PolicyId,
+  project_nft: PolicyId,
   _profile_nft: PolicyId,
 ) -> Bool {
   // 1. Find Dispute UTxO in inputs (State must be HumanReview)
@@ -58,5 +59,32 @@ pub fn validate_human_resolve(
       },
     )
 
-  arbitrator_authorized? && dispute_nft_burned?
+  // 4. Fund Verification
+  expect Some(project_input) =
+    list.find(
+      tx.inputs,
+      fn(input) {
+        list.any(
+          input.output.value |> assets.flatten,
+          fn((pid, _, _)) { pid == project_nft },
+        )
+      },
+    )
+  expect InlineDatum(p_datum) = project_input.output.datum
+  expect project_datum: ProjectDatum = p_datum
+
+  expect Some(decision) = dispute_in_datum.final_decision
+  
+  let payout_check = 
+    if decision == "Client" {
+        let client_nft = project_datum.client_nft
+        common.verify_payout(tx, client_nft, project_datum.project_amount)
+    } else if decision == "Freelancer" {
+        expect Some(freelancer_nft) = project_datum.freelancer_nft
+        common.verify_payout(tx, freelancer_nft, project_datum.project_amount)
+    } else {
+        False
+    }
+
+  arbitrator_authorized? && dispute_nft_burned? && payout_check?
 }

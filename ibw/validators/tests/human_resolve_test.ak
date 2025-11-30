@@ -2,13 +2,14 @@ use aiken/collection/dict
 use aiken/collection/list
 use aiken/interval
 use aiken/option
-use cardano/address.{Address, Script}
+use cardano/address.{Address, Script, VerificationKey}
 use cardano/assets.{PolicyId}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
 use functions/dispute/human_resolve
-use types/types.{AssetClass, DisputeDatum, HumanReview}
+use types/moment.{Moment}
+use types/types.{AssetClass, DisputeDatum, HumanReview, Open, ProjectDatum, ProjectStatus}
 
 // Mock Data
 const mock_policy_id: PolicyId = #"00000000000000000000000000000000000000000000000000000001"
@@ -36,7 +37,7 @@ fn create_human_review_datum() -> DisputeDatum {
     arbitrator_nft: Some(
       AssetClass { policy_id: mock_arbitrator_policy, asset_name: "Arbiter" },
     ),
-    final_decision: None,
+    final_decision: Some("Client"),
     final_completion_percentage: None,
     resolved_at: None,
   }
@@ -83,10 +84,79 @@ test validate_human_resolve_success() {
       },
     }
 
+  // Project Input
+  let client_nft_class = AssetClass { policy_id: mock_profile_nft, asset_name: "Client" }
+  let project_datum = ProjectDatum {
+      project_id: "id",
+      project_nft: AssetClass { policy_id: mock_project_nft, asset_name: "" },
+      client_nft: client_nft_class,
+      freelancer_nft: None,
+      project_amount: 100,
+      collateral_rate: 0,
+      minimum_completion_percentage: 0,
+      description_hash: "",
+      success_criteria_hash: "",
+      github_repo_hash: "",
+      metadata_url: "",
+      status: Open,
+      created_at: Moment { start: 0, end: 0 },
+      completion_deadline: Moment { start: 0, end: 0 },
+      submission_details_hash: None,
+      submission_time: None,
+      dispute_nft: None,
+  }
+
+  let project_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"00",
+        output_index: 1,
+      },
+      output: Output {
+        address: Address {
+          payment_credential: Script(mock_project_nft),
+          stake_credential: None,
+        },
+        value: assets.from_asset(mock_project_nft, "", 1),
+        datum: InlineDatum(project_datum),
+        reference_script: None,
+      },
+    }
+
+  // Client Profile Input
+  let client_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: #"00",
+        output_index: 2,
+      },
+      output: Output {
+        address: Address {
+          payment_credential: VerificationKey(#"11"),
+          stake_credential: None,
+        },
+        value: assets.from_lovelace(1000) |> assets.add(mock_profile_nft, "Client", 1),
+        datum: InlineDatum(Void),
+        reference_script: None,
+      },
+    }
+
+  // Client Profile Output (Payout)
+  let client_output =
+    Output {
+        address: Address {
+          payment_credential: VerificationKey(#"11"),
+          stake_credential: None,
+        },
+        value: assets.from_lovelace(1100) |> assets.add(mock_profile_nft, "Client", 1),
+        datum: InlineDatum(Void),
+        reference_script: None,
+    }
+
   // Output: No Dispute NFT (Burned)
   // We just have some other output, e.g. payment to arbitrator
   let output_value = assets.from_lovelace(1000000)
-  let output =
+  let arb_output =
     Output {
       address: Address {
         payment_credential: Script(mock_profile_nft),
@@ -99,9 +169,9 @@ test validate_human_resolve_success() {
 
   let tx =
     Transaction {
-      inputs: [dispute_input, arb_input],
+      inputs: [dispute_input, arb_input, project_input, client_input],
       reference_inputs: [],
-      outputs: [output],
+      outputs: [arb_output, client_output],
       fee: 0,
       mint: assets.zero, // In reality, we should see mint -1, but the helper checks outputs for absence
       certificates: [],
