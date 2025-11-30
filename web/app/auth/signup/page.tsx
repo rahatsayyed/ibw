@@ -213,31 +213,31 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/40 via-neutral-950 to-neutral-950 p-4 relative overflow-visible">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background z-0" />
+      <div className="absolute top-0 right-0 w-full h-full bg-grid-pattern opacity-10 z-0 pointer-events-none" />
 
       <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 backdrop-blur-xl shadow-2xl">
+            <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 backdrop-blur-xl shadow-[0_0_30px_rgba(251,191,36,0.2)]">
               {/* Logo Placeholder or Icon */}
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-400 rounded-lg" />
+              <div className="w-8 h-8 bg-primary rounded-lg shadow-inner" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent tracking-tight">
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">
             Join {siteConfig.name}
           </h1>
-          <p className="text-neutral-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Start earning with trustless smart contracts
           </p>
         </div>
 
-        <Card className="w-full border-white/10 bg-neutral-900/40 backdrop-blur-xl shadow-2xl ring-1 ring-white/5">
+        <Card className="w-full border-primary/10 bg-card/60 backdrop-blur-xl shadow-2xl ring-1 ring-white/5">
           <CardHeader className="space-y-1 text-center pb-2">
-            <CardTitle className="text-xl font-semibold tracking-tight text-white">
+            <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
               {step === "form" ? "Create your account" : "Connect your wallet"}
             </CardTitle>
           </CardHeader>
@@ -247,7 +247,7 @@ export default function SignupPage() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="username"
-                    className="text-sm font-medium text-neutral-300"
+                    className="text-sm font-medium text-foreground"
                   >
                     Username
                   </Label>
@@ -257,14 +257,14 @@ export default function SignupPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-primary/50 transition-all text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-sm font-medium text-neutral-300"
+                    className="text-sm font-medium text-foreground"
                   >
                     Email
                   </Label>
@@ -275,14 +275,14 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-primary/50 transition-all text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label
                     htmlFor="password"
-                    className="text-sm font-medium text-neutral-300"
+                    className="text-sm font-medium text-foreground"
                   >
                     Password
                   </Label>
@@ -293,13 +293,13 @@ export default function SignupPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-600"
+                    className="h-11 border-white/10 bg-white/5 focus:bg-white/10 focus:border-primary/50 transition-all text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium shadow-lg shadow-blue-900/20 transition-all duration-300"
+                  className="w-full h-11 bg-primary text-black hover:bg-primary/90 font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all duration-300"
                 >
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -307,7 +307,7 @@ export default function SignupPage() {
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm">
+                <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm">
                   <p className="flex items-center gap-2">
                     <WalletIcon className="h-4 w-4" />
                     Connect your wallet to verify your identity and enable
@@ -318,19 +318,19 @@ export default function SignupPage() {
                 {!connectedAddress ? (
                   <Button
                     onClick={() => setShowWalletDialog(true)}
-                    className="w-full h-12 border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 hover:border-blue-500/50 transition-all duration-300 group"
+                    className="w-full h-12 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 group"
                     variant="outline"
                     disabled={connecting}
                   >
                     {connecting ? (
                       <>
-                        <LoaderCircle className="mr-2 h-5 w-5 animate-spin text-blue-400" />
-                        <span className="text-blue-100">Connecting...</span>
+                        <LoaderCircle className="mr-2 h-5 w-5 animate-spin text-primary" />
+                        <span className="text-primary">Connecting...</span>
                       </>
                     ) : (
                       <>
-                        <WalletIcon className="mr-2 h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-blue-100 font-medium">
+                        <WalletIcon className="mr-2 h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="text-primary font-medium">
                           Connect Wallet
                         </span>
                       </>
@@ -348,7 +348,7 @@ export default function SignupPage() {
                     </div>
                     <Button
                       onClick={handleCompleteSignup}
-                      className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium shadow-lg shadow-green-900/20 transition-all duration-300"
+                      className="w-full h-11 bg-primary text-black hover:bg-primary/90 font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all duration-300"
                       disabled={loading}
                     >
                       {loading ? (
@@ -366,7 +366,7 @@ export default function SignupPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setStep("form")}
-                  className="w-full text-neutral-400 hover:text-white hover:bg-white/5"
+                  className="w-full text-muted-foreground hover:text-foreground hover:bg-white/5"
                 >
                   Back to details
                 </Button>
@@ -376,26 +376,26 @@ export default function SignupPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center text-sm text-neutral-500">
+        <div className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
             href="/auth/login"
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            className="text-primary hover:text-primary/80 font-medium transition-colors"
           >
             Sign in
           </Link>
         </div>
 
         {/* Terms */}
-        <p className="text-xs text-center text-neutral-500">
+        <p className="text-xs text-center text-muted-foreground">
           By signing up, you agree to our{" "}
-          <Link href="/terms" className="text-purple-400 hover:text-purple-300">
+          <Link href="/terms" className="text-primary hover:text-primary/80">
             Terms of Service
           </Link>{" "}
           and{" "}
           <Link
             href="/privacy"
-            className="text-purple-400 hover:text-purple-300"
+            className="text-primary hover:text-primary/80"
           >
             Privacy Policy
           </Link>
@@ -404,12 +404,12 @@ export default function SignupPage() {
 
       {/* Wallet Connection Dialog */}
       <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
-        <DialogContent className="sm:max-w-[425px] border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-foreground">
               Connect Wallet
             </DialogTitle>
-            <DialogDescription className="text-neutral-400">
+            <DialogDescription className="text-muted-foreground">
               Choose a Cardano wallet to connect
             </DialogDescription>
           </DialogHeader>
@@ -417,7 +417,7 @@ export default function SignupPage() {
             {wallets.map((wallet) => (
               <Button
                 key={wallet.name}
-                className="w-full justify-start h-14 border-white/5 bg-white/5 hover:bg-white/10 hover:border-blue-500/30 transition-all group"
+                className="w-full justify-start h-14 border-white/5 bg-white/5 hover:bg-white/10 hover:border-primary/30 transition-all group"
                 variant="outline"
                 disabled={!wallet.enable || connecting}
                 onClick={() => handleWalletConnect(wallet)}
@@ -430,11 +430,11 @@ export default function SignupPage() {
                     width={24}
                   />
                 </div>
-                <span className="text-lg text-neutral-200 group-hover:text-white transition-colors">
+                <span className="text-lg text-foreground group-hover:text-primary transition-colors">
                   {wallet.name}
                 </span>
                 {!wallet.enable && (
-                  <span className="ml-auto text-xs text-neutral-600 bg-neutral-900/50 px-2 py-1 rounded">
+                  <span className="ml-auto text-xs text-muted-foreground bg-black/50 px-2 py-1 rounded">
                     Not installed
                   </span>
                 )}

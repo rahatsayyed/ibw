@@ -90,7 +90,8 @@
   --card-foreground: oklch(0.15 0.05 240);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.05 240);
-  --primary: oklch(0.45 0.2 260); /* Deep Blue */
+  --primary: oklch(0.45 0.2 260);
+  /* Deep Blue */
   --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.96 0.02 240);
   --secondary-foreground: oklch(0.25 0.1 260);
@@ -118,57 +119,63 @@
 }
 
 .dark {
-  /* Dark Mode (Blockchain / Cyberpunk) */
-  /* Background: Deep Navy/Black */
-  --background: oklch(0.12 0.05 260); 
-  --foreground: oklch(0.95 0.02 240);
-  
-  /* Card: Slightly lighter navy */
-  --card: oklch(0.15 0.06 260);
-  --card-foreground: oklch(0.95 0.02 240);
-  
-  --popover: oklch(0.15 0.06 260);
-  --popover-foreground: oklch(0.95 0.02 240);
-  
-  /* Primary: Neon Cyan */
-  --primary: oklch(0.7 0.2 220);
-  --primary-foreground: oklch(0.1 0.1 260);
-  
-  /* Secondary: Electric Purple */
-  --secondary: oklch(0.3 0.1 280);
-  --secondary-foreground: oklch(0.9 0.05 240);
-  
-  --muted: oklch(0.2 0.05 260);
-  --muted-foreground: oklch(0.7 0.05 240);
-  
-  --accent: oklch(0.25 0.1 260);
-  --accent-foreground: oklch(0.95 0.02 240);
-  
-  --destructive: oklch(0.6 0.25 25);
-  --border: oklch(0.25 0.05 260);
-  --input: oklch(0.25 0.05 260);
-  --ring: oklch(0.7 0.2 220);
-  
-  --chart-1: oklch(0.7 0.2 220); /* Cyan */
-  --chart-2: oklch(0.65 0.25 300); /* Magenta */
-  --chart-3: oklch(0.75 0.2 140); /* Green */
-  --chart-4: oklch(0.8 0.15 80); /* Yellow */
-  --chart-5: oklch(0.6 0.2 260); /* Blue */
-  
-  --sidebar: oklch(0.12 0.05 260);
-  --sidebar-foreground: oklch(0.95 0.02 240);
-  --sidebar-primary: oklch(0.7 0.2 220);
-  --sidebar-primary-foreground: oklch(0.1 0.1 260);
-  --sidebar-accent: oklch(0.25 0.1 260);
-  --sidebar-accent-foreground: oklch(0.95 0.02 240);
-  --sidebar-border: oklch(0.25 0.05 260);
-  --sidebar-ring: oklch(0.7 0.2 220);
+  /* Dark Mode (Luxury / Premium) */
+  /* Background: Rich Black */
+  --background: oklch(0.1 0.01 0);
+  --foreground: oklch(0.95 0.02 85);
+
+  /* Card: Deep Charcoal */
+  --card: oklch(0.14 0.01 0);
+  --card-foreground: oklch(0.95 0.02 85);
+
+  --popover: oklch(0.14 0.01 0);
+  --popover-foreground: oklch(0.95 0.02 85);
+
+  /* Primary: Luxurious Gold */
+  --primary: oklch(0.75 0.15 75);
+  --primary-foreground: oklch(0.1 0.05 75);
+
+  /* Secondary: Deep Slate */
+  --secondary: oklch(0.25 0.02 260);
+  --secondary-foreground: oklch(0.9 0.02 85);
+
+  --muted: oklch(0.2 0.02 260);
+  --muted-foreground: oklch(0.6 0.02 260);
+
+  --accent: oklch(0.25 0.02 260);
+  --accent-foreground: oklch(0.95 0.02 85);
+
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.2 0.01 0);
+  --input: oklch(0.2 0.01 0);
+  --ring: oklch(0.75 0.15 75);
+
+  --chart-1: oklch(0.75 0.15 75);
+  /* Gold */
+  --chart-2: oklch(0.6 0.15 300);
+  /* Purple */
+  --chart-3: oklch(0.5 0.1 260);
+  /* Slate Blue */
+  --chart-4: oklch(0.8 0.1 85);
+  /* Cream */
+  --chart-5: oklch(0.4 0.1 0);
+  /* Bronze */
+
+  --sidebar: oklch(0.1 0.01 0);
+  --sidebar-foreground: oklch(0.95 0.02 85);
+  --sidebar-primary: oklch(0.75 0.15 75);
+  --sidebar-primary-foreground: oklch(0.1 0.05 75);
+  --sidebar-accent: oklch(0.25 0.02 260);
+  --sidebar-accent-foreground: oklch(0.95 0.02 85);
+  --sidebar-border: oklch(0.2 0.01 0);
+  --sidebar-ring: oklch(0.75 0.15 75);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -178,18 +185,18 @@
 @layer utilities {
   .bg-grid-pattern {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 40px 40px;
   }
-  
+
   .glass-card {
-    @apply bg-card/60 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-card/60 backdrop-blur-md border border-primary/10 shadow-xl;
   }
 
   .neon-glow {
     box-shadow: 0 0 10px theme('colors.primary.DEFAULT'), 0 0 20px theme('colors.primary.DEFAULT');
   }
-  
+
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
   }

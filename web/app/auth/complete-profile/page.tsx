@@ -163,13 +163,17 @@ export default function CompleteProfilePage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-purple-950/20 to-neutral-950 p-4">
-      <Card className="w-full max-w-md border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background z-0" />
+      <div className="absolute top-0 right-0 w-full h-full bg-grid-pattern opacity-10 z-0 pointer-events-none" />
+
+      <Card className="w-full max-w-md border-primary/10 bg-card/60 backdrop-blur-xl shadow-2xl ring-1 ring-white/5 relative z-10">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold tracking-tight">
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
             Complete Your Profile
           </CardTitle>
-          <CardDescription className="text-neutral-400">
+          <CardDescription className="text-muted-foreground">
             Connect your Cardano wallet to finish setting up your account
           </CardDescription>
         </CardHeader>
@@ -182,7 +186,7 @@ export default function CompleteProfilePage() {
                   <p className="text-sm font-medium text-green-500">
                     Wallet Connected
                   </p>
-                  <p className="text-xs text-neutral-400 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {connectedAddress}
                   </p>
                 </div>
@@ -190,7 +194,7 @@ export default function CompleteProfilePage() {
 
               <Button
                 onClick={handleSaveWallet}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="w-full bg-primary text-black hover:bg-primary/90 font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all duration-300"
                 disabled={saving}
               >
                 {saving ? (
@@ -206,25 +210,25 @@ export default function CompleteProfilePage() {
           ) : (
             <Button
               onClick={() => setShowWalletDialog(true)}
-              className="w-full border-purple-500/50 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-500"
+              className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 group"
               variant="outline"
               disabled={connecting}
             >
               {connecting ? (
                 <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-primary" />
+                  <span className="text-primary">Connecting...</span>
                 </>
               ) : (
                 <>
-                  <WalletIcon className="mr-2 h-4 w-4" />
-                  Connect Cardano Wallet
+                  <WalletIcon className="mr-2 h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-primary font-medium">Connect Cardano Wallet</span>
                 </>
               )}
             </Button>
           )}
 
-          <p className="text-xs text-center text-neutral-500">
+          <p className="text-xs text-center text-muted-foreground">
             Your wallet address will be used to verify your identity and receive
             payments
           </p>
@@ -233,12 +237,12 @@ export default function CompleteProfilePage() {
 
       {/* Wallet Connection Dialog */}
       <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
-        <DialogContent className="sm:max-w-[425px] border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
+        <DialogContent className="sm:max-w-[425px] border-white/10 bg-card/95 backdrop-blur-xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-foreground">
               Connect Wallet
             </DialogTitle>
-            <DialogDescription className="text-neutral-400">
+            <DialogDescription className="text-muted-foreground">
               Choose a Cardano wallet to complete your profile
             </DialogDescription>
           </DialogHeader>
@@ -246,22 +250,23 @@ export default function CompleteProfilePage() {
             {wallets.map((wallet) => (
               <Button
                 key={wallet.name}
-                className="w-full justify-start border-neutral-800 bg-neutral-900/50 hover:bg-neutral-800"
+                className="w-full justify-start h-14 border-white/5 bg-white/5 hover:bg-white/10 hover:border-primary/30 transition-all group"
                 variant="outline"
                 disabled={!wallet.enable || connecting}
                 onClick={() => handleWalletConnect(wallet)}
               >
-                <Image
-                  alt={wallet.name}
-                  height={24}
-                  src={wallet.icon}
-                  width={24}
-                  className="mr-3"
-                />
-                <span>{wallet.name}</span>
+                <div className="p-2 rounded-lg bg-white/5 mr-3 group-hover:bg-white/10 transition-colors">
+                  <Image
+                    alt={wallet.name}
+                    height={24}
+                    src={wallet.icon}
+                    width={24}
+                  />
+                </div>
+                <span className="text-lg text-foreground group-hover:text-primary transition-colors">{wallet.name}</span>
                 {!wallet.enable && (
-                  <span className="ml-auto text-xs text-neutral-500">
-                    (Not installed)
+                  <span className="ml-auto text-xs text-muted-foreground bg-black/50 px-2 py-1 rounded">
+                    Not installed
                   </span>
                 )}
               </Button>
