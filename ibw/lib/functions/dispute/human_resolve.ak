@@ -10,6 +10,7 @@ pub fn validate_human_resolve(
   policy_id: PolicyId,
   project_nft: PolicyId,
   _profile_nft: PolicyId,
+  decision: ByteArray,
 ) -> Bool {
   // 1. Find Dispute UTxO in inputs (State must be HumanReview)
   expect Some(dispute_input) =
@@ -73,8 +74,6 @@ pub fn validate_human_resolve(
   expect InlineDatum(p_datum) = project_input.output.datum
   expect project_datum: ProjectDatum = p_datum
 
-  expect Some(decision) = dispute_in_datum.final_decision
-  
   let payout_check = 
     if decision == "Client" {
         let client_nft = project_datum.client_nft

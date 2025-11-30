@@ -99,5 +99,5 @@ pub type ArbitratorRedeemer {
   AIResolve
   ReDispute
   Finalize
-  ArbitratorResolve
+  ArbitratorResolve { decision: ByteArray }
 }

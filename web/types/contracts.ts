@@ -119,6 +119,7 @@ export const ProjectRedeemerSchema = Data.Enum([
   Data.Literal("ProjectDispute"),
   Data.Literal("ProjectReDispute"),
   Data.Literal("ProjectFinalize"),
+  Data.Literal("ProjectResolve"),
 ]);
 export type ProjectRedeemer = Data.Static<typeof ProjectRedeemerSchema>;
 export const ProjectRedeemer =
@@ -167,6 +168,11 @@ export const ArbitratorRedeemerSchema = Data.Enum([
   Data.Literal("AIResolve"),
   Data.Literal("ReDispute"),
   Data.Literal("Finalize"),
+  Data.Object({
+    ArbitratorResolve: Data.Object({
+      decision: Data.Bytes(),
+    }),
+  }),
 ]);
 export type ArbitratorRedeemer = Data.Static<typeof ArbitratorRedeemerSchema>;
 export const ArbitratorRedeemer =

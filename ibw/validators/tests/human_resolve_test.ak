@@ -192,5 +192,6 @@ test validate_human_resolve_success() {
     mock_policy_id,
     mock_project_nft,
     mock_profile_nft,
+    "Client",
   )
 }

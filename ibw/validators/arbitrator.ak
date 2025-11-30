@@ -129,7 +129,7 @@ validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
           project_nft,
           profile_nft,
         )
-      ArbitratorResolve ->
+      ArbitratorResolve { decision } ->
         // Human Resolve
         // -------------
         // 1. state == HumanReview
@@ -145,6 +145,7 @@ validator arbitrator(profile_nft: PolicyId, project_nft: PolicyId) {
           },
           project_nft,
           profile_nft,
+          decision,
         )
     }
   }

@@ -19,6 +19,7 @@ import {
   resolveDisputeAI,
   finalizeDispute,
   reDispute,
+  resolveDisputeHuman,
 } from "@/lib/contracts/project";
 
 export default function ProjectDetailsPage() {
@@ -36,6 +37,7 @@ export default function ProjectDetailsPage() {
   const [resolving, setResolving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [reDisputing, setReDisputing] = useState(false);
+  const [humanResolving, setHumanResolving] = useState(false);
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [missingAmount, setMissingAmount] = useState(0);
@@ -286,6 +288,36 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const handleHumanResolve = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to resolve dispute");
+      return;
+    }
+    if (!lucid) {
+      toast.error("Wallet not connected");
+      return;
+    }
+    setHumanResolving(true);
+    try {
+      // Hardcoded resolution for simulation
+      const resolution = {
+        decision: "Client" as const,
+        completionPercentage: 0,
+      };
+
+      toast.info("Submitting human resolution...");
+      const txHash = await resolveDisputeHuman(lucid, project.project_nft_asset_name, resolution);
+      toast.success(`Human resolution submitted: ${txHash.slice(0, 10)}...`);
+
+      fetchProject();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to resolve dispute");
+    } finally {
+      setHumanResolving(false);
+    }
+  };
+
   if (loading)
     return <div className="p-10 text-center">Loading project details...</div>;
   if (!project)
@@ -388,6 +420,18 @@ export default function ProjectDetailsPage() {
               onPress={handleReDispute}
             >
               Re-Dispute (Human Review)
+            </Button>
+          )}
+
+          {project.status === "disputed" && (
+            <Button
+              color="primary"
+              variant="flat"
+              className="font-bold"
+              isLoading={humanResolving}
+              onPress={handleHumanResolve}
+            >
+              Simulate Human Resolve
             </Button>
           )}
         </div>
